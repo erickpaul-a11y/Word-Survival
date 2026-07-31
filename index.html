@@ -1,1 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<title>Word Survival</title>
+
+<style>
+html,body{
+margin:0;
+padding:0;
+overflow:hidden;
+background:#000;
+}
+
+canvas{
+display:block;
+background:#6dbb4b;
+}
+</style>
+
+</head>
+
+<body>
+
+<canvas id="game"></canvas>
+
+<script>
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+function resize(){
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+}
+
+window.addEventListener("resize",resize);
+resize();
+
+const player={
+x:300,
+y:300,
+size:30,
+speed:4
+};
+
+const keys={};
+
+addEventListener("keydown",(e)=>{
+keys[e.key.toLowerCase()]=true;
+});
+
+addEventListener("keyup",(e)=>{
+keys[e.key.toLowerCase()]=false;
+});
+
+function update(){
+
+if(keys["w"]||keys["arrowup"])
+player.y-=player.speed;
+
+if(keys["s"]||keys["arrowdown"])
+player.y+=player.speed;
+
+if(keys["a"]||keys["arrowleft"])
+player.x-=player.speed;
+
+if(keys["d"]||keys["arrowright"])
+player.x+=player.speed;
+
+}
+
+function draw(){
+
+ctx.clearRect(0,0,canvas.width,canvas.height);
+
+ctx.fillStyle="#6dbb4b";
+ctx.fillRect(0,0,canvas.width,canvas.height);
+
+ctx.fillStyle="#2b7cff";
+ctx.fillRect(player.x,player.y,player.size,player.size);
+
+ctx.fillStyle="white";
+ctx.font="20px Arial";
+ctx.fillText("WORD SURVIVAL PRE-ALPHA",20,30);
+
+}
+
+function gameLoop(){
+
+update();
+draw();
+
+requestAnimationFrame(gameLoop);
+
+}
+
+gameLoop();
+
+</script>
+
+</body>
+</html>
