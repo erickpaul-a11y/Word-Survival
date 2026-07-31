@@ -1,552 +1,632 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-<title>Word Survival 1.3</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WORD SURVIVAL ∞ — Ultimate Crafting & Entities Engine</title>
+    <style>
+        :root {
+            --bg-dark: #030712;
+            --panel-bg: rgba(15, 23, 42, 0.95);
+            --border-color: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #0ea5e9;
+            --accent-light: #38bdf8;
+            --danger: #ef4444;
+            --success: #10b981;
+            --magic: #a855f7;
+            --gold: #f59e0b;
+        }
 
-<style>
-body{
-margin:0;
-overflow:hidden;
-background:black;
-}
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; user-select: none; }
+        body { background-color: var(--bg-dark); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
-canvas{
-display:block;
-}
-</style>
+        header {
+            background: #0f172a;
+            border-bottom: 1px solid var(--border-color);
+            padding: 8px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 48px;
+        }
+        .logo { font-weight: 900; font-size: 1.1rem; background: linear-gradient(135deg, var(--accent-light), var(--magic)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .nav-tabs { display: flex; gap: 8px; }
+        .tab-btn {
+            background: #1e293b;
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab-btn.active, .tab-btn:hover { background: var(--accent); color: #000; border-color: var(--accent-light); }
 
+        .view-content { flex: 1; display: none; height: calc(100vh - 48px); }
+        .view-content.active { display: flex; }
+
+        #game-layout {
+            display: grid;
+            grid-template-columns: 340px 1fr 380px;
+            width: 100vw;
+            height: 100%;
+            gap: 12px;
+            padding: 12px;
+            background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            overflow-y: auto;
+        }
+
+        h2 { color: var(--accent-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.2px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
+
+        .rank-badge { background: linear-gradient(135deg, var(--accent), var(--magic)); color: #fff; font-size: 0.65rem; padding: 2px 8px; border-radius: 12px; font-weight: bold; }
+
+        .stat-group { display: flex; flex-direction: column; gap: 3px; }
+        .stat-row { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted); }
+        .stat-bar { background: #090d16; height: 7px; border-radius: 4px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
+        .stat-fill { height: 100%; transition: width 0.3s; }
+        .fill-hp { background: var(--danger); } .fill-energy { background: var(--gold); } .fill-exp { background: var(--accent-light); } .fill-hunger { background: var(--success); }
+
+        .btn-group { display: flex; gap: 6px; }
+        .btn {
+            background: #1e293b;
+            color: var(--text-main);
+            border: 1px solid var(--accent);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+            flex: 1;
+            text-align: center;
+        }
+        .btn:hover { background: var(--accent); color: #000; }
+
+        #viewport-container {
+            position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background: #000; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color);
+        }
+        canvas { display: block; image-rendering: pixelated; }
+
+        #hud-overlay {
+            position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; pointer-events: none; gap: 8px;
+        }
+        .hud-card { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); border: 1px solid var(--border-color); padding: 5px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
+
+        .inv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-height: 200px; overflow-y: auto; padding-right: 4px; }
+        .inv-slot { 
+            background: #090d16; 
+            border: 1px solid var(--border-color); 
+            border-radius: 6px; 
+            aspect-ratio: 1; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 0.6rem; 
+            text-align: center; 
+            padding: 4px; 
+            gap: 2px; 
+            cursor: pointer;
+            transition: transform 0.1s, border-color 0.2s;
+        }
+        .inv-slot:hover { border-color: var(--accent-light); transform: scale(1.03); }
+        .inv-slot img { width: 32px; height: 32px; image-rendering: pixelated; }
+
+        .craft-recipes-box {
+            background: #090d16;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px;
+            font-size: 0.7rem;
+            max-height: 140px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .recipe-item {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(255,255,255,0.03);
+            padding: 4px 6px;
+            border-radius: 4px;
+        }
+
+        .prompt-input { width: 100%; background: #090d16; border: 1px solid var(--border-color); color: #fff; padding: 10px; border-radius: 8px; outline: none; font-size: 0.85rem; }
+        .prompt-input:focus { border-color: var(--accent-light); box-shadow: 0 0 10px rgba(56, 189, 248, 0.2); }
+
+        #log-panel { flex-grow: 1; background: #040711; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px; font-family: 'Courier New', monospace; font-size: 0.72rem; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 5px; }
+        .log-entry { padding: 4px 6px; border-radius: 4px; border-left: 3px solid var(--border-color); background: rgba(255,255,255,0.02); }
+        .log-entry.system { border-color: var(--accent-light); color: #7dd3fc; }
+        .log-entry.craft { border-color: var(--success); color: #a7f3d0; }
+        .log-entry.ai { border-color: var(--magic); color: #f0abfc; }
+
+        #manual-view { padding: 24px; overflow-y: auto; width: 100%; background: #090d16; color: #cbd5e1; line-height: 1.6; display: flex; justify-content: center; }
+        .manual-container { max-width: 900px; width: 100%; background: #0f172a; border: 1px solid var(--border-color); padding: 32px; border-radius: 12px; }
+        .manual-container h1 { color: var(--accent-light); font-size: 1.8rem; margin-bottom: 12px; border-bottom: 2px solid var(--accent); padding-bottom: 8px; }
+        .manual-container h2 { color: var(--gold); font-size: 1.2rem; margin-top: 24px; margin-bottom: 8px; border-bottom: none; }
+        .manual-container ul { margin-left: 20px; margin-bottom: 12px; }
+        .manual-container code { background: #1e293b; color: var(--accent-light); padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+    </style>
 </head>
-
 <body>
 
-<canvas id="game"></canvas>
+<header>
+    <div class="logo">WORD SURVIVAL ∞ — World & Station Engine</div>
+    <div class="nav-tabs">
+        <button class="tab-btn active" onclick="switchTab('game')">🎮 JUEGO EN VIVO</button>
+        <button class="tab-btn" onclick="switchTab('manual')">📜 MANUAL Y GUÍA</button>
+    </div>
+</header>
+
+<div id="view-game" class="view-content active">
+    <div id="game-layout">
+        <div class="panel">
+            <h2>ESTADO JUGADOR <span id="player-rank" class="rank-badge">Superviviente</span></h2>
+            
+            <div class="btn-group">
+                <button class="btn" onclick="gameEngine.saveGame()">💾 Guardar JSON</button>
+                <button class="btn" onclick="gameEngine.loadGame()">📂 Cargar JSON</button>
+            </div>
+
+            <div class="stat-group">
+                <div class="stat-row"><span>Nivel: <b id="lvl-val">1</b></span><span>EXP: <span id="exp-val">0/100</span></span></div>
+                <div class="stat-bar"><div id="bar-exp" class="stat-fill fill-exp" style="width: 0%"></div></div>
+            </div>
+
+            <div class="stat-group">
+                <div class="stat-row"><span>Salud</span><span id="hp-val">100/100</span></div>
+                <div class="stat-bar"><div id="bar-hp" class="stat-fill fill-hp" style="width: 100%"></div></div>
+            </div>
+
+            <div class="stat-group">
+                <div class="stat-row"><span>Hambre</span><span id="hunger-val">100/100</span></div>
+                <div class="stat-bar"><div id="bar-hunger" class="stat-fill fill-hunger" style="width: 100%"></div></div>
+            </div>
+
+            <h2>🎒 INVENTARIO (<span id="inv-count">0</span>)</h2>
+            <div id="inventory-grid" class="inv-grid"></div>
+
+            <h2>🏗️ ESTACIONES Y ACCIONES</h2>
+            <div class="btn-group" style="flex-wrap: wrap;">
+                <button class="btn" onclick="gameEngine.useStation('mesa')">🔨 Mesa Crafteo</button>
+                <button class="btn" onclick="gameEngine.useStation('fogon')">🍳 Cocinar Fogón</button>
+            </div>
+
+            <h2>🔨 RECETAS</h2>
+            <div class="craft-recipes-box" id="recipes-list"></div>
+        </div>
+
+        <div id="viewport-container">
+            <div id="hud-overlay">
+                <div class="hud-card" id="hud-biome">🗺️ Terreno: Bosque</div>
+                <div class="hud-card" id="hud-time">⏰ Tiempo: 12:00</div>
+                <div class="hud-card" id="hud-weather">☀️ Clima: Despejado</div>
+            </div>
+            <canvas id="gameCanvas" width="512" height="512"></canvas>
+        </div>
+
+        <div class="panel">
+            <h2>✍️ INVOCAR / CREAR / ACCIÓN</h2>
+            <input type="text" id="semantic-input" class="prompt-input" placeholder="Ej: lobo_feroz, alce_pacifico, carne+fuego, mesa_trabajo..." autofocus>
+            <div style="font-size:0.68rem; color: var(--text-muted)">Usa <b>WASD/Flechas</b> para moverte. Acércate a criaturas o estaciones para interactuar.</div>
+
+            <h2>📜 REGISTRO DE EVENTOS</h2>
+            <div id="log-panel"></div>
+        </div>
+    </div>
+</div>
+
+<div id="view-manual" class="view-content">
+    <div id="manual-view">
+        <div class="manual-container">
+            <h1>WORD SURVIVAL ∞ — GUÍA DE ESTACIONES Y ENTIDADES</h1>
+            
+            <h2>ESTACIONES DE TRABAJO Y COCINA</h2>
+            <p>Para crear ítems avanzados o cocinar alimentos, debes construir y colocar las estaciones en el mundo:</p>
+            <ul>
+                <li><code>mesa_trabajo</code> ➔ Permite crear herramientas avanzadas, armas y armaduras.</li>
+                <li><code>fogon</code> ➔ Permite cocinar alimentos (ej: <code>carne + fuego</code>) para restaurar más salud y hambre.</li>
+            </ul>
+
+            <h2>CRIATURAS NO HOSTILES Y ENEMIGOS</h2>
+            <p>El mapa se puebla automáticamente de entidades con texturas pixeladas únicas:</p>
+            <ul>
+                <li><b>Pacíficos (Alce, Vaca, Aldeano, Ciervo):</b> Si interactúas con ellos o te acercas, te darán alimento o suministros de cocina.</li>
+                <li><b>Hostiles (Lobo, Golem, Esqueleto, Dragón):</b> Variantes enemigas con estadísticas altas.</li>
+            </ul>
+        </div>
+    </div>
+</div>
 
 <script>
+function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.view-content').forEach(v => v.classList.remove('active'));
 
-const canvas=document.getElementById("game");
-const ctx=canvas.getContext("2d");
-
-canvas.width=window.innerWidth;
-canvas.height=window.innerHeight;
-
-
-// MUNDO
-
-let world={
-width:5000,
-height:5000
-};
-
-
-// CAMARA
-
-let camera={
-x:0,
-y:0
-};
-
-
-// JUGADOR
-
-let player={
-
-x:2500,
-y:2500,
-
-size:35,
-
-speed:6,
-
-life:100,
-
-maxLife:100,
-
-words:[],
-
-inventory:[]
-
-};
-
-
-
-// CONTROLES
-
-let keys={};
-
-
-document.addEventListener("keydown",e=>{
-keys[e.key.toLowerCase()]=true;
-});
-
-
-document.addEventListener("keyup",e=>{
-keys[e.key.toLowerCase()]=false;
-});
-
-
-
-// ENEMIGOS
-
-let enemies=[];
-
-
-for(let i=0;i<25;i++){
-
-enemies.push({
-
-x:Math.random()*world.width,
-
-y:Math.random()*world.height,
-
-size:30,
-
-speed:2,
-
-vision:300,
-
-damage:5,
-
-attack:0
-
-});
-
+    if (tab === 'game') {
+        document.querySelectorAll('.tab-btn')[0].classList.add('active');
+        document.getElementById('view-game').classList.add('active');
+    } else {
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+        document.getElementById('view-manual').classList.add('active');
+    }
 }
 
+/**
+ * GENERADOR DE TEXTURAS DE PÍXELES PARA TERRENOS, JUGADOR Y ENTIDADES
+ */
+class ProceduralPixelEngine {
+    static generateTexture(word, category) {
+        const size = 16;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
 
+        let hash = 0;
+        const lower = word.toLowerCase();
+        for (let i = 0; i < lower.length; i++) {
+            hash = lower.charCodeAt(i) + ((hash << 5) - hash);
+        }
 
+        const palettes = {
+            player: ['#000000', '#38bdf8', '#0284c7', '#fef08a', '#1e293b'],
+            enemy: ['#000000', '#ef4444', '#991b1b', '#f59e0b', '#450a0a'],
+            friendly: ['#000000', '#22c55e', '#15803d', '#fef08a', '#14532d'],
+            station: ['#000000', '#f59e0b', '#b45309', '#78350f', '#fff'],
+            weapon: ['#000000', '#38bdf8', '#0284c7', '#f59e0b', '#78350f'],
+            food: ['#000000', '#ef4444', '#f59e0b', '#22c55e', '#78350f'],
+            material: ['#000000', '#cbd5e1', '#94a3b8', '#64748b', '#334155']
+        };
 
-// ARBOLES
+        let palette = palettes[category] || palettes.material;
+        let grid = Array(size).fill(0).map(() => Array(size).fill(0));
 
-let trees=[];
+        if (category === "player") {
+            // Textura del Jugador
+            for (let r = 3; r < 13; r++) {
+                for (let c = 5; c < 11; c++) grid[r][c] = 1;
+            }
+            grid[4][6] = 3; grid[4][9] = 3; // Ojos
+            grid[8][4] = 2; grid[8][11] = 2; // Brazos
+        } else if (category === "station") {
+            // Mesa o fogón
+            for (let r = 4; r < 13; r++) {
+                for (let c = 2; c < 14; c++) grid[r][c] = (r === 4 || c === 2 || c === 13) ? 1 : 2;
+            }
+            grid[6][6] = 3; grid[6][9] = 3;
+        } else if (category === "enemy" || category === "friendly") {
+            // Criaturas
+            for (let r = 4; r < 12; r++) {
+                for (let c = 3; c < 13; c++) {
+                    const v = (Math.abs(hash + r * c) % 3) + 1;
+                    grid[r][c] = v;
+                }
+            }
+            grid[5][4] = 3; grid[5][11] = 3;
+        } else {
+            // Terreno u objetos
+            for (let r = 1; r < 15; r++) {
+                for (let c = 1; c < 8; c++) {
+                    const colorVal = (Math.abs(hash ^ (r * 7 + c * 13)) % 3) + 1;
+                    grid[r][c] = colorVal;
+                    grid[r][15 - c] = colorVal;
+                }
+            }
+        }
 
+        for (let r = 0; r < size; r++) {
+            for (let c = 0; c < size; c++) {
+                const code = grid[r][c];
+                if (code !== 0) {
+                    ctx.fillStyle = palette[code] || '#ffffff';
+                    ctx.fillRect(c, r, 1, 1);
+                }
+            }
+        }
 
-for(let i=0;i<100;i++){
+        return canvas;
+    }
 
-trees.push({
+    static generateTileTexture(type) {
+        const size = 16;
+        const canvas = document.createElement('canvas');
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext('2d');
 
-x:Math.random()*world.width,
+        const tileColors = {
+            grass: ['#15803d', '#166534', '#22c55e'],
+            dirt: ['#78350f', '#451a03', '#92400e'],
+            stone: ['#475569', '#334155', '#64748b'],
+            water: ['#0284c7', '#0369a1', '#38bdf8']
+        };
 
-y:Math.random()*world.height
-
-});
-
+        const pal = tileColors[type] || tileColors.grass;
+        for (let r = 0; r < size; r++) {
+            for (let c = 0; c < size; c++) {
+                const rand = Math.floor(Math.random() * pal.length);
+                ctx.fillStyle = pal[rand];
+                ctx.fillRect(c, r, 1, 1);
+            }
+        }
+        return canvas;
+    }
 }
 
-
-
-
-// ACTUALIZAR
-
-function update(){
-
-
-// MOVIMIENTO
-
-if(keys["w"])
-player.y-=player.speed;
-
-if(keys["s"])
-player.y+=player.speed;
-
-if(keys["a"])
-player.x-=player.speed;
-
-if(keys["d"])
-player.x+=player.speed;
-
-
-
-// LIMITES
-
-player.x=Math.max(0,Math.min(world.width,player.x));
-
-player.y=Math.max(0,Math.min(world.height,player.y));
-
-
-
-// CAMARA
-
-camera.x=player.x-canvas.width/2;
-
-camera.y=player.y-canvas.height/2;
-
-collectWords();
-
-  // PALABRAS DEL MAPA
-
-wordsOnMap.forEach(w=>{
-
-
-ctx.fillStyle="yellow";
-
-ctx.beginPath();
-
-ctx.arc(
-
-w.x-camera.x,
-
-w.y-camera.y,
-
-15,
-
-0,
-
-Math.PI*2
-
-);
-
-ctx.fill();
-
-
-
-ctx.fillStyle="white";
-
-ctx.font="14px Arial";
-
-ctx.fillText(
-
-w.word,
-
-w.x-camera.x-25,
-
-w.y-camera.y-20
-
-);
-
-
-});
-
-
-
-// INVENTARIO
-
-ctx.fillStyle="white";
-
-ctx.font="18px Arial";
-
-ctx.fillText(
-
-"Palabras: "+player.words.length,
-
-20,
-
-60
-
-);
-  
-// ENEMIGOS
-
-enemies.forEach(e=>{
-
-
-let dx=player.x-e.x;
-let dy=player.y-e.y;
-
-let distance=Math.sqrt(dx*dx+dy*dy);
-
-
-
-if(distance<e.vision){
-
-
-e.x+=(dx/distance)*e.speed;
-
-e.y+=(dy/distance)*e.speed;
-
-
-
-if(distance<50 && e.attack<=0){
-
-player.life-=e.damage;
-
-e.attack=60;
-
+/**
+ * LÓGICA DE IA Y OBJETOS DE JUEGO
+ */
+class SemanticWordAI {
+    constructor() {
+        this.recipes = {
+            "madera+piedra": "Pico de Piedra",
+            "madera+hierro": "Espada de Hierro",
+            "carne+fuego": "Carne Asada (Comida)",
+            "trigo+agua": "Pan Recién Horneado",
+            "planta+agua": "Poción Sanadora"
+        };
+    }
+
+    process(phrase) {
+        const clean = phrase.toLowerCase().trim();
+        if (!clean) return null;
+
+        if (clean.includes('+')) {
+            const parts = clean.split('+').sort();
+            const comboKey = parts.join('+');
+            let name = this.recipes[comboKey] || ("Plato/Artefacto de " + clean);
+            const canvas = ProceduralPixelEngine.generateTexture(name, "food");
+            return { type: 'CRAFT', name, category: "food", canvas };
+        }
+
+        let category = "material";
+        let isHostile = false;
+
+        if (clean.includes("mesa") || clean.includes("fogon") || clean.includes("horno")) category = "station";
+        else if (clean.includes("lobo") || clean.includes("golem") || clean.includes("esqueleto") || clean.includes("dragon")) {
+            category = "enemy"; isHostile = true;
+        } else if (clean.includes("vaca") || clean.includes("alce") || clean.includes("aldeano") || clean.includes("ciervo")) {
+            category = "friendly";
+        } else if (clean.includes("espada") || clean.includes("hacha") || clean.includes("pico")) category = "weapon";
+
+        const nameFormatted = phrase.charAt(0).toUpperCase() + phrase.slice(1);
+        const canvas = ProceduralPixelEngine.generateTexture(nameFormatted, category);
+
+        return { name: nameFormatted, category, isHostile, canvas };
+    }
 }
 
+/**
+ * MOTOR DE JUEGO
+ */
+class GameEngine {
+    constructor() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.ai = new SemanticWordAI();
+        this.player = { x: 6, y: 6, level: 1, exp: 0, nextExp: 100, hp: 100, maxHp: 100, hunger: 100 };
+        this.inventory = [];
+        this.worldEntities = [];
+        this.tiles = [];
+        this.tileTextures = {};
+        this.playerTexture = ProceduralPixelEngine.generateTexture("Jugador", "player");
+        this.initMap();
+        this.init();
+    }
 
+    initMap() {
+        this.tileTextures = {
+            grass: ProceduralPixelEngine.generateTileTexture('grass'),
+            dirt: ProceduralPixelEngine.generateTileTexture('dirt'),
+            stone: ProceduralPixelEngine.generateTileTexture('stone'),
+            water: ProceduralPixelEngine.generateTileTexture('water')
+        };
+
+        for (let r = 0; r < 13; r++) {
+            this.tiles[r] = [];
+            for (let c = 0; c < 13; c++) {
+                let type = 'grass';
+                if (r === 0 || c === 0 || r === 12 || c === 12) type = 'stone';
+                else if ((r === 3 && c === 4) || (r === 3 && c === 5)) type = 'water';
+                else if (r > 8 && c < 5) type = 'dirt';
+                this.tiles[r][c] = type;
+            }
+        }
+
+        // Entidades iniciales pacíficas y hostiles
+        this.spawnEntity("Alce Pacífico", 3, 2, "friendly");
+        this.spawnEntity("Aldeano Cocinero", 8, 8, "friendly");
+        this.spawnEntity("Lobo Feroz", 10, 2, "enemy");
+    }
+
+    spawnEntity(name, x, y, category) {
+        const canvas = ProceduralPixelEngine.generateTexture(name, category);
+        this.worldEntities.push({ name, x, y, category, canvas });
+    }
+
+    init() {
+        window.addEventListener('keydown', (e) => {
+            let dx = 0, dy = 0;
+            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') dy = -1;
+            if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') dy = 1;
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') dx = -1;
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') dx = 1;
+            if (dx !== 0 || dy !== 0) this.move(dx, dy);
+        });
+
+        document.getElementById('semantic-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.handleInput(e.target.value);
+                e.target.value = '';
+            }
+        });
+
+        this.renderRecipesList();
+        this.addLog("Mundo cargado con biomas, personaje animado y entidades.", "system");
+        this.loop();
+    }
+
+    renderRecipesList() {
+        const box = document.getElementById('recipes-list');
+        box.innerHTML = '';
+        for (let r in this.ai.recipes) {
+            const row = document.createElement('div');
+            row.className = 'recipe-item';
+            row.innerHTML = `<span><code>${r}</code></span><b style="color:var(--accent-light)">${this.ai.recipes[r]}</b>`;
+            box.appendChild(row);
+        }
+    }
+
+    handleInput(text) {
+        const res = this.ai.process(text);
+        if (!res) return;
+
+        if (res.category === 'friendly' || res.category === 'enemy' || res.category === 'station') {
+            const rx = Math.floor(Math.random() * 10) + 1;
+            const ry = Math.floor(Math.random() * 10) + 1;
+            this.worldEntities.push({ name: res.name, x: rx, y: ry, category: res.category, canvas: res.canvas });
+            this.addLog(`✨ Colocado en mapa: **${res.name}** [${res.category}]`, "ai");
+        } else {
+            this.inventory.push(res);
+            this.addLog(`🎒 Añadido a inventario: **${res.name}**`, "craft");
+        }
+
+        this.updateUI();
+    }
+
+    useStation(type) {
+        if (type === 'mesa') {
+            this.addLog("🔨 Abierta Mesa de Trabajo: Puedes usar fórmulas compuestas.", "system");
+        } else if (type === 'fogon') {
+            this.addLog("🍳 Fogón Activo: Prueba combinando 'carne+fuego'.", "system");
+        }
+    }
+
+    move(dx, dy) {
+        const nx = Math.max(0, Math.min(12, this.player.x + dx));
+        const ny = Math.max(0, Math.min(12, this.player.y + dy));
+
+        if (this.tiles[ny][nx] === 'water') {
+            this.addLog("🌊 El agua profunda te frena.", "system");
+            return;
+        }
+
+        this.player.x = nx;
+        this.player.y = ny;
+        this.player.hunger = Math.max(0, this.player.hunger - 0.1);
+
+        // Comprobar colisión con entidades
+        this.worldEntities.forEach((ent, idx) => {
+            if (ent.x === nx && ent.y === ny) {
+                if (ent.category === 'friendly') {
+                    this.addLog(`🍎 ${ent.name} te ha regalado Suministros de Comida!`, "craft");
+                    this.player.hunger = Math.min(100, this.player.hunger + 25);
+                } else if (ent.category === 'enemy') {
+                    this.addLog(`⚔️ ¡Has luchado contra ${ent.name}!`, "system");
+                    this.player.hp = Math.max(0, this.player.hp - 15);
+                }
+            }
+        });
+
+        this.updateUI();
+    }
+
+    saveGame() {
+        const data = { player: this.player, invNames: this.inventory.map(i => i.name) };
+        localStorage.setItem('WORD_SURVIVAL_MASTER_SAVE', JSON.stringify(data));
+        this.addLog("💾 Guardado completo.", "system");
+    }
+
+    loadGame() {
+        const raw = localStorage.getItem('WORD_SURVIVAL_MASTER_SAVE');
+        if (raw) {
+            const data = JSON.parse(raw);
+            this.player = data.player;
+            this.inventory = [];
+            data.invNames.forEach(n => this.handleInput(n));
+            this.addLog("📂 Carga realizada.", "system");
+            this.updateUI();
+        }
+    }
+
+    updateUI() {
+        document.getElementById('lvl-val').innerText = this.player.level;
+        document.getElementById('exp-val').innerText = `${this.player.exp}/${this.player.nextExp}`;
+        document.getElementById('bar-exp').style.width = `${(this.player.exp / this.player.nextExp) * 100}%`;
+
+        document.getElementById('hp-val').innerText = `${Math.ceil(this.player.hp)}/${this.player.maxHp}`;
+        document.getElementById('bar-hp').style.width = `${(this.player.hp / this.player.maxHp) * 100}%`;
+
+        document.getElementById('hunger-val').innerText = `${Math.ceil(this.player.hunger)}/100`;
+        document.getElementById('bar-hunger').style.width = `${this.player.hunger}%`;
+
+        document.getElementById('inv-count').innerText = this.inventory.length;
+
+        const grid = document.getElementById('inventory-grid');
+        grid.innerHTML = '';
+        this.inventory.forEach(item => {
+            const slot = document.createElement('div');
+            slot.className = 'inv-slot';
+            const img = document.createElement('img');
+            img.src = item.canvas.toDataURL();
+            slot.appendChild(img);
+            slot.innerHTML += `<span>${item.name}</span>`;
+            grid.appendChild(slot);
+        });
+    }
+
+    addLog(msg, type = "system") {
+        const log = document.getElementById('log-panel');
+        log.innerHTML = `<div class="log-entry ${type}">${msg}</div>` + log.innerHTML;
+    }
+
+    render() {
+        this.ctx.clearRect(0, 0, 512, 512);
+        const tileSize = 39;
+
+        // Renderizar Mapa con textura Pixel Art por tipo de terreno
+        for (let r = 0; r < 13; r++) {
+            for (let c = 0; c < 13; c++) {
+                const type = this.tiles[r][c];
+                const tex = this.tileTextures[type];
+                this.ctx.drawImage(tex, c * tileSize, r * tileSize, tileSize, tileSize);
+            }
+        }
+
+        // Renderizar Entidades en el mundo
+        this.worldEntities.forEach(ent => {
+            this.ctx.drawImage(ent.canvas, ent.x * tileSize + 4, ent.y * tileSize + 4, 32, 32);
+        });
+
+        // Renderizar Personaje Principal en Pixel Art
+        this.ctx.drawImage(this.playerTexture, this.player.x * tileSize + 4, this.player.y * tileSize + 4, 32, 32);
+    }
+
+    loop() {
+        this.render();
+        requestAnimationFrame(() => this.loop());
+    }
 }
 
-
-
-if(e.attack>0){
-
-e.attack--;
-
-}
-
-
-});
-
-
-
-}
-
-
-
-
-
-// DIBUJAR
-
-// ==========================
-// SISTEMA DE PALABRAS 1.3
-// ==========================
-
-
-let wordDatabase=[
-
-{
-word:"madera",
-type:"material",
-level:1
-},
-
-{
-word:"piedra",
-type:"material",
-level:1
-},
-
-{
-word:"hierro",
-type:"material",
-level:2
-},
-
-{
-word:"fuego",
-type:"elemento",
-level:2
-},
-
-{
-word:"espada",
-type:"arma",
-level:3
-},
-
-{
-word:"arco",
-type:"arma",
-level:3
-}
-
-];
-
-
-
-// PALABRAS EN EL MAPA
-
-let wordsOnMap=[];
-
-
-for(let i=0;i<100;i++){
-
-
-let w=wordDatabase[
-Math.floor(Math.random()*wordDatabase.length)
-];
-
-
-wordsOnMap.push({
-
-x:Math.random()*world.width,
-
-y:Math.random()*world.height,
-
-word:w.word,
-
-type:w.type,
-
-level:w.level
-
-});
-
-
-}
-
-
-
-
-// RECOGER PALABRAS
-
-
-function collectWords(){
-
-
-wordsOnMap.forEach((w,index)=>{
-
-
-let dx=player.x-w.x;
-
-let dy=player.y-w.y;
-
-
-let distance=Math.sqrt(dx*dx+dy*dy);
-
-
-
-if(distance<50){
-
-
-player.words.push(w.word);
-
-
-player.inventory.push({
-
-name:w.word,
-
-type:w.type
-
-});
-
-
-wordsOnMap.splice(index,1);
-
-
-}
-
-
-});
-
-
-}
-  
-function draw(){
-
-
-ctx.clearRect(0,0,canvas.width,canvas.height);
-
-
-
-// SUELO
-
-ctx.fillStyle="#3b703b";
-
-ctx.fillRect(
-
--camera.x,
-
--camera.y,
-
-world.width,
-
-world.height
-
-);
-
-
-
-// ARBOLES
-
-ctx.fillStyle="darkgreen";
-
-
-trees.forEach(t=>{
-
-
-ctx.fillRect(
-
-t.x-camera.x,
-
-t.y-camera.y,
-
-30,
-
-40
-
-);
-
-
-});
-
-
-
-// ENEMIGOS
-
-ctx.fillStyle="red";
-
-
-enemies.forEach(e=>{
-
-
-ctx.fillRect(
-
-e.x-camera.x,
-
-e.y-camera.y,
-
-e.size,
-
-e.size
-
-);
-
-
-});
-
-
-
-// JUGADOR
-
-ctx.fillStyle="cyan";
-
-
-ctx.fillRect(
-
-player.x-camera.x,
-
-player.y-camera.y,
-
-player.size,
-
-player.size
-
-);
-
-
-
-// VIDA
-
-ctx.fillStyle="white";
-
-ctx.font="20px Arial";
-
-ctx.fillText(
-
-"Vida: "+player.life+"/"+player.maxLife,
-
-20,
-
-30
-
-);
-
-
-
-}
-
-
-
-
-function loop(){
-
-if(player.life>0){
-
-update();
-
-}
-
-draw();
-
-requestAnimationFrame(loop);
-
-}
-
-
-loop();
-
-
+window.onload = () => { window.gameEngine = new GameEngine(); };
 </script>
-
 </body>
 </html>
