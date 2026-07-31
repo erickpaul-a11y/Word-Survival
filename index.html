@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WORD SURVIVAL ∞ — Engine 3D Infinito Completo</title>
+    <title>WORD SURVIVAL ∞ — Engine Maestro 3D</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         :root {
             --bg-dark: #020617;
-            --panel-bg: rgba(15, 23, 42, 0.90);
+            --panel-bg: rgba(15, 23, 42, 0.92);
             --border: #1e293b;
             --text: #f8fafc;
             --accent: #38bdf8;
@@ -28,40 +28,47 @@
         .logo { font-weight: 900; font-size: 1.1rem; color: var(--accent); }
 
         #game-layout {
-            display: grid; grid-template-columns: 320px 1fr 340px;
+            display: grid; grid-template-columns: 340px 1fr 340px;
             width: 100vw; height: calc(100vh - 48px); gap: 10px; padding: 10px;
         }
 
         .panel {
             background: var(--panel-bg); border: 1px solid var(--border);
-            border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto;
+            border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto;
             backdrop-filter: blur(8px);
         }
 
-        h2 { color: var(--accent); font-size: 0.8rem; text-transform: uppercase; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+        h2 { color: var(--accent); font-size: 0.78rem; text-transform: uppercase; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
 
-        .stat-group { display: flex; flex-direction: column; gap: 3px; }
-        .stat-row { display: flex; justify-content: space-between; font-size: 0.72rem; color: #94a3b8; }
-        .stat-bar { background: #090d16; height: 8px; border-radius: 4px; overflow: hidden; }
+        .stat-group { display: flex; flex-direction: column; gap: 2px; }
+        .stat-row { display: flex; justify-content: space-between; font-size: 0.7rem; color: #94a3b8; }
+        .stat-bar { background: #090d16; height: 7px; border-radius: 4px; overflow: hidden; }
         .stat-fill { height: 100%; transition: width 0.1s; }
         .fill-hp { background: var(--danger); }
         .fill-exp { background: var(--accent); }
+        .fill-hunger { background: var(--gold); }
 
-        .equip-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+        /* Atributos RPG */
+        .attr-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; font-size: 0.7rem; }
+        .attr-box { background: #090d16; border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; }
+
+        /* Equipamiento */
+        .equip-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; }
         .equip-slot {
             background: #090d16; border: 1px solid var(--border); border-radius: 6px;
-            padding: 6px; font-size: 0.7rem; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 52px;
+            padding: 4px; font-size: 0.65rem; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 48px;
         }
-        .equip-slot canvas { width: 32px; height: 32px; border-radius: 4px; }
+        .equip-slot canvas { width: 28px; height: 28px; }
 
-        .inv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-height: 160px; overflow-y: auto; }
+        /* Inventario */
+        .inv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; max-height: 140px; overflow-y: auto; }
         .inv-slot {
             background: #090d16; border: 1px solid var(--border); border-radius: 6px;
             aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            font-size: 0.6rem; text-align: center; padding: 2px; cursor: pointer; transition: border-color 0.2s;
+            font-size: 0.58rem; text-align: center; padding: 2px; cursor: pointer;
         }
         .inv-slot.selected { border-color: var(--gold); background: rgba(245, 158, 11, 0.1); }
-        .inv-slot canvas { width: 32px; height: 32px; }
+        .inv-slot canvas { width: 28px; height: 28px; }
 
         #viewport-container {
             position: relative; display: flex; justify-content: center; align-items: center;
@@ -72,37 +79,55 @@
         #hud-overlay {
             position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; pointer-events: none; z-index: 10;
         }
-        .hud-card { background: rgba(15, 23, 42, 0.85); border: 1px solid var(--border); padding: 5px 10px; border-radius: 6px; font-size: 0.75rem; }
+        .hud-card { background: rgba(15, 23, 42, 0.88); border: 1px solid var(--border); padding: 4px 8px; border-radius: 6px; font-size: 0.72rem; }
 
         .prompt-input { width: 100%; background: #090d16; border: 1px solid var(--border); color: #fff; padding: 8px; border-radius: 6px; outline: none; font-size: 0.8rem; }
-        .prompt-input:focus { border-color: var(--accent); }
-
-        #log-panel { flex-grow: 1; background: #040711; border: 1px solid var(--border); border-radius: 6px; padding: 6px; font-family: monospace; font-size: 0.7rem; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 4px; }
-        .log-entry { padding: 4px 6px; border-radius: 4px; border-left: 3px solid var(--border); background: rgba(255,255,255,0.02); }
+        #log-panel { flex-grow: 1; background: #040711; border: 1px solid var(--border); border-radius: 6px; padding: 6px; font-family: monospace; font-size: 0.68rem; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 4px; }
+        .log-entry { padding: 3px 5px; border-radius: 4px; border-left: 3px solid var(--border); background: rgba(255,255,255,0.02); }
         .log-entry.system { border-color: var(--accent); color: #7dd3fc; }
         .log-entry.craft { border-color: var(--success); color: #a7f3d0; }
         .log-entry.ai { border-color: var(--magic); color: #f0abfc; }
+        
+        .btn { background: #1e293b; color: #fff; border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
+        .btn:hover { background: var(--accent); }
     </style>
 </head>
 <body>
 
 <header>
-    <div class="logo">WORD SURVIVAL ∞ — Engine 3D Infinito & Texturas High-Res (220x220)</div>
+    <div class="logo">WORD SURVIVAL ∞ — Engine Maestro Unificado</div>
+    <div>
+        <button class="btn" onclick="window.gameEngine.saveGame()">💾 Guardar</button>
+        <button class="btn" onclick="window.gameEngine.resetGame()">🔄 Reiniciar</button>
+    </div>
 </header>
 
 <div id="game-layout">
     <div class="panel">
-        <h2>JUGADOR Y NIVEL</h2>
+        <h2>JUGADOR Y SUPERVIVENCIA</h2>
         <div class="stat-group">
-            <div class="stat-row"><span>Nivel <b id="lvl-val">1</b></span><span>EXP: <span id="exp-val">0/100</span></span></div>
+            <div class="stat-row"><span>Rango: <b id="rank-val">Superviviente</b></span><span>Nvl <b id="lvl-val">1</b></span></div>
+            <div class="stat-row"><span>EXP:</span><span id="exp-val">0/100</span></div>
             <div class="stat-bar"><div id="bar-exp" class="stat-fill fill-exp" style="width: 0%"></div></div>
         </div>
         <div class="stat-group">
             <div class="stat-row"><span>Salud</span><span id="hp-val">100/100</span></div>
             <div class="stat-bar"><div id="bar-hp" class="stat-fill fill-hp" style="width: 100%"></div></div>
         </div>
+        <div class="stat-group">
+            <div class="stat-row"><span>Hambre</span><span id="hunger-val">100/100</span></div>
+            <div class="stat-bar"><div id="bar-hunger" class="stat-fill fill-hunger" style="width: 100%"></div></div>
+        </div>
 
-        <h2>🛡️ EQUIPAMIENTO 3D</h2>
+        <h2>📊 ATRIBUTOS RPG</h2>
+        <div class="attr-grid">
+            <div class="attr-box">💪 Fuerza: <b id="str-val">10</b></div>
+            <div class="attr-box">⚡ Velocidad: <b id="spd-val">10</b></div>
+            <div class="attr-box">🧠 Inteligencia: <b id="int-val">10</b></div>
+            <div class="attr-box">🎨 Creatividad: <b id="crt-val">10</b></div>
+        </div>
+
+        <h2>🛡️ EQUIPAMIENTO</h2>
         <div class="equip-grid">
             <div class="equip-slot" id="eq-helmet"><span>Casco</span></div>
             <div class="equip-slot" id="eq-chest"><span>Peto</span></div>
@@ -110,26 +135,26 @@
             <div class="equip-slot" id="eq-shield"><span>Escudo</span></div>
         </div>
 
-        <h2>🎒 INVENTARIO GENERATIVO</h2>
+        <h2>🎒 INVENTARIO</h2>
         <div id="inventory-grid" class="inv-grid"></div>
     </div>
 
     <div id="viewport-container">
         <div id="hud-overlay">
-            <div class="hud-card" id="hud-pos">📍 Coordenadas 3D: X: 0, Y: 0, Z: 0</div>
-            <div class="hud-card" id="hud-adj">✨ Adjetivos: Bloqueados (Req. Nivel 5)</div>
+            <div class="hud-card" id="hud-pos">📍 Posición: X: 0, Z: 0</div>
+            <div class="hud-card" id="hud-biome">🌲 Bioma: Bosque</div>
         </div>
         <canvas id="webgl-canvas"></canvas>
     </div>
 
     <div class="panel">
-        <h2>✍️ CREACIÓN Y COMBINACIÓN</h2>
-        <input type="text" id="semantic-input" class="prompt-input" placeholder="Ej: dragon_fuego, espada_cristal, madera+piedra..." autofocus>
-        <div style="font-size:0.65rem; color: #94a3b8">
-            • <b>WASD / Flechas</b>: Moverse por el mapa 3D<br>
-            • <b>Clic Izquierdo en Mundo 3D</b>: Atacar o Quemar el terreno<br>
-            • <b>Clic en Inventario</b>: Seleccionar o Equipar objeto<br>
-            • <b>Usar '+'</b>: Craftear (ej. madera+piedra)
+        <h2>✍️ CREACIÓN SEMÁNTICA (1-500+)</h2>
+        <input type="text" id="semantic-input" class="prompt-input" placeholder="Ej: espada, madera+fuego, dragon_gigante, universo..." autofocus>
+        <div style="font-size:0.63rem; color: #94a3b8">
+            • <b>WASD / Flechas</b>: Moverse por el mundo 3D<br>
+            • <b>Clic Izquierdo en Terreno</b>: Usar elemento/atacar<br>
+            • <b>Adjetivos</b>: Desbloqueados desde Nivel 51 (`_gigante`, `_fuego`)<br>
+            • <b>Secretas</b>: Nivel 500+ (`dios`, `universo`, `creador`)
         </div>
 
         <h2>📜 REGISTRO DE EVENTOS</h2>
@@ -139,7 +164,7 @@
 
 <script>
 /**
- * GENERADOR PROCEDIMENTAL DE TEXTURAS EN ALTA RESOLUCIÓN (220x220)
+ * 1. TEXTURAS DE ALTA RESOLUCIÓN (220x220)
  */
 class HighResTextureGenerator {
     static generateTexture220(name, category, adjective = "") {
@@ -149,169 +174,131 @@ class HighResTextureGenerator {
         const ctx = canvas.getContext('2d');
         const k = name.toLowerCase();
 
-        // Fondo base transparente
         ctx.clearRect(0, 0, size, size);
 
-        // Paletas de color dinámicas según adjetivo
         let primary = '#38bdf8', secondary = '#0284c7', glow = 'rgba(56, 189, 248, 0.4)';
-        if (adjective === "fuego" || k.includes("fuego")) { primary = '#ef4444'; secondary = '#b91c1c'; glow = 'rgba(239, 68, 68, 0.5)'; }
-        if (adjective === "sombra" || k.includes("sombra")) { primary = '#334155'; secondary = '#0f172a'; glow = 'rgba(168, 85, 247, 0.4)'; }
-        if (adjective === "cristal" || k.includes("cristal")) { primary = '#a855f7'; secondary = '#7e22ce'; glow = 'rgba(168, 85, 247, 0.6)'; }
+        if (adjective.includes("fuego") || k.includes("fuego")) { primary = '#ef4444'; secondary = '#b91c1c'; glow = 'rgba(239, 68, 68, 0.5)'; }
+        if (adjective.includes("hielo") || k.includes("hielo")) { primary = '#a5f3fc'; secondary = '#0284c7'; glow = 'rgba(165, 243, 252, 0.5)'; }
+        if (adjective.includes("sombra") || k.includes("sombra")) { primary = '#334155'; secondary = '#0f172a'; glow = 'rgba(168, 85, 247, 0.4)'; }
 
-        // Renderizado detallado por categoría
-        if (category === "weapon" || k.includes("espada")) {
-            // Hoja afilada detallada
+        if (category === "weapon" || k.includes("espada") || k.includes("hacha")) {
             ctx.shadowColor = glow; ctx.shadowBlur = 15;
             ctx.fillStyle = primary;
-            ctx.beginPath();
-            ctx.moveTo(110, 20); ctx.lineTo(130, 140); ctx.lineTo(110, 160); ctx.lineTo(90, 140);
-            ctx.closePath(); ctx.fill();
-
-            // Mango y Guardamano
+            ctx.beginPath(); ctx.moveTo(110, 20); ctx.lineTo(130, 140); ctx.lineTo(110, 160); ctx.lineTo(90, 140); ctx.closePath(); ctx.fill();
             ctx.shadowBlur = 0;
             ctx.fillStyle = '#f59e0b'; ctx.fillRect(70, 140, 80, 12);
             ctx.fillStyle = '#78350f'; ctx.fillRect(102, 152, 16, 48);
-            ctx.fillStyle = '#f59e0b'; ctx.beginPath(); ctx.arc(110, 205, 10, 0, Math.PI * 2); ctx.fill();
         } else if (category === "armor" || k.includes("casco") || k.includes("peto")) {
-            // Casco/Peto metálico con visera
             ctx.fillStyle = primary; ctx.fillRect(40, 40, 140, 140);
             ctx.fillStyle = secondary; ctx.fillRect(50, 50, 120, 120);
-            ctx.fillStyle = '#0f172a'; ctx.fillRect(60, 90, 100, 25); // Visera
-            ctx.fillStyle = '#fef08a'; ctx.fillRect(70, 98, 80, 8);  // Brillo
-        } else if (category === "fire" || k.includes("antorcha")) {
-            // Llama de fuego dinámica
-            const grad = ctx.createRadialGradient(110, 110, 10, 110, 110, 90);
-            grad.addColorStop(0, '#fef08a'); grad.addColorStop(0.5, '#f97316'); grad.addColorStop(1, '#ef4444');
-            ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(110, 110, 80, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#0f172a'; ctx.fillRect(60, 90, 100, 25);
         } else {
-            // Artefacto místico genérico
             ctx.fillStyle = primary; ctx.beginPath(); ctx.arc(110, 110, 70, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(90, 90, 20, 0, Math.PI*2); ctx.fill();
         }
-
         return canvas;
     }
 
-    static createGroundTexture(type) {
+    static createBiomeTexture(type) {
         const canvas = document.createElement('canvas');
         canvas.width = 256; canvas.height = 256;
         const ctx = canvas.getContext('2d');
 
-        if (type === 'grass') {
+        if (type === 'forest') {
             ctx.fillStyle = '#15803d'; ctx.fillRect(0, 0, 256, 256);
-            ctx.fillStyle = '#166534';
-            for (let i = 0; i < 400; i++) {
-                ctx.fillRect(Math.random()*250, Math.random()*250, 4, 8);
-            }
-        } else if (type === 'burned') {
-            ctx.fillStyle = '#18181b'; ctx.fillRect(0, 0, 256, 256);
-            ctx.fillStyle = '#27272a';
-            for (let i = 0; i < 300; i++) {
-                ctx.fillRect(Math.random()*250, Math.random()*250, 6, 6);
-            }
-            ctx.fillStyle = '#ef4444';
-            for (let i = 0; i < 40; i++) {
-                ctx.fillRect(Math.random()*250, Math.random()*250, 3, 3); // Chispas rojas
-            }
+            ctx.fillStyle = '#166534'; for (let i=0; i<300; i++) ctx.fillRect(Math.random()*250, Math.random()*250, 4, 8);
+        } else if (type === 'desert') {
+            ctx.fillStyle = '#f59e0b'; ctx.fillRect(0, 0, 256, 256);
+            ctx.fillStyle = '#d97706'; for (let i=0; i<200; i++) ctx.fillRect(Math.random()*250, Math.random()*250, 6, 3);
+        } else if (type === 'snow') {
+            ctx.fillStyle = '#f8fafc'; ctx.fillRect(0, 0, 256, 256);
+            ctx.fillStyle = '#cbd5e1'; for (let i=0; i<200; i++) ctx.fillRect(Math.random()*250, Math.random()*250, 5, 5);
+        } else if (type === 'volcano') {
+            ctx.fillStyle = '#27272a'; ctx.fillRect(0, 0, 256, 256);
+            ctx.fillStyle = '#ef4444'; for (let i=0; i<80; i++) ctx.fillRect(Math.random()*250, Math.random()*250, 4, 4);
+        } else {
+            ctx.fillStyle = '#3b0764'; ctx.fillRect(0, 0, 256, 256);
+            ctx.fillStyle = '#a855f7'; for (let i=0; i<100; i++) ctx.fillRect(Math.random()*250, Math.random()*250, 3, 3);
         }
         return canvas;
     }
 }
 
 /**
- * MOTOR DE JUEGO 3D COMPLETO (THREE.JS)
+ * 2. MOTOR PRINCIPAL 3D
  */
-class Engine3D {
+class MasterEngine3D {
     constructor() {
         this.container = document.getElementById('viewport-container');
         this.canvas = document.getElementById('webgl-canvas');
-        
-        // Inicializar Escena, Cámara y Renderer 3D
+
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x020617);
-        this.scene.fog = new THREE.FogExp2(0x020617, 0.015);
+        this.scene.fog = new THREE.FogExp2(0x020617, 0.012);
 
         this.camera = new THREE.PerspectiveCamera(60, this.container.clientWidth / this.container.clientHeight, 0.1, 1000);
         this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
         this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
         this.renderer.shadowMap.enabled = true;
 
-        // Iluminación 3D
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
         this.scene.add(ambientLight);
-
         this.dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
         this.dirLight.position.set(50, 80, 50);
-        this.dirLight.castShadow = true;
         this.scene.add(this.dirLight);
 
-        // Estado del Jugador
+        // Datos del Jugador y RPG
         this.player = {
-            x: 0, z: 0, speed: 12,
-            hp: 100, maxHp: 100, level: 1, exp: 0, nextExp: 100,
+            x: 0, z: 0, hp: 100, maxHp: 100, hunger: 100,
+            level: 1, exp: 0, nextExp: 100,
+            str: 10, spd: 10, int: 10, crt: 10,
             selectedItem: null
         };
 
-        // Materiales y Terreno 3D
-        this.grassTexture = new THREE.CanvasTexture(HighResTextureGenerator.createGroundTexture('grass'));
-        this.grassTexture.wrapS = THREE.RepeatWrapping; this.grassTexture.wrapT = THREE.RepeatWrapping;
-        this.grassTexture.repeat.set(40, 40);
-
-        this.burnedTexture = new THREE.CanvasTexture(HighResTextureGenerator.createGroundTexture('burned'));
-
-        const groundGeo = new THREE.PlaneGeometry(500, 500);
-        this.groundMat = new THREE.MeshStandardMaterial({ map: this.grassTexture, roughness: 0.8 });
-        this.groundMesh = new THREE.Mesh(groundGeo, this.groundMat);
-        this.groundMesh.rotation.x = -Math.PI / 2;
-        this.groundMesh.receiveShadow = true;
-        this.scene.add(this.groundMesh);
-
-        // Crear Jugador 3D
-        this.createPlayer3D();
-
-        // Arreglos de entidades, inventario y crafteo
-        this.entities = [];
         this.inventory = [];
         this.equipment = { helmet: null, chest: null, weapon: null, shield: null };
-        this.recipes = {
-            "madera+piedra": "Pico de Piedra",
-            "madera+hierro": "Espada de Hierro",
-            "espada+fuego": "Espada Flameante"
-        };
-
+        this.entities = [];
         this.keys = {};
+        this.clock = new THREE.Clock();
         this.raycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
-        this.clock = new THREE.Clock();
 
+        // Biomas y Terreno
+        this.currentBiome = 'forest';
+        this.biomeTextures = {
+            forest: new THREE.CanvasTexture(HighResTextureGenerator.createBiomeTexture('forest')),
+            desert: new THREE.CanvasTexture(HighResTextureGenerator.createBiomeTexture('desert')),
+            snow: new THREE.CanvasTexture(HighResTextureGenerator.createBiomeTexture('snow')),
+            volcano: new THREE.CanvasTexture(HighResTextureGenerator.createBiomeTexture('volcano')),
+            abyss: new THREE.CanvasTexture(HighResTextureGenerator.createBiomeTexture('abyss'))
+        };
+
+        this.createTerrain();
+        this.createPlayer3D();
         this.init();
+    }
+
+    createTerrain() {
+        const geo = new THREE.PlaneGeometry(600, 600);
+        this.groundMat = new THREE.MeshStandardMaterial({ map: this.biomeTextures.forest, roughness: 0.8 });
+        this.groundMesh = new THREE.Mesh(geo, this.groundMat);
+        this.groundMesh.rotation.x = -Math.PI / 2;
+        this.scene.add(this.groundMesh);
     }
 
     createPlayer3D() {
         this.playerGroup = new THREE.Group();
-        
-        // Cuerpo Vóxel / 3D
-        const bodyGeo = new THREE.BoxGeometry(1.2, 1.8, 1);
-        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0284c7 });
-        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.8, 1), new THREE.MeshStandardMaterial({ color: 0x0284c7 }));
         body.position.y = 0.9;
-        body.castShadow = true;
-        this.playerGroup.add(body);
-
-        // Cabeza
-        const headGeo = new THREE.BoxGeometry(0.9, 0.9, 0.9);
-        const headMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8 });
-        const head = new THREE.Mesh(headGeo, headMat);
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.9, 0.9), new THREE.MeshStandardMaterial({ color: 0x38bdf8 }));
         head.position.y = 2.25;
-        this.playerGroup.add(head);
-
+        this.playerGroup.add(body, head);
         this.scene.add(this.playerGroup);
     }
 
     init() {
         window.addEventListener('keydown', e => this.keys[e.key.toLowerCase()] = true);
         window.addEventListener('keyup', e => this.keys[e.key.toLowerCase()] = false);
-
         this.canvas.addEventListener('click', (e) => this.onWorldClick(e));
 
         document.getElementById('semantic-input').addEventListener('keypress', (e) => {
@@ -321,82 +308,79 @@ class Engine3D {
             }
         });
 
-        // Spawn inicial de criaturas 3D
-        this.spawnEntity3D("Dragón de Fuego", 15, 12, "flyer");
-        this.spawnEntity3D("Lobo Sombra", -10, 8, "hunter");
-        this.spawnEntity3D("Ciervo Esmeralda", -15, -10, "prey");
-
-        this.addLog("Mundo 3D activo con Three.js, físicas de fuego e IA autónoma.", "system");
+        this.loadGame();
+        this.addLog("Mundo 3D activo. Escribe para modificar la realidad.", "system");
         this.animate();
     }
 
-    spawnEntity3D(name, x, z, category, adjective = "") {
-        const group = new THREE.Group();
-        let color = 0x78350f;
-        if (category === "flyer") color = 0xef4444;
-        if (category === "hunter") color = 0x334155;
-        if (category === "prey") color = 0x10b981;
-
-        const geo = new THREE.BoxGeometry(1.5, 1.5, 1.5);
-        const mat = new THREE.MeshStandardMaterial({ color });
-        const mesh = new THREE.Mesh(geo, mat);
-        mesh.castShadow = true;
-        group.add(mesh);
-
-        // Si es volador, lo elevamos en Y
-        const startY = (category === "flyer") ? 8 : 0.75;
-        group.position.set(x, startY, z);
-        this.scene.add(group);
-
-        this.entities.push({
-            name, category, group, hp: 50,
-            flyOffset: Math.random() * 100
-        });
+    getRankName(level) {
+        if (level <= 10) return "Superviviente";
+        if (level <= 25) return "Explorador";
+        if (level <= 50) return "Guerrero";
+        if (level <= 100) return "Maestro de Palabras";
+        if (level <= 250) return "Arquitecto del Mundo";
+        if (level <= 499) return "Señor de la Realidad";
+        return "Existencia Infinita";
     }
 
     processInput(text) {
         const clean = text.toLowerCase().trim();
         if (!clean) return;
 
-        if (clean.includes("+")) {
-            // Crafteo
-            const result = this.recipes[clean] || ("Artefacto de " + clean);
-            const canvas220 = HighResTextureGenerator.generateTexture220(result, "weapon");
-            this.inventory.push({ name: result, category: "weapon", textureCanvas: canvas220 });
-            this.addLog(`🔨 Crafteo Exitoso: **${result}**`, "craft");
-        } else {
-            let adjective = "";
-            let baseWord = clean;
-            if (clean.includes("_")) {
-                const parts = clean.split("_");
-                baseWord = parts[0];
-                adjective = parts[1];
-                if (this.player.level < 5) {
-                    this.addLog("⚠️ Se requiere Nivel 5 para usar adjetivos.", "system");
-                    adjective = "";
-                }
+        // Palabras secretas Nivel 500+
+        if (["dios", "universo", "creador", "tiempo", "realidad"].includes(clean)) {
+            if (this.player.level < 500) {
+                this.addLog(`🔒 La palabra secreta '${clean}' requiere Nivel 500+ (Existencia Infinita).`, "system");
+                return;
             }
+            this.addLog(`🌌 ¡PALABRA SECRETA ACTIVADA! Has alterado las reglas de la realidad.`, "ai");
+            this.player.exp += 1000; this.checkLevelUp();
+            return;
+        }
 
-            let cat = "item";
-            if (baseWord.includes("dragon") || baseWord.includes("aguila") || baseWord.includes("pajaro")) cat = "flyer";
-            else if (baseWord.includes("lobo") || baseWord.includes("golem") || baseWord.includes("monstruo")) cat = "hunter";
-            else if (baseWord.includes("ciervo") || baseWord.includes("vaca")) cat = "prey";
-            else if (baseWord.includes("espada")) cat = "weapon";
-            else if (baseWord.includes("casco") || baseWord.includes("peto")) cat = "armor";
-            else if (baseWord.includes("fuego") || baseWord.includes("antorcha")) cat = "fire";
-
-            if (cat === "flyer" || cat === "hunter" || cat === "prey") {
-                const rx = this.player.x + (Math.random() - 0.5) * 20;
-                const rz = this.player.z + (Math.random() - 0.5) * 20;
-                this.spawnEntity3D(clean, rx, rz, cat, adjective);
-                this.addLog(`✨ Criatura 3D invocada: **${clean}**`, "ai");
-            } else {
-                const canvas220 = HighResTextureGenerator.generateTexture220(baseWord, cat, adjective);
-                this.inventory.push({ name: clean, category: cat, textureCanvas: canvas220 });
-                this.addLog(`🎒 Objeto guardado en inventario: **${clean}**`, "craft");
+        // Parseador de Adjetivos (Nivel 51+)
+        let adjective = "";
+        let baseWord = clean;
+        if (clean.includes("_")) {
+            const parts = clean.split("_");
+            baseWord = parts[0];
+            adjective = parts[1];
+            if (this.player.level < 51) {
+                this.addLog("⚠️ Se requiere Nivel 51+ (Maestro de Palabras) para usar adjetivos.", "system");
+                adjective = "";
             }
         }
+
+        let cat = "item";
+        if (["lobo", "golem", "demon", "dragon", "ciervo"].some(w => baseWord.includes(w))) cat = "enemy";
+        else if (baseWord.includes("espada") || baseWord.includes("hacha")) cat = "weapon";
+        else if (baseWord.includes("casco") || baseWord.includes("peto")) cat = "armor";
+
+        if (cat === "enemy") {
+            this.spawnEnemy3D(baseWord, this.player.x + 8, this.player.z + 8, adjective);
+            this.addLog(`✨ Criatura creada: **${baseWord} ${adjective}**`, "ai");
+        } else {
+            const canvas220 = HighResTextureGenerator.generateTexture220(baseWord, cat, adjective);
+            this.inventory.push({ name: `${baseWord} ${adjective}`.trim(), category: cat, textureCanvas: canvas220 });
+            this.addLog(`🎒 Añadido al inventario: **${clean}**`, "craft");
+        }
         this.updateUI();
+    }
+
+    spawnEnemy3D(name, x, z, adjective) {
+        const group = new THREE.Group();
+        let scale = 1.5;
+        if (adjective === "gigante" || adjective === "colosal") scale = 3.0;
+
+        const geo = new THREE.BoxGeometry(scale, scale, scale);
+        const mat = new THREE.MeshStandardMaterial({ color: adjective.includes("fuego") ? 0xef4444 : 0x78350f });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.y = scale / 2;
+        group.add(mesh);
+        group.position.set(x, 0, z);
+
+        this.scene.add(group);
+        this.entities.push({ name, group, hp: 60 * scale, maxHp: 60 * scale, x, z });
     }
 
     onWorldClick(e) {
@@ -405,58 +389,75 @@ class Engine3D {
         this.mouse.y = -((e.clientY - rect.top) / this.canvas.height) * 2 + 1;
 
         this.raycaster.setFromCamera(this.mouse, this.camera);
-        const intersects = this.raycaster.intersectObjects([this.groundMesh]);
+        const intersects = this.raycaster.intersectObjects(this.entities.map(e => e.group.children[0]));
 
-        if (intersects.length > 0 && this.player.selectedItem) {
-            const point = intersects[0].point;
-            const item = this.player.selectedItem;
+        if (intersects.length > 0) {
+            const hitMesh = intersects[0].object;
+            const enemy = this.entities.find(e => e.group.children[0] === hitMesh);
+            if (enemy) {
+                const dmg = 15 + (this.player.str * 0.5);
+                enemy.hp -= dmg;
+                this.addLog(`⚔️ Atacaste a ${enemy.name} (-${Math.ceil(dmg)} HP).`, "system");
 
-            if (item.category === "fire" || item.name.includes("fuego")) {
-                // Crear parche de fuego 3D en el terreno
-                const fireGeo = new THREE.PlaneGeometry(6, 6);
-                const fireMat = new THREE.MeshBasicMaterial({ map: this.burnedTexture, transparent: true });
-                const patch = new THREE.Mesh(fireGeo, fireMat);
-                patch.rotation.x = -Math.PI / 2;
-                patch.position.set(point.x, 0.02, point.z);
-                this.scene.add(patch);
-                this.addLog(`🔥 Fuego aplicado en el terreno 3D [X: ${Math.floor(point.x)}, Z: ${Math.floor(point.z)}]`, "craft");
+                if (enemy.hp <= 0) {
+                    this.scene.remove(enemy.group);
+                    this.entities = this.entities.filter(e => e !== enemy);
+                    this.player.exp += 45;
+                    this.addLog(`💀 ¡Derrotaste a ${enemy.name}! (+45 EXP)`, "craft");
+                    this.checkLevelUp();
+                }
             }
         }
     }
 
+    checkLevelUp() {
+        if (this.player.exp >= this.player.nextExp) {
+            this.player.level++;
+            this.player.exp -= this.player.nextExp;
+            this.player.nextExp = Math.floor(this.player.nextExp * 1.4);
+            this.player.str += 2; this.player.spd += 1; this.player.int += 2; this.player.crt += 2;
+            this.addLog(`🎉 ¡HAS SUBIDO AL NIVEL ${this.player.level}! (${this.getRankName(this.player.level)})`, "system");
+        }
+    }
+
     update(dt) {
-        // Movimiento WASD 3D
-        let moveX = 0, moveZ = 0;
-        if (this.keys['w'] || this.keys['arrowup']) moveZ -= 1;
-        if (this.keys['s'] || this.keys['arrowdown']) moveZ += 1;
-        if (this.keys['a'] || this.keys['arrowleft']) moveX -= 1;
-        if (this.keys['d'] || this.keys['arrowright']) moveX += 1;
-
-        if (moveX !== 0 && moveZ !== 0) { moveX *= 0.7071; moveZ *= 0.7071; }
-
-        this.player.x += moveX * this.player.speed * dt;
-        this.player.z += moveZ * this.player.speed * dt;
+        // Movimiento del Jugador
+        let speed = (10 + this.player.spd * 0.2) * dt;
+        if (this.keys['w'] || this.keys['arrowup']) this.player.z -= speed;
+        if (this.keys['s'] || this.keys['arrowdown']) this.player.z += speed;
+        if (this.keys['a'] || this.keys['arrowleft']) this.player.x -= speed;
+        if (this.keys['d'] || this.keys['arrowright']) this.player.x += speed;
 
         this.playerGroup.position.set(this.player.x, 0, this.player.z);
-
-        // Cámara 3D siguiendo en tercera persona
-        this.camera.position.set(this.player.x, 18, this.player.z + 22);
+        this.camera.position.set(this.player.x, 18, this.player.z + 20);
         this.camera.lookAt(this.player.x, 1, this.player.z);
 
-        // Actualizar IA de Criaturas 3D
+        // Sistema de Hambre
+        this.player.hunger = Math.max(0, this.player.hunger - 0.2 * dt);
+
+        // Biomas por Coordenadas
+        let newBiome = 'forest';
+        if (this.player.x > 100) newBiome = 'desert';
+        else if (this.player.x < -100) newBiome = 'snow';
+        else if (this.player.z > 100) newBiome = 'volcano';
+        else if (this.player.z < -100) newBiome = 'abyss';
+
+        if (newBiome !== this.currentBiome) {
+            this.currentBiome = newBiome;
+            this.groundMat.map = this.biomeTextures[newBiome];
+            this.groundMat.needsUpdate = true;
+            this.addLog(`🌍 Entrando al bioma: **${newBiome.toUpperCase()}**`, "system");
+        }
+
+        // IA Enemiga (Persigue al jugador)
         this.entities.forEach(ent => {
-            if (ent.category === "flyer") {
-                ent.flyOffset += dt * 2;
-                ent.group.position.x += Math.sin(ent.flyOffset) * dt * 4;
-                ent.group.position.z += Math.cos(ent.flyOffset) * dt * 4;
-                ent.group.position.y = 8 + Math.sin(ent.flyOffset * 2) * 1.5;
-            } else if (ent.category === "hunter") {
-                const dist = Math.hypot(this.player.x - ent.group.position.x, this.player.z - ent.group.position.z);
-                if (dist < 20) {
-                    const angle = Math.atan2(this.player.z - ent.group.position.z, this.player.x - ent.group.position.x);
-                    ent.group.position.x += Math.cos(angle) * dt * 5;
-                    ent.group.position.z += Math.sin(angle) * dt * 5;
-                }
+            const dist = Math.hypot(this.player.x - ent.group.position.x, this.player.z - ent.group.position.z);
+            if (dist < 18 && dist > 1.8) {
+                const angle = Math.atan2(this.player.z - ent.group.position.z, this.player.x - ent.group.position.x);
+                ent.group.position.x += Math.cos(angle) * dt * 4;
+                ent.group.position.z += Math.sin(angle) * dt * 4;
+            } else if (dist <= 1.8) {
+                this.player.hp = Math.max(0, this.player.hp - 5 * dt);
             }
         });
 
@@ -464,11 +465,22 @@ class Engine3D {
     }
 
     updateUI() {
+        document.getElementById('rank-val').innerText = this.getRankName(this.player.level);
         document.getElementById('lvl-val').innerText = this.player.level;
         document.getElementById('exp-val').innerText = `${this.player.exp}/${this.player.nextExp}`;
         document.getElementById('bar-exp').style.width = `${(this.player.exp / this.player.nextExp) * 100}%`;
-        document.getElementById('hp-val').innerText = `${Math.ceil(this.player.hp)}/${this.player.maxHp}`;
-        document.getElementById('hud-pos').innerText = `📍 Coordenadas 3D: X: ${Math.floor(this.player.x)}, Y: 0, Z: ${Math.floor(this.player.z)}`;
+        document.getElementById('hp-val').innerText = `${Math.ceil(this.player.hp)}/100`;
+        document.getElementById('bar-hp').style.width = `${this.player.hp}%`;
+        document.getElementById('hunger-val').innerText = `${Math.ceil(this.player.hunger)}/100`;
+        document.getElementById('bar-hunger').style.width = `${this.player.hunger}%`;
+
+        document.getElementById('str-val').innerText = this.player.str;
+        document.getElementById('spd-val').innerText = this.player.spd;
+        document.getElementById('int-val').innerText = this.player.int;
+        document.getElementById('crt-val').innerText = this.player.crt;
+
+        document.getElementById('hud-pos').innerText = `📍 Posición: X: ${Math.floor(this.player.x)}, Z: ${Math.floor(this.player.z)}`;
+        document.getElementById('hud-biome').innerText = `🌲 Bioma: ${this.currentBiome.toUpperCase()}`;
 
         const grid = document.getElementById('inventory-grid');
         grid.innerHTML = '';
@@ -477,39 +489,33 @@ class Engine3D {
             slot.className = `inv-slot ${this.player.selectedItem === item ? 'selected' : ''}`;
             slot.appendChild(item.textureCanvas);
             slot.innerHTML += `<span>${item.name}</span>`;
-
-            slot.onclick = () => {
-                if (item.category === "armor" || item.category === "weapon") {
-                    if (item.name.includes("casco")) this.equipment.helmet = item;
-                    else if (item.name.includes("peto")) this.equipment.chest = item;
-                    else this.equipment.weapon = item;
-                    this.renderEquipmentUI();
-                }
-                this.player.selectedItem = item;
-                this.updateUI();
-            };
+            slot.onclick = () => { this.player.selectedItem = item; this.updateUI(); };
             grid.appendChild(slot);
         });
-    }
-
-    renderEquipmentUI() {
-        if (this.equipment.helmet) {
-            const el = document.getElementById('eq-helmet'); el.innerHTML = '';
-            el.appendChild(this.equipment.helmet.textureCanvas); el.innerHTML += `<span>${this.equipment.helmet.name}</span>`;
-        }
-        if (this.equipment.chest) {
-            const el = document.getElementById('eq-chest'); el.innerHTML = '';
-            el.appendChild(this.equipment.chest.textureCanvas); el.innerHTML += `<span>${this.equipment.chest.name}</span>`;
-        }
-        if (this.equipment.weapon) {
-            const el = document.getElementById('eq-weapon'); el.innerHTML = '';
-            el.appendChild(this.equipment.weapon.textureCanvas); el.innerHTML += `<span>${this.equipment.weapon.name}</span>`;
-        }
     }
 
     addLog(msg, type = "system") {
         const log = document.getElementById('log-panel');
         log.innerHTML = `<div class="log-entry ${type}">${msg}</div>` + log.innerHTML;
+    }
+
+    saveGame() {
+        localStorage.setItem('ws_save', JSON.stringify({ player: this.player }));
+        this.addLog("💾 Partida guardada con éxito.", "system");
+    }
+
+    loadGame() {
+        const saved = localStorage.getItem('ws_save');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            Object.assign(this.player, parsed.player);
+            this.addLog("📂 Partida cargada desde almacenamiento local.", "system");
+        }
+    }
+
+    resetGame() {
+        localStorage.removeItem('ws_save');
+        location.reload();
     }
 
     animate() {
@@ -520,7 +526,7 @@ class Engine3D {
     }
 }
 
-window.onload = () => { window.gameEngine = new Engine3D(); };
+window.onload = () => { window.gameEngine = new MasterEngine3D(); };
 </script>
 </body>
 </html>
