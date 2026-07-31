@@ -1,11 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-
-<title>Word Survival 1.2</title>
+<title>Word Survival 1.3</title>
 
 <style>
-
 body{
 margin:0;
 overflow:hidden;
@@ -15,7 +13,6 @@ background:black;
 canvas{
 display:block;
 }
-
 </style>
 
 </head>
@@ -24,16 +21,13 @@ display:block;
 
 <canvas id="game"></canvas>
 
-
 <script>
 
 const canvas=document.getElementById("game");
 const ctx=canvas.getContext("2d");
 
-
 canvas.width=window.innerWidth;
 canvas.height=window.innerHeight;
-
 
 
 // MUNDO
@@ -44,12 +38,12 @@ height:5000
 };
 
 
+// CAMARA
 
 let camera={
 x:0,
 y:0
 };
-
 
 
 // JUGADOR
@@ -65,7 +59,11 @@ speed:6,
 
 life:100,
 
-words:[]
+maxLife:100,
+
+words:[],
+
+inventory:[]
 
 };
 
@@ -87,85 +85,12 @@ keys[e.key.toLowerCase()]=false;
 
 
 
-
-// BASE DE PALABRAS
-
-let wordDatabase=[
-
-{
-word:"madera",
-type:"material"
-},
-
-{
-word:"piedra",
-type:"material"
-},
-
-{
-word:"fuego",
-type:"elemento"
-},
-
-{
-word:"agua",
-type:"recurso"
-},
-
-{
-word:"hierro",
-type:"material"
-},
-
-{
-word:"espada",
-type:"arma"
-}
-
-];
-
-
-
-
-// PALABRAS EN EL MAPA
-
-let wordsOnMap=[];
-
-
-for(let i=0;i<100;i++){
-
-
-let data=
-wordDatabase[
-Math.floor(Math.random()*wordDatabase.length)
-];
-
-
-wordsOnMap.push({
-
-x:Math.random()*world.width,
-
-y:Math.random()*world.height,
-
-word:data.word,
-
-type:data.type
-
-});
-
-
-}
-
-
-
-
-
 // ENEMIGOS
 
 let enemies=[];
 
 
-for(let i=0;i<20;i++){
+for(let i=0;i<25;i++){
 
 enemies.push({
 
@@ -175,7 +100,33 @@ y:Math.random()*world.height,
 
 size:30,
 
-speed:2
+speed:2,
+
+vision:300,
+
+damage:5,
+
+attack:0
+
+});
+
+}
+
+
+
+
+// ARBOLES
+
+let trees=[];
+
+
+for(let i=0;i<100;i++){
+
+trees.push({
+
+x:Math.random()*world.width,
+
+y:Math.random()*world.height
 
 });
 
@@ -189,7 +140,7 @@ speed:2
 function update(){
 
 
-// movimiento
+// MOVIMIENTO
 
 if(keys["w"])
 player.y-=player.speed;
@@ -205,71 +156,23 @@ player.x+=player.speed;
 
 
 
+// LIMITES
+
+player.x=Math.max(0,Math.min(world.width,player.x));
+
+player.y=Math.max(0,Math.min(world.height,player.y));
+
+
+
+// CAMARA
 
 camera.x=player.x-canvas.width/2;
+
 camera.y=player.y-canvas.height/2;
 
+collectWords();
 
-
-
-// recoger palabras
-
-
-wordsOnMap.forEach((w,index)=>{
-
-
-let dx=player.x-w.x;
-let dy=player.y-w.y;
-
-
-let distance=Math.sqrt(dx*dx+dy*dy);
-
-
-
-if(distance<50){
-
-
-player.words.push(w);
-
-
-wordsOnMap.splice(index,1);
-
-
-}
-
-
-});
-
-
-
-}
-
-
-
-
-// DIBUJAR
-
-function draw(){
-
-
-ctx.clearRect(0,0,canvas.width,canvas.height);
-
-
-
-// suelo
-
-ctx.fillStyle="#3b703b";
-
-ctx.fillRect(
--camera.x,
--camera.y,
-world.width,
-world.height
-);
-
-
-
-// palabras
+  // PALABRAS DEL MAPA
 
 wordsOnMap.forEach(w=>{
 
@@ -279,11 +182,17 @@ ctx.fillStyle="yellow";
 ctx.beginPath();
 
 ctx.arc(
+
 w.x-camera.x,
+
 w.y-camera.y,
+
 15,
+
 0,
+
 Math.PI*2
+
 );
 
 ctx.fill();
@@ -295,24 +204,270 @@ ctx.fillStyle="white";
 ctx.font="14px Arial";
 
 ctx.fillText(
-w.word,
-w.x-camera.x-25,
-w.y-camera.y-20
-);
 
+w.word,
+
+w.x-camera.x-25,
+
+w.y-camera.y-20
+
+);
 
 
 });
 
 
 
+// INVENTARIO
 
-// enemigos
+ctx.fillStyle="white";
+
+ctx.font="18px Arial";
+
+ctx.fillText(
+
+"Palabras: "+player.words.length,
+
+20,
+
+60
+
+);
+  
+// ENEMIGOS
+
+enemies.forEach(e=>{
+
+
+let dx=player.x-e.x;
+let dy=player.y-e.y;
+
+let distance=Math.sqrt(dx*dx+dy*dy);
+
+
+
+if(distance<e.vision){
+
+
+e.x+=(dx/distance)*e.speed;
+
+e.y+=(dy/distance)*e.speed;
+
+
+
+if(distance<50 && e.attack<=0){
+
+player.life-=e.damage;
+
+e.attack=60;
+
+}
+
+
+}
+
+
+
+if(e.attack>0){
+
+e.attack--;
+
+}
+
+
+});
+
+
+
+}
+
+
+
+
+
+// DIBUJAR
+
+// ==========================
+// SISTEMA DE PALABRAS 1.3
+// ==========================
+
+
+let wordDatabase=[
+
+{
+word:"madera",
+type:"material",
+level:1
+},
+
+{
+word:"piedra",
+type:"material",
+level:1
+},
+
+{
+word:"hierro",
+type:"material",
+level:2
+},
+
+{
+word:"fuego",
+type:"elemento",
+level:2
+},
+
+{
+word:"espada",
+type:"arma",
+level:3
+},
+
+{
+word:"arco",
+type:"arma",
+level:3
+}
+
+];
+
+
+
+// PALABRAS EN EL MAPA
+
+let wordsOnMap=[];
+
+
+for(let i=0;i<100;i++){
+
+
+let w=wordDatabase[
+Math.floor(Math.random()*wordDatabase.length)
+];
+
+
+wordsOnMap.push({
+
+x:Math.random()*world.width,
+
+y:Math.random()*world.height,
+
+word:w.word,
+
+type:w.type,
+
+level:w.level
+
+});
+
+
+}
+
+
+
+
+// RECOGER PALABRAS
+
+
+function collectWords(){
+
+
+wordsOnMap.forEach((w,index)=>{
+
+
+let dx=player.x-w.x;
+
+let dy=player.y-w.y;
+
+
+let distance=Math.sqrt(dx*dx+dy*dy);
+
+
+
+if(distance<50){
+
+
+player.words.push(w.word);
+
+
+player.inventory.push({
+
+name:w.word,
+
+type:w.type
+
+});
+
+
+wordsOnMap.splice(index,1);
+
+
+}
+
+
+});
+
+
+}
+  
+function draw(){
+
+
+ctx.clearRect(0,0,canvas.width,canvas.height);
+
+
+
+// SUELO
+
+ctx.fillStyle="#3b703b";
+
+ctx.fillRect(
+
+-camera.x,
+
+-camera.y,
+
+world.width,
+
+world.height
+
+);
+
+
+
+// ARBOLES
+
+ctx.fillStyle="darkgreen";
+
+
+trees.forEach(t=>{
+
+
+ctx.fillRect(
+
+t.x-camera.x,
+
+t.y-camera.y,
+
+30,
+
+40
+
+);
+
+
+});
+
+
+
+// ENEMIGOS
 
 ctx.fillStyle="red";
 
 
 enemies.forEach(e=>{
+
 
 ctx.fillRect(
 
@@ -326,12 +481,12 @@ e.size
 
 );
 
+
 });
 
 
 
-
-// jugador
+// JUGADOR
 
 ctx.fillStyle="cyan";
 
@@ -350,17 +505,15 @@ player.size
 
 
 
-
-// inventario
+// VIDA
 
 ctx.fillStyle="white";
 
 ctx.font="20px Arial";
 
-
 ctx.fillText(
 
-"Palabras: "+player.words.length,
+"Vida: "+player.life+"/"+player.maxLife,
 
 20,
 
@@ -370,36 +523,18 @@ ctx.fillText(
 
 
 
-if(player.words.length>0){
-
-
-ctx.font="15px Arial";
-
-
-ctx.fillText(
-
-"Última: "+player.words[player.words.length-1].word,
-
-20,
-
-55
-
-);
-
-
 }
-
-
-
-}
-
 
 
 
 
 function loop(){
 
+if(player.life>0){
+
 update();
+
+}
 
 draw();
 
@@ -414,5 +549,4 @@ loop();
 </script>
 
 </body>
-
 </html>
