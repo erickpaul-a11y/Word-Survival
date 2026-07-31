@@ -3,148 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WORD SURVIVAL ∞ — Real-Time Action Engine</title>
+    <title>WORD SURVIVAL ∞ — Infinite World & Interactive Mechanics</title>
     <style>
         :root {
             --bg-dark: #020617;
             --panel-bg: rgba(15, 23, 42, 0.95);
-            --border-color: #1e293b;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent: #0ea5e9;
-            --accent-light: #38bdf8;
+            --border: #1e293b;
+            --text: #f8fafc;
+            --accent: #38bdf8;
             --danger: #ef4444;
             --success: #10b981;
-            --magic: #a855f7;
             --gold: #f59e0b;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; user-select: none; }
-        body { background-color: var(--bg-dark); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        body { background-color: var(--bg-dark); color: var(--text); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
         header {
-            background: #0f172a;
-            border-bottom: 1px solid var(--border-color);
-            padding: 8px 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            height: 48px;
+            background: #0f172a; border-bottom: 1px solid var(--border);
+            padding: 8px 16px; display: flex; justify-content: space-between; align-items: center; height: 48px;
         }
-        .logo { font-weight: 900; font-size: 1.1rem; background: linear-gradient(135deg, var(--accent-light), var(--magic)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .logo { font-weight: 900; font-size: 1.1rem; color: var(--accent); }
 
         #game-layout {
-            display: grid;
-            grid-template-columns: 320px 1fr 360px;
-            width: 100vw;
-            height: calc(100vh - 48px);
-            gap: 12px;
-            padding: 12px;
-            background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+            display: grid; grid-template-columns: 320px 1fr 340px;
+            width: 100vw; height: calc(100vh - 48px); gap: 10px; padding: 10px;
         }
 
         .panel {
-            background: var(--panel-bg);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 14px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            overflow-y: auto;
+            background: var(--panel-bg); border: 1px solid var(--border);
+            border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto;
         }
 
-        h2 { color: var(--accent-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.2px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
+        h2 { color: var(--accent); font-size: 0.8rem; text-transform: uppercase; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
 
+        /* HUD y Stats */
         .stat-group { display: flex; flex-direction: column; gap: 3px; }
-        .stat-row { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted); }
-        .stat-bar { background: #090d16; height: 8px; border-radius: 4px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
-        .stat-fill { height: 100%; transition: width 0.1s linear; }
-        .fill-hp { background: var(--danger); } .fill-hunger { background: var(--success); }
+        .stat-row { display: flex; justify-content: space-between; font-size: 0.72rem; color: #94a3b8; }
+        .stat-bar { background: #090d16; height: 8px; border-radius: 4px; overflow: hidden; }
+        .stat-fill { height: 100%; transition: width 0.1s; }
+        .fill-hp { background: var(--danger); }
+        .fill-exp { background: var(--accent); }
 
-        .btn {
-            background: #1e293b;
-            color: var(--text-main);
-            border: 1px solid var(--accent);
-            padding: 6px 10px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            cursor: pointer;
-            font-weight: bold;
-            text-align: center;
-            transition: all 0.2s;
+        /* Equipamiento */
+        .equip-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+        .equip-slot {
+            background: #090d16; border: 1px solid var(--border); border-radius: 6px;
+            padding: 6px; font-size: 0.7rem; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 50px;
         }
-        .btn:hover { background: var(--accent); color: #000; }
+        .equip-slot img { width: 24px; height: 24px; image-rendering: pixelated; }
 
+        /* Inventario */
+        .inv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-height: 160px; overflow-y: auto; }
+        .inv-slot {
+            background: #090d16; border: 1px solid var(--border); border-radius: 6px;
+            aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-size: 0.6rem; text-align: center; padding: 2px; cursor: pointer;
+        }
+        .inv-slot.selected { border-color: var(--gold); }
+        .inv-slot img { width: 28px; height: 28px; image-rendering: pixelated; }
+
+        /* Viewport Canvas */
         #viewport-container {
-            position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center;
-            background: #000; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color);
+            position: relative; display: flex; justify-content: center; align-items: center;
+            background: #000; border-radius: 10px; overflow: hidden; border: 1px solid var(--border);
         }
         canvas { display: block; image-rendering: pixelated; }
 
         #hud-overlay {
             position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; pointer-events: none;
         }
-        .hud-card { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); border: 1px solid var(--border-color); padding: 5px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
+        .hud-card { background: rgba(15, 23, 42, 0.85); border: 1px solid var(--border); padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; }
 
-        .inv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-height: 180px; overflow-y: auto; }
-        .inv-slot { 
-            background: #090d16; border: 1px solid var(--border-color); border-radius: 6px; aspect-ratio: 1; 
-            display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.6rem; text-align: center; padding: 4px; gap: 2px;
-        }
-        .inv-slot img { width: 32px; height: 32px; image-rendering: pixelated; }
-
-        .prompt-input { width: 100%; background: #090d16; border: 1px solid var(--border-color); color: #fff; padding: 10px; border-radius: 8px; outline: none; font-size: 0.85rem; }
-        .prompt-input:focus { border-color: var(--accent-light); }
-
-        #log-panel { flex-grow: 1; background: #040711; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px; font-family: monospace; font-size: 0.72rem; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 5px; }
-        .log-entry { padding: 4px 6px; border-radius: 4px; border-left: 3px solid var(--border-color); background: rgba(255,255,255,0.02); }
-        .log-entry.system { border-color: var(--accent-light); color: #7dd3fc; }
-        .log-entry.craft { border-color: var(--success); color: #a7f3d0; }
-        .log-entry.ai { border-color: var(--magic); color: #f0abfc; }
-
-        .recipe-list { display: flex; flex-direction: column; gap: 4px; font-size: 0.68rem; color: var(--text-muted); max-height: 120px; overflow-y: auto; }
-        .recipe-tag { background: rgba(255,255,255,0.05); padding: 3px 6px; border-radius: 4px; display: flex; justify-content: space-between; }
+        /* Input & Logs */
+        .prompt-input { width: 100%; background: #090d16; border: 1px solid var(--border); color: #fff; padding: 8px; border-radius: 6px; outline: none; font-size: 0.8rem; }
+        #log-panel { flex-grow: 1; background: #040711; border: 1px solid var(--border); border-radius: 6px; padding: 6px; font-family: monospace; font-size: 0.7rem; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 4px; }
+        .log-entry { padding: 3px 5px; border-radius: 4px; border-left: 3px solid var(--border); background: rgba(255,255,255,0.02); }
     </style>
 </head>
 <body>
 
 <header>
-    <div class="logo">WORD SURVIVAL ∞ — Real-Time Engine (FPS Fluid Action)</div>
+    <div class="logo">WORD SURVIVAL ∞ — Engine de Acción e Interacción de Elementos</div>
 </header>
 
 <div id="game-layout">
     <div class="panel">
-        <h2>JUGADOR (ACCION EN VIVO)</h2>
+        <h2>JUGADOR Y ESTADÍSTICAS</h2>
+        <div class="stat-group">
+            <div class="stat-row"><span>Nivel <b id="lvl-val">1</b></span><span>EXP: <span id="exp-val">0/100</span></span></div>
+            <div class="stat-bar"><div id="bar-exp" class="stat-fill fill-exp" style="width: 0%"></div></div>
+        </div>
         <div class="stat-group">
             <div class="stat-row"><span>Salud</span><span id="hp-val">100/100</span></div>
             <div class="stat-bar"><div id="bar-hp" class="stat-fill fill-hp" style="width: 100%"></div></div>
         </div>
-        <div class="stat-group">
-            <div class="stat-row"><span>Energía / Hambre</span><span id="hunger-val">100/100</span></div>
-            <div class="stat-bar"><div id="bar-hunger" class="stat-fill fill-hunger" style="width: 100%"></div></div>
+
+        <h2>🛡️ EQUIPAMIENTO</h2>
+        <div class="equip-grid">
+            <div class="equip-slot" id="eq-helmet"><span>Casco</span></div>
+            <div class="equip-slot" id="eq-chest"><span>Peto</span></div>
+            <div class="equip-slot" id="eq-weapon"><span>Arma</span></div>
+            <div class="equip-slot" id="eq-shield"><span>Escudo</span></div>
         </div>
 
         <h2>🎒 INVENTARIO</h2>
         <div id="inventory-grid" class="inv-grid"></div>
-
-        <h2>RECETARIOS DE CRAFTEO</h2>
-        <div class="recipe-list" id="recipe-box"></div>
     </div>
 
     <div id="viewport-container">
         <div id="hud-overlay">
-            <div class="hud-card">⚡ Modo: Tiempo Real Completo</div>
-            <div class="hud-card" id="hud-entities">🐾 Entidades en vivo: 0</div>
+            <div class="hud-card" id="hud-pos">📍 Coordenadas: X: 0, Y: 0</div>
+            <div class="hud-card" id="hud-adj">✨ Modificadores: Bloqueados (Req. Nivel 5)</div>
         </div>
         <canvas id="gameCanvas" width="600" height="600"></canvas>
     </div>
 
     <div class="panel">
-        <h2>✍️ CREACIÓN / INVOCACIÓN SEMÁNTICA</h2>
-        <input type="text" id="semantic-input" class="prompt-input" placeholder="Ej: dragon_fuego, aguila_dorada, espada_cristal, lobo_sombra..." autofocus>
-        <div style="font-size:0.68rem; color: var(--text-muted)">Muévete en tiempo real manteniendo pulsado <b>WASD / Flechas</b>. La IA de cada entidad actúa segundo a segundo.</div>
+        <h2>✍️ CREACIÓN Y MODIFICADORES</h2>
+        <input type="text" id="semantic-input" class="prompt-input" placeholder="Ej: espada_fuego, casco_hierro, antorcha..." autofocus>
+        <div style="font-size:0.65rem; color: #94a3b8">
+            • <b>WASD / Flechas</b>: Moverse<br>
+            • <b>Espacio / Clic Izquierdo</b>: Usar Objeto Seleccionado (Atacar o Quemar)<br>
+            • <b>Clic en Inventario</b>: Seleccionar o Equipar
+        </div>
 
         <h2>📜 REGISTRO DE EVENTOS</h2>
         <div id="log-panel"></div>
@@ -153,10 +135,10 @@
 
 <script>
 /**
- * GENERADOR DE TEXTURAS DE PÍXELES RECONOCIBLES Y REALISTAS
+ * 1. RENDERIZADOR AVANZADO DE TEXTURAS DE PÍXELES CON SOMBREADO
  */
-class AdvancedPixelRenderer {
-    static createDetailedSprite(key, category) {
+class PixelRenderer {
+    static generateTexture(key, category, adjective = "") {
         const size = 24;
         const canvas = document.createElement('canvas');
         canvas.width = size; canvas.height = size;
@@ -165,122 +147,94 @@ class AdvancedPixelRenderer {
 
         ctx.imageSmoothingEnabled = false;
 
-        if (k.includes("espada") || category === "weapon") {
-            // Hoja de la espada
-            ctx.fillStyle = k.includes("fuego") ? '#f97316' : (k.includes("cristal") ? '#38bdf8' : '#e2e8f0');
-            for(let i=4; i<18; i++) {
-                ctx.fillRect(i, 20-i, 2, 2);
-            }
-            // Mango y empuñadura
-            ctx.fillStyle = '#b45309';
-            ctx.fillRect(4, 18, 3, 3);
-            ctx.fillStyle = '#fbbf24';
-            ctx.fillRect(6, 15, 3, 3);
-        } else if (k.includes("pocion") || category === "potion") {
-            // Frasco de poción
-            ctx.fillStyle = '#e2e8f0';
-            ctx.fillRect(9, 3, 6, 3);
-            ctx.fillRect(7, 6, 10, 14);
-            // Líquido
-            ctx.fillStyle = k.includes("vida") ? '#ef4444' : (k.includes("mana") ? '#a855f7' : '#10b981');
-            ctx.fillRect(8, 9, 8, 10);
-        } else if (category === "flyer" || k.includes("dragon") || k.includes("aguila") || k.includes("pajaro")) {
-            // Silueta de criatura voladora con alas
-            ctx.fillStyle = k.includes("fuego") || k.includes("dragon") ? '#dc2626' : '#f59e0b';
-            // Cuerpo
-            ctx.fillRect(10, 8, 4, 12);
-            // Alas extendidas
-            ctx.fillRect(2, 6, 8, 4);
-            ctx.fillRect(14, 6, 8, 4);
-            ctx.fillRect(0, 4, 4, 3);
-            ctx.fillRect(20, 4, 4, 3);
-            // Ojos
-            ctx.fillStyle = '#fef08a';
-            ctx.fillRect(11, 6, 2, 2);
-        } else if (category === "hunter" || k.includes("lobo") || k.includes("oso")) {
-            // Criatura cuadrúpeda / Cazador
-            ctx.fillStyle = k.includes("sombra") ? '#334155' : '#78350f';
-            ctx.fillRect(5, 10, 14, 7); // Torso
-            ctx.fillRect(15, 6, 6, 6);  // Cabeza
-            ctx.fillRect(4, 17, 3, 5);  // Patas
-            ctx.fillRect(8, 17, 3, 5);
-            ctx.fillRect(13, 17, 3, 5);
-            ctx.fillRect(17, 17, 3, 5);
-            ctx.fillStyle = '#ef4444'; // Ojo hostil
-            ctx.fillRect(19, 7, 2, 2);
-        } else if (category === "prey" || k.includes("ciervo") || k.includes("vaca") || k.includes("conejo")) {
-            // Presa pacífica
-            ctx.fillStyle = '#15803d';
-            ctx.fillRect(6, 11, 12, 6);
-            ctx.fillRect(14, 5, 5, 6);
-            ctx.fillStyle = '#fef08a'; // Cuernos o detalles
-            ctx.fillRect(13, 2, 2, 4);
-            ctx.fillRect(16, 2, 2, 4);
-            ctx.fillStyle = '#000';
-            ctx.fillRect(17, 6, 2, 2);
+        // Paleta según adjetivo
+        let primaryColor = '#38bdf8';
+        if (adjective === "fuego" || k.includes("fuego")) primaryColor = '#ef4444';
+        if (adjective === "gigante" || k.includes("hierro")) primaryColor = '#94a3b8';
+        if (adjective === "venenoso" || k.includes("planta")) primaryColor = '#10b981';
+
+        if (category === "weapon" || k.includes("espada")) {
+            // Hoja
+            ctx.fillStyle = primaryColor;
+            for(let i = 4; i < 18; i++) ctx.fillRect(i, 20 - i, 2, 2);
+            // Empuñadura
+            ctx.fillStyle = '#78350f'; ctx.fillRect(4, 18, 3, 3);
+            ctx.fillStyle = '#f59e0b'; ctx.fillRect(6, 15, 3, 3);
+        } else if (category === "armor" || k.includes("casco") || k.includes("peto")) {
+            ctx.fillStyle = primaryColor;
+            ctx.fillRect(4, 4, 16, 16);
+            ctx.fillStyle = '#0f172a'; ctx.fillRect(7, 8, 10, 4);
+        } else if (category === "fire" || k.includes("fuego") || k.includes("antorcha")) {
+            ctx.fillStyle = '#f59e0b'; ctx.fillRect(8, 6, 8, 14);
+            ctx.fillStyle = '#ef4444'; ctx.fillRect(10, 2, 4, 10);
+            ctx.fillStyle = '#fef08a'; ctx.fillRect(10, 10, 4, 6);
+        } else if (category === "enemy" || k.includes("lobo") || k.includes("golem")) {
+            ctx.fillStyle = primaryColor;
+            ctx.fillRect(4, 8, 16, 10);
+            ctx.fillRect(14, 4, 6, 6); // Cabeza
+            ctx.fillStyle = '#ef4444'; ctx.fillRect(18, 5, 2, 2); // Ojo
         } else {
-            // Ítem genérico con brillo
-            ctx.fillStyle = '#38bdf8';
-            ctx.fillRect(6, 6, 12, 12);
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(8, 8, 4, 4);
+            // Material básico
+            ctx.fillStyle = primaryColor; ctx.fillRect(6, 6, 12, 12);
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(8, 8, 4, 4);
         }
 
         return canvas;
     }
 
-    static createPlayerSprite() {
+    static getTileTexture(type) {
         const canvas = document.createElement('canvas');
-        canvas.width = 24; canvas.height = 24;
+        canvas.width = 32; canvas.height = 32;
         const ctx = canvas.getContext('2d');
-        ctx.imageSmoothingEnabled = false;
 
-        // Cabeza y cuerpo del héroe
-        ctx.fillStyle = '#38bdf8'; // Casco/Armadura
-        ctx.fillRect(7, 3, 10, 8);
-        ctx.fillStyle = '#0284c7';
-        ctx.fillRect(6, 11, 12, 8);
-        // Ojos/Visor
-        ctx.fillStyle = '#fef08a';
-        ctx.fillRect(9, 6, 6, 2);
-        // Extremidades
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(7, 19, 4, 4);
-        ctx.fillRect(13, 19, 4, 4);
-
+        if (type === 'grass') {
+            ctx.fillStyle = '#15803d'; ctx.fillRect(0, 0, 32, 32);
+            ctx.fillStyle = '#166534'; ctx.fillRect(4, 4, 8, 8); ctx.fillRect(18, 20, 6, 6);
+        } else if (type === 'burned') {
+            ctx.fillStyle = '#18181b'; ctx.fillRect(0, 0, 32, 32); // Suelo quemado/ceniza
+            ctx.fillStyle = '#27272a'; ctx.fillRect(8, 8, 4, 4); ctx.fillRect(20, 14, 6, 6);
+        } else if (type === 'water') {
+            ctx.fillStyle = '#0284c7'; ctx.fillRect(0, 0, 32, 32);
+            ctx.fillStyle = '#38bdf8'; ctx.fillRect(2, 12, 12, 4);
+        }
         return canvas;
     }
 }
 
 /**
- * MOTOR DE ACCIÓN EN TIEMPO REAL
+ * 2. MOTOR PRINCIPAL EN TIEMPO REAL CON MUNDO INFINITO Y CÁMARA
  */
-class RealTimeEngine {
+class InfiniteGameEngine {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
         this.keys = {};
-        
-        // Posición del jugador en coordenadas reales continuas (float)
+
+        // Jugador en coordenadas absolutas del mundo
         this.player = {
-            x: 300, y: 300,
-            speed: 180, // píxeles por segundo
-            hp: 100, maxHp: 100, hunger: 100
+            x: 0, y: 0, speed: 200,
+            hp: 100, maxHp: 100, level: 1, exp: 0, nextExp: 100,
+            selectedItem: null
         };
 
+        // Cámara que sigue al jugador
+        this.camera = { x: 0, y: 0 };
+
+        // Almacenamiento dinámico del mapa infinito (Chunks/Tiles)
+        this.worldTiles = new Map(); // Llave: "X,Y" -> Tipo de terreno
         this.entities = [];
         this.inventory = [];
-        this.recipes = {
-            "madera+piedra": "Pico de Piedra",
-            "madera+hierro": "Espada de Hierro",
-            "espada+fuego": "Espada Flameante",
-            "carne+fuego": "Carne Asada",
-            "cristal+agua": "Poción de Vida Superior"
+        this.equipment = { helmet: null, chest: null, weapon: null, shield: null };
+
+        this.tileCache = {
+            grass: PixelRenderer.getTileTexture('grass'),
+            burned: PixelRenderer.getTileTexture('burned'),
+            water: PixelRenderer.getTileTexture('water')
         };
 
-        this.playerSprite = AdvancedPixelRenderer.createPlayerSprite();
+        this.playerSprite = PixelRenderer.generateTexture('player', 'hero');
         this.lastTime = performance.now();
-        
+
         this.init();
     }
 
@@ -288,79 +242,134 @@ class RealTimeEngine {
         window.addEventListener('keydown', e => this.keys[e.key.toLowerCase()] = true);
         window.addEventListener('keyup', e => this.keys[e.key.toLowerCase()] = false);
 
+        this.canvas.addEventListener('click', (e) => this.useItemWorld(e));
+
         document.getElementById('semantic-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
-                this.processWord(e.target.value);
+                this.processInput(e.target.value);
                 e.target.value = '';
             }
         });
 
-        this.renderRecipes();
+        // Enemigos iniciales cerca del spawn
+        this.spawnEntity("Lobo Sombra", 150, 100, "enemy");
+        this.spawnEntity("Golem de Piedra", -200, 150, "enemy");
 
-        // Criaturas iniciales
-        this.spawnEntity("Dragón de Fuego", 100, 100, "flyer");
-        this.spawnEntity("Águila Dorada", 450, 120, "flyer");
-        this.spawnEntity("Lobo Sombra", 500, 400, "hunter");
-        this.spawnEntity("Ciervo Esmeralda", 150, 450, "prey");
-
-        this.addLog("Motor en Tiempo Real Activo. Todo se mueve autónomamente.", "system");
+        this.addLog("Mundo infinito cargado con motor de cámara e interacciones físicas.", "system");
         requestAnimationFrame((time) => this.loop(time));
     }
 
-    renderRecipes() {
-        const box = document.getElementById('recipe-box');
-        box.innerHTML = '';
-        for(let r in this.recipes) {
-            const div = document.createElement('div');
-            div.className = 'recipe-tag';
-            div.innerHTML = `<span>${r}</span><b>${this.recipes[r]}</b>`;
-            box.appendChild(div);
+    getTileAt(worldX, worldY) {
+        const tileX = Math.floor(worldX / 32);
+        const tileY = Math.floor(worldY / 32);
+        const key = `${tileX},${tileY}`;
+
+        if (!this.worldTiles.has(key)) {
+            // Generación procedimental simplificada
+            const isWater = (Math.sin(tileX * 0.1) + Math.cos(tileY * 0.1)) > 1.3;
+            this.worldTiles.set(key, isWater ? 'water' : 'grass');
         }
+        return { type: this.worldTiles.get(key), tileX, tileY, key };
     }
 
-    spawnEntity(name, x, y, category) {
-        const sprite = AdvancedPixelRenderer.createDetailedSprite(name, category);
-        this.entities.push({
-            name, x, y, category, sprite,
-            vx: (Math.random() - 0.5) * 40,
-            vy: (Math.random() - 0.5) * 40,
-            timer: 0,
-            flyAngle: Math.random() * Math.PI * 2
-        });
+    setTileAt(tileX, tileY, newType) {
+        this.worldTiles.set(`${tileX},${tileY}`, newType);
     }
 
-    processWord(phrase) {
-        const clean = phrase.toLowerCase().trim();
-        if(!clean) return;
+    spawnEntity(name, x, y, category, adjective = "") {
+        const sprite = PixelRenderer.generateTexture(name, category, adjective);
+        this.entities.push({ name, x, y, category, sprite, hp: 50, adjective });
+    }
 
-        if (clean.includes('+')) {
-            const parts = clean.split('+').sort().join('+');
-            const resultName = this.recipes[parts] || ("Artefacto de " + phrase);
-            const sprite = AdvancedPixelRenderer.createDetailedSprite(resultName, "weapon");
-            this.inventory.push({ name: resultName, sprite });
-            this.addLog(`🔨 Crafteo Exitoso: **${resultName}**`, "craft");
-        } else {
-            let cat = "item";
-            if (clean.includes("dragon") || clean.includes("pajaro") || clean.includes("aguila")) cat = "flyer";
-            else if (clean.includes("lobo") || clean.includes("oso") || clean.includes("monstruo")) cat = "hunter";
-            else if (clean.includes("ciervo") || clean.includes("vaca") || clean.includes("conejo")) cat = "prey";
+    processInput(text) {
+        const clean = text.toLowerCase().trim();
+        if (!clean) return;
 
-            if (cat === "item") {
-                const sprite = AdvancedPixelRenderer.createDetailedSprite(clean, "item");
-                this.inventory.push({ name: phrase, sprite });
-                this.addLog(`🎒 Añadido al inventario: **${phrase}**`, "craft");
-            } else {
-                const rx = Math.random() * 500 + 50;
-                const ry = Math.random() * 500 + 50;
-                this.spawnEntity(phrase, rx, ry, cat);
-                this.addLog(`✨ Entidad generada en tiempo real: **${phrase}**`, "ai");
+        // Separar adjetivo si cumple nivel
+        let adjective = "";
+        let baseWord = clean;
+
+        if (clean.includes("_")) {
+            const parts = clean.split("_");
+            baseWord = parts[0];
+            adjective = parts[1];
+
+            if (this.player.level < 5) {
+                this.addLog("⚠️ Necesitas Nivel 5 para aplicar adjetivos a las entidades.", "system");
+                adjective = "";
             }
+        }
+
+        let cat = "item";
+        if (baseWord.includes("espada")) cat = "weapon";
+        else if (baseWord.includes("casco") || baseWord.includes("peto")) cat = "armor";
+        else if (baseWord.includes("fuego") || baseWord.includes("antorcha")) cat = "fire";
+        else if (baseWord.includes("lobo") || baseWord.includes("golem")) cat = "enemy";
+
+        if (cat === "enemy") {
+            this.spawnEntity(baseWord, this.player.x + 50, this.player.y + 50, cat, adjective);
+            this.addLog(`✨ Enemigo invocado: **${baseWord} ${adjective}**`, "ai");
+        } else {
+            const sprite = PixelRenderer.generateTexture(baseWord, cat, adjective);
+            const item = { name: `${baseWord} ${adjective}`.trim(), category: cat, sprite };
+            this.inventory.push(item);
+            this.addLog(`🎒 Añadido al inventario: **${item.name}**`, "craft");
         }
         this.updateUI();
     }
 
+    useItemWorld(e) {
+        if (!this.player.selectedItem) return;
+
+        const rect = this.canvas.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const clickY = e.clientY - rect.top;
+
+        // Convertir posición del clic a coordenadas absolutas del mundo
+        const worldX = clickX + this.camera.x;
+        const worldY = clickY + this.camera.y;
+
+        const item = this.player.selectedItem;
+
+        if (item.category === "fire" || item.name.includes("fuego")) {
+            // Quemar terreno en la posición elegida
+            const tile = this.getTileAt(worldX, worldY);
+            if (tile.type === "grass") {
+                this.setTileAt(tile.tileX, tile.tileY, "burned");
+                this.addLog(`🔥 Has quemado la hierba en [${tile.tileX}, ${tile.tileY}].`, "craft");
+            }
+        } else if (item.category === "weapon") {
+            // Atacar a enemigos cercanos a la posición elegida
+            this.entities.forEach((ent, idx) => {
+                const dist = Math.hypot(ent.x - worldX, ent.y - worldY);
+                if (dist < 40) {
+                    ent.hp -= 30;
+                    this.addLog(`⚔️ Has atacado a ${ent.name} (-30 HP).`, "system");
+                    if (ent.hp <= 0) {
+                        this.entities.splice(idx, 1);
+                        this.player.exp += 50;
+                        this.addLog(`☠️ ${ent.name} ha sido derrotado! (+50 EXP)`, "craft");
+                        this.checkLevelUp();
+                    }
+                }
+            });
+        }
+    }
+
+    checkLevelUp() {
+        if (this.player.exp >= this.player.nextExp) {
+            this.player.level++;
+            this.player.exp -= this.player.nextExp;
+            this.player.nextExp = Math.floor(this.player.nextExp * 1.5);
+            this.addLog(`🎉 ¡HAS SUBIDO AL NIVEL ${this.player.level}!`, "system");
+            if (this.player.level === 5) {
+                document.getElementById('hud-adj').innerText = "✨ Modificadores: ¡DESBLOQUEADOS!";
+            }
+        }
+    }
+
     update(dt) {
-        // 1. Movimiento del jugador en tiempo real (WASD)
+        // Movimiento de jugador
         let dx = 0, dy = 0;
         if (this.keys['w'] || this.keys['arrowup']) dy -= 1;
         if (this.keys['s'] || this.keys['arrowdown']) dy += 1;
@@ -369,71 +378,63 @@ class RealTimeEngine {
 
         if (dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; }
 
-        this.player.x = Math.max(12, Math.min(588, this.player.x + dx * this.player.speed * dt));
-        this.player.y = Math.max(12, Math.min(588, this.player.y + dy * this.player.speed * dt));
+        this.player.x += dx * this.player.speed * dt;
+        this.player.y += dy * this.player.speed * dt;
 
-        // Consumo constante de energía en tiempo real
-        this.player.hunger = Math.max(0, this.player.hunger - 0.8 * dt);
+        // Actualizar cámara suave centrada en el jugador
+        this.camera.x = this.player.x - this.canvas.width / 2;
+        this.camera.y = this.player.y - this.canvas.height / 2;
 
-        // 2. IA Autónoma en Tiempo Real para cada entidad
+        // IA Enemiga persiguiendo al jugador
         this.entities.forEach(ent => {
             const dist = Math.hypot(this.player.x - ent.x, this.player.y - ent.y);
-
-            if (ent.category === "flyer") {
-                // Vuelo fluido circular
-                ent.flyAngle += dt * 1.5;
-                ent.x += Math.cos(ent.flyAngle) * 60 * dt;
-                ent.y += Math.sin(ent.flyAngle) * 60 * dt;
-            } else if (ent.category === "hunter") {
-                // Persecución directa en tiempo real si el jugador está cerca
-                if (dist < 180) {
-                    const angle = Math.atan2(this.player.y - ent.y, this.player.x - ent.x);
-                    ent.x += Math.cos(angle) * 75 * dt;
-                    ent.y += Math.sin(angle) * 75 * dt;
-
-                    if (dist < 20) {
-                        this.player.hp = Math.max(0, this.player.hp - 10 * dt);
-                    }
-                } else {
-                    ent.x += ent.vx * dt; ent.y += ent.vy * dt;
-                }
-            } else if (ent.category === "prey") {
-                // Huida en tiempo real
-                if (dist < 120) {
-                    const angle = Math.atan2(ent.y - this.player.y, ent.x - this.player.x);
-                    ent.x += Math.cos(angle) * 90 * dt;
-                    ent.y += Math.sin(angle) * 90 * dt;
-                } else {
-                    ent.x += ent.vx * dt; ent.y += ent.vy * dt;
-                }
+            if (dist < 250 && dist > 20) {
+                const angle = Math.atan2(this.player.y - ent.y, this.player.x - ent.x);
+                ent.x += Math.cos(angle) * 60 * dt;
+                ent.y += Math.sin(angle) * 60 * dt;
             }
-
-            // Rebotes en los bordes del mapa
-            if (ent.x < 20 || ent.x > 580) ent.vx *= -1;
-            if (ent.y < 20 || ent.y > 580) ent.vy *= -1;
         });
 
         this.updateUI();
     }
 
     updateUI() {
+        document.getElementById('lvl-val').innerText = this.player.level;
+        document.getElementById('exp-val').innerText = `${this.player.exp}/${this.player.nextExp}`;
+        document.getElementById('bar-exp').style.width = `${(this.player.exp / this.player.nextExp) * 100}%`;
+
         document.getElementById('hp-val').innerText = `${Math.ceil(this.player.hp)}/${this.player.maxHp}`;
-        document.getElementById('bar-hp').style.width = `${(this.player.hp / this.player.maxHp) * 100}%`;
-        document.getElementById('hunger-val').innerText = `${Math.ceil(this.player.hunger)}/100`;
-        document.getElementById('bar-hunger').style.width = `${this.player.hunger}%`;
-        document.getElementById('hud-entities').innerText = `🐾 Entidades en vivo: ${this.entities.length}`;
+        document.getElementById('hud-pos').innerText = `📍 Coordenadas: X: ${Math.floor(this.player.x)}, Y: ${Math.floor(this.player.y)}`;
 
         const grid = document.getElementById('inventory-grid');
         grid.innerHTML = '';
-        this.inventory.forEach(item => {
+        this.inventory.forEach((item, idx) => {
             const slot = document.createElement('div');
-            slot.className = 'inv-slot';
+            slot.className = `inv-slot ${this.player.selectedItem === item ? 'selected' : ''}`;
             const img = document.createElement('img');
             img.src = item.sprite.toDataURL();
             slot.appendChild(img);
             slot.innerHTML += `<span>${item.name}</span>`;
+
+            slot.onclick = () => {
+                if (item.category === "armor" || item.category === "weapon") {
+                    // Equipar
+                    if (item.name.includes("casco")) this.equipment.helmet = item;
+                    else if (item.name.includes("peto")) this.equipment.chest = item;
+                    else this.equipment.weapon = item;
+                    this.renderEquipmentUI();
+                }
+                this.player.selectedItem = item;
+                this.updateUI();
+            };
             grid.appendChild(slot);
         });
+    }
+
+    renderEquipmentUI() {
+        if (this.equipment.helmet) document.getElementById('eq-helmet').innerHTML = `<img src="${this.equipment.helmet.sprite.toDataURL()}"><span>${this.equipment.helmet.name}</span>`;
+        if (this.equipment.chest) document.getElementById('eq-chest').innerHTML = `<img src="${this.equipment.chest.sprite.toDataURL()}"><span>${this.equipment.chest.name}</span>`;
+        if (this.equipment.weapon) document.getElementById('eq-weapon').innerHTML = `<img src="${this.equipment.weapon.sprite.toDataURL()}"><span>${this.equipment.weapon.name}</span>`;
     }
 
     addLog(msg, type = "system") {
@@ -442,37 +443,32 @@ class RealTimeEngine {
     }
 
     render() {
-        this.ctx.clearRect(0, 0, 600, 600);
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // Fondo del bioma
-        this.ctx.fillStyle = '#15803d';
-        this.ctx.fillRect(0, 0, 600, 600);
+        // 1. Renderizar Terreno Infinito basado en la posición de la cámara
+        const startTileX = Math.floor(this.camera.x / 32) - 1;
+        const endTileX = startTileX + Math.ceil(this.canvas.width / 32) + 2;
+        const startTileY = Math.floor(this.camera.y / 32) - 1;
+        const endTileY = startTileY + Math.ceil(this.canvas.height / 32) + 2;
 
-        // Detalles del terreno
-        this.ctx.fillStyle = '#166534';
-        for(let i=0; i<600; i+=40) {
-            this.ctx.fillRect(i, (i*3)%600, 16, 16);
+        for (let x = startTileX; x < endTileX; x++) {
+            for (let y = startTileY; y < endTileY; y++) {
+                const worldX = x * 32;
+                const worldY = y * 32;
+                const tile = this.getTileAt(worldX, worldY);
+
+                // Dibujar con offset de cámara
+                this.ctx.drawImage(this.tileCache[tile.type], worldX - this.camera.x, worldY - this.camera.y);
+            }
         }
 
-        // Entidades
+        // 2. Renderizar Entidades
         this.entities.forEach(ent => {
-            if (ent.category === "flyer") {
-                // Sombra proyectada
-                this.ctx.fillStyle = 'rgba(0,0,0,0.25)';
-                this.ctx.beginPath();
-                this.ctx.ellipse(ent.x, ent.y + 18, 12, 5, 0, 0, Math.PI * 2);
-                this.ctx.fill();
-
-                // Altura de vuelo flotante continua
-                const hover = Math.sin(performance.now() / 150) * 6;
-                this.ctx.drawImage(ent.sprite, ent.x - 12, ent.y - 18 + hover, 24, 24);
-            } else {
-                this.ctx.drawImage(ent.sprite, ent.x - 12, ent.y - 12, 24, 24);
-            }
+            this.ctx.drawImage(ent.sprite, ent.x - this.camera.x - 12, ent.y - this.camera.y - 12, 24, 24);
         });
 
-        // Jugador
-        this.ctx.drawImage(this.playerSprite, this.player.x - 12, this.player.y - 12, 24, 24);
+        // 3. Renderizar Jugador
+        this.ctx.drawImage(this.playerSprite, this.player.x - this.camera.x - 12, this.player.y - this.camera.y - 12, 24, 24);
     }
 
     loop(currentTime) {
@@ -486,7 +482,7 @@ class RealTimeEngine {
     }
 }
 
-window.onload = () => { window.gameEngine = new RealTimeEngine(); };
+window.onload = () => { window.gameEngine = new InfiniteGameEngine(); };
 </script>
 </body>
 </html>
