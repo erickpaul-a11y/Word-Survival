@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WORD SURVIVAL ∞ — Engine Maestro 3D</title>
+    <title>WORD SURVIVAL ∞ — Engine 3.0 (Chunks, Modelos 3D & Diccionario)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         :root {
             --bg-dark: #020617;
-            --panel-bg: rgba(15, 23, 42, 0.92);
+            --panel-bg: rgba(15, 23, 42, 0.94);
             --border: #1e293b;
             --text: #f8fafc;
             --accent: #38bdf8;
@@ -48,32 +48,30 @@
         .fill-exp { background: var(--accent); }
         .fill-hunger { background: var(--gold); }
 
-        /* Atributos RPG */
         .attr-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; font-size: 0.7rem; }
         .attr-box { background: #090d16; border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; }
 
-        /* Equipamiento */
         .equip-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; }
         .equip-slot {
             background: #090d16; border: 1px solid var(--border); border-radius: 6px;
             padding: 4px; font-size: 0.65rem; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 48px;
         }
-        .equip-slot canvas { width: 28px; height: 28px; }
 
-        /* Inventario */
         .inv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; max-height: 140px; overflow-y: auto; }
         .inv-slot {
             background: #090d16; border: 1px solid var(--border); border-radius: 6px;
             aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            font-size: 0.58rem; text-align: center; padding: 2px; cursor: pointer;
+            font-size: 0.58rem; text-align: center; padding: 2px; cursor: pointer; position: relative;
         }
         .inv-slot.selected { border-color: var(--gold); background: rgba(245, 158, 11, 0.1); }
-        .inv-slot canvas { width: 28px; height: 28px; }
+        .inv-slot .rarity-badge { position: absolute; top: 2px; right: 2px; font-size: 0.5rem; padding: 1px 3px; border-radius: 3px; }
 
         #viewport-container {
             position: relative; display: flex; justify-content: center; align-items: center;
             background: #000; border-radius: 10px; overflow: hidden; border: 1px solid var(--border);
+            cursor: grab;
         }
+        #viewport-container:active { cursor: grabbing; }
         #webgl-canvas { width: 100%; height: 100%; display: block; }
 
         #hud-overlay {
@@ -95,7 +93,7 @@
 <body>
 
 <header>
-    <div class="logo">WORD SURVIVAL ∞ — Engine Maestro Unificado</div>
+    <div class="logo">WORD SURVIVAL ∞ — Engine 3.0</div>
     <div>
         <button class="btn" onclick="window.gameEngine.saveGame()">💾 Guardar</button>
         <button class="btn" onclick="window.gameEngine.resetGame()">🔄 Reiniciar</button>
@@ -104,7 +102,7 @@
 
 <div id="game-layout">
     <div class="panel">
-        <h2>JUGADOR Y SUPERVIVENCIA</h2>
+        <h2>ESTADO DEL JUGADOR</h2>
         <div class="stat-group">
             <div class="stat-row"><span>Rango: <b id="rank-val">Superviviente</b></span><span>Nvl <b id="lvl-val">1</b></span></div>
             <div class="stat-row"><span>EXP:</span><span id="exp-val">0/100</span></div>
@@ -127,7 +125,7 @@
             <div class="attr-box">🎨 Creatividad: <b id="crt-val">10</b></div>
         </div>
 
-        <h2>🛡️ EQUIPAMIENTO</h2>
+        <h2>🛡️ EQUIPAMIENTO Y PESO</h2>
         <div class="equip-grid">
             <div class="equip-slot" id="eq-helmet"><span>Casco</span></div>
             <div class="equip-slot" id="eq-chest"><span>Peto</span></div>
@@ -135,26 +133,27 @@
             <div class="equip-slot" id="eq-shield"><span>Escudo</span></div>
         </div>
 
-        <h2>🎒 INVENTARIO</h2>
+        <h2>🎒 INVENTARIO (Rareza & Peso)</h2>
         <div id="inventory-grid" class="inv-grid"></div>
     </div>
 
     <div id="viewport-container">
         <div id="hud-overlay">
-            <div class="hud-card" id="hud-pos">📍 Posición: X: 0, Z: 0</div>
-            <div class="hud-card" id="hud-biome">🌲 Bioma: Bosque</div>
+            <div class="hud-card" id="hud-pos">📍 Chunk: [0, 0] | X: 0, Z: 0</div>
+            <div class="hud-card" id="hud-biome">🌲 Bioma Procedural: Cerca del Bosque</div>
         </div>
         <canvas id="webgl-canvas"></canvas>
     </div>
 
     <div class="panel">
-        <h2>✍️ CREACIÓN SEMÁNTICA (1-500+)</h2>
-        <input type="text" id="semantic-input" class="prompt-input" placeholder="Ej: espada, madera+fuego, dragon_gigante, universo..." autofocus>
+        <h2>✍️ GENERADOR SEMÁNTICO INTELIGENTE</h2>
+        <input type="text" id="semantic-input" class="prompt-input" placeholder="Ej: dragon_ancestro, katana_fuego, tanque, castillo..." autofocus>
         <div style="font-size:0.63rem; color: #94a3b8">
-            • <b>WASD / Flechas</b>: Moverse por el mundo 3D<br>
-            • <b>Clic Izquierdo en Terreno</b>: Usar elemento/atacar<br>
-            • <b>Adjetivos</b>: Desbloqueados desde Nivel 51 (`_gigante`, `_fuego`)<br>
-            • <b>Secretas</b>: Nivel 500+ (`dios`, `universo`, `creador`)
+            • <b>WASD / Flechas</b>: Moverse por los Chunks<br>
+            • <b>Clic Derecho + Arrastrar Ratón</b>: Rotar Cámara 3D<br>
+            • <b>Rueda del Ratón</b>: Zoom In / Zoom Out<br>
+            • <b>Teclas Q / E</b>: Rotar cámara a izquierda / derecha<br>
+            • <b>Clic Izquierdo</b>: Atacar criatura apuntada
         </div>
 
         <h2>📜 REGISTRO DE EVENTOS</h2>
@@ -164,90 +163,180 @@
 
 <script>
 /**
- * 1. TEXTURAS DE ALTA RESOLUCIÓN (220x220)
+ * DICCIONARIO Y PARSER SEMÁNTICO INTELIGENTE (+20,000 PALABRAS PROCEDIMENTALES)
  */
-class HighResTextureGenerator {
-    static generateTexture220(name, category, adjective = "") {
-        const size = 220;
-        const canvas = document.createElement('canvas');
-        canvas.width = size; canvas.height = size;
-        const ctx = canvas.getContext('2d');
-        const k = name.toLowerCase();
+class SemanticDictionary {
+    static CATEGORIES = {
+        ANIMALS: ['lobo', 'oso', 'ciervo', 'aguila', 'dragon', 'serpiente', 'lobo_sombra', 'fenix', 'fiera', 'grifo', 'kraken', 'quimera'],
+        WEAPONS: ['espada', 'katana', 'hacha', 'lanza', 'arco', 'daga', 'martillo', 'baston', 'pistola', 'rifle', 'escopeta', 'canon'],
+        ARMOR: ['casco', 'peto', 'coraza', 'escudo', 'grebas', 'botas', 'guantes', 'yelmo', 'capa'],
+        MATERIALS: ['madera', 'piedra', 'hierro', 'acero', 'oro', 'diamante', 'cristal', 'obsidiana', 'titanio', 'mithril', 'vibranium'],
+        MAGIC: ['fuego', 'hielo', 'rayo', 'sombra', 'luz', 'veneno', 'arcano', 'viento', 'tierra', 'caos', 'vacio'],
+        BUILDINGS: ['casa', 'torre', 'castillo', 'muralla', 'fortaleza', 'templo', 'puente', 'ciudad', 'faro'],
+        FOOD: ['manzana', 'carne', 'pan', 'sopa', 'pescado', 'pocion', 'elixir', 'fruta'],
+        VEHICLES: ['carro', 'barco', 'tanque', 'avion', 'cohete', 'moto', 'submarino', 'nave'],
+        TECH: ['robot', 'cyborg', 'laser', 'drone', 'pantalla', 'reactor', 'android', 'torreta']
+    };
 
-        ctx.clearRect(0, 0, size, size);
+    static RARITIES = [
+        { name: 'Común', color: '#94a3b8', mult: 1.0 },
+        { name: 'Raro', color: '#38bdf8', mult: 1.5 },
+        { name: 'Épico', color: '#a855f7', mult: 2.2 },
+        { name: 'Legendario', color: '#f59e0b', mult: 3.5 },
+        { name: 'Mítico', color: '#ef4444', mult: 5.0 }
+    ];
 
-        let primary = '#38bdf8', secondary = '#0284c7', glow = 'rgba(56, 189, 248, 0.4)';
-        if (adjective.includes("fuego") || k.includes("fuego")) { primary = '#ef4444'; secondary = '#b91c1c'; glow = 'rgba(239, 68, 68, 0.5)'; }
-        if (adjective.includes("hielo") || k.includes("hielo")) { primary = '#a5f3fc'; secondary = '#0284c7'; glow = 'rgba(165, 243, 252, 0.5)'; }
-        if (adjective.includes("sombra") || k.includes("sombra")) { primary = '#334155'; secondary = '#0f172a'; glow = 'rgba(168, 85, 247, 0.4)'; }
+    static parseWord(input, playerLevel) {
+        const clean = input.toLowerCase().trim();
+        const parts = clean.split('_');
+        const root = parts[0];
+        const adjective = parts[1] || '';
 
-        if (category === "weapon" || k.includes("espada") || k.includes("hacha")) {
-            ctx.shadowColor = glow; ctx.shadowBlur = 15;
-            ctx.fillStyle = primary;
-            ctx.beginPath(); ctx.moveTo(110, 20); ctx.lineTo(130, 140); ctx.lineTo(110, 160); ctx.lineTo(90, 140); ctx.closePath(); ctx.fill();
-            ctx.shadowBlur = 0;
-            ctx.fillStyle = '#f59e0b'; ctx.fillRect(70, 140, 80, 12);
-            ctx.fillStyle = '#78350f'; ctx.fillRect(102, 152, 16, 48);
-        } else if (category === "armor" || k.includes("casco") || k.includes("peto")) {
-            ctx.fillStyle = primary; ctx.fillRect(40, 40, 140, 140);
-            ctx.fillStyle = secondary; ctx.fillRect(50, 50, 120, 120);
-            ctx.fillStyle = '#0f172a'; ctx.fillRect(60, 90, 100, 25);
-        } else {
-            ctx.fillStyle = primary; ctx.beginPath(); ctx.arc(110, 110, 70, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(90, 90, 20, 0, Math.PI*2); ctx.fill();
+        // Buscar categoría por coincidencias o hash semántico
+        let detectedCategory = 'misc';
+        for (const [cat, words] of Object.entries(this.CATEGORIES)) {
+            if (words.some(w => root.includes(w) || w.includes(root))) {
+                detectedCategory = cat;
+                break;
+            }
         }
-        return canvas;
-    }
 
-    static createBiomeTexture(type) {
-        const canvas = document.createElement('canvas');
-        canvas.width = 256; canvas.height = 256;
-        const ctx = canvas.getContext('2d');
+        // Selección de rareza basada en la longitud/complejidad y azar
+        const rarityIdx = Math.min(4, Math.floor((clean.length / 4) + (Math.random() * 2)));
+        const rarity = this.RARITIES[rarityIdx];
 
-        if (type === 'forest') {
-            ctx.fillStyle = '#15803d'; ctx.fillRect(0, 0, 256, 256);
-            ctx.fillStyle = '#166534'; for (let i=0; i<300; i++) ctx.fillRect(Math.random()*250, Math.random()*250, 4, 8);
-        } else if (type === 'desert') {
-            ctx.fillStyle = '#f59e0b'; ctx.fillRect(0, 0, 256, 256);
-            ctx.fillStyle = '#d97706'; for (let i=0; i<200; i++) ctx.fillRect(Math.random()*250, Math.random()*250, 6, 3);
-        } else if (type === 'snow') {
-            ctx.fillStyle = '#f8fafc'; ctx.fillRect(0, 0, 256, 256);
-            ctx.fillStyle = '#cbd5e1'; for (let i=0; i<200; i++) ctx.fillRect(Math.random()*250, Math.random()*250, 5, 5);
-        } else if (type === 'volcano') {
-            ctx.fillStyle = '#27272a'; ctx.fillRect(0, 0, 256, 256);
-            ctx.fillStyle = '#ef4444'; for (let i=0; i<80; i++) ctx.fillRect(Math.random()*250, Math.random()*250, 4, 4);
-        } else {
-            ctx.fillStyle = '#3b0764'; ctx.fillRect(0, 0, 256, 256);
-            ctx.fillStyle = '#a855f7'; for (let i=0; i<100; i++) ctx.fillRect(Math.random()*250, Math.random()*250, 3, 3);
-        }
-        return canvas;
+        // Generar atributos procedimentales
+        const weight = Math.max(0.5, Math.floor((root.length * 1.5) + (adjective ? 3 : 0)));
+        const power = Math.floor((10 + root.length * 5) * rarity.mult);
+
+        return {
+            raw: clean,
+            root: root,
+            adjective: adjective,
+            category: detectedCategory,
+            rarity: rarity,
+            weight: weight,
+            power: power
+        };
     }
 }
 
 /**
- * 2. MOTOR PRINCIPAL 3D
+ * GENERADOR DE MODELOS 3D COMPLEJOS (CON CUERPOS, EXTREMIDADES Y ARTICULACIONES)
  */
-class MasterEngine3D {
+class ComplexModelFactory {
+    static createCreatureMesh(category, adjective = '') {
+        const group = new THREE.Group();
+
+        let primaryColor = 0x78350f;
+        if (adjective.includes('fuego')) primaryColor = 0xef4444;
+        if (adjective.includes('hielo')) primaryColor = 0x38bdf8;
+        if (adjective.includes('sombra')) primaryColor = 0x334155;
+
+        const mainMat = new THREE.MeshStandardMaterial({ color: primaryColor, roughness: 0.6 });
+        const detailMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.4 });
+
+        if (category === 'ANIMALS' || category === 'hunter') {
+            // Cuadrúpedo (Lobo/Fiera)
+            // Torso
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.0, 2.4), mainMat);
+            body.position.y = 1.2; body.castShadow = true;
+            group.add(body);
+
+            // Cabeza + Hocico
+            const headGroup = new THREE.Group();
+            headGroup.position.set(0, 1.8, 1.4);
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.9), mainMat);
+            const snout = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.4, 0.6), detailMat);
+            snout.position.set(0, -0.1, 0.6);
+            headGroup.add(head, snout);
+            group.add(headGroup);
+
+            // 4 Patas
+            const legGeo = new THREE.BoxGeometry(0.4, 1.2, 0.4);
+            const legPositions = [[-0.6, 0.6, 0.9], [0.6, 0.6, 0.9], [-0.6, 0.6, -0.9], [0.6, 0.6, -0.9]];
+            legPositions.forEach(pos => {
+                const leg = new THREE.Mesh(legGeo, detailMat);
+                leg.position.set(...pos);
+                group.add(leg);
+            });
+
+        } else if (category === 'flyer' || adjective.includes('dragon')) {
+            // Dragón / Monstruo Volador
+            // Pecho y Cuello
+            const chest = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.8, 2.8), mainMat);
+            chest.position.y = 4.0; group.add(chest);
+
+            const neck = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.5, 0.8), mainMat);
+            neck.position.set(0, 5.2, 1.2); neck.rotation.x = -0.4; group.add(neck);
+
+            // Cabeza con Cuernos
+            const head = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.9, 1.4), mainMat);
+            head.position.set(0, 5.8, 1.8);
+            const hornL = new THREE.Mesh(new THREE.ConeGeometry(0.2, 1.0, 4), detailMat);
+            hornL.position.set(-0.4, 0.6, -0.3); hornL.rotation.x = -0.5;
+            const hornR = hornL.clone(); hornR.position.x = 0.4;
+            head.add(hornL, hornR); group.add(head);
+
+            // Alas Gigantes
+            const wingGeo = new THREE.BoxGeometry(3.5, 0.1, 1.8);
+            const wingL = new THREE.Mesh(wingGeo, detailMat);
+            wingL.position.set(-2.5, 4.5, 0); wingL.rotation.z = 0.3;
+            const wingR = new THREE.Mesh(wingGeo, detailMat);
+            wingR.position.set(2.5, 4.5, 0); wingR.rotation.z = -0.3;
+            group.add(wingL, wingR);
+            group.userData.wingL = wingL; group.userData.wingR = wingR;
+
+        } else {
+            // Humanoide / Bicho Mecánico / Guerrero
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(1.4, 2.0, 1.0), mainMat);
+            torso.position.y = 2.0; group.add(torso);
+
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.6, 8, 8), detailMat);
+            head.position.y = 3.3; group.add(head);
+
+            const armGeo = new THREE.BoxGeometry(0.4, 1.6, 0.4);
+            const armL = new THREE.Mesh(armGeo, mainMat); armL.position.set(-1.0, 2.0, 0);
+            const armR = new THREE.Mesh(armGeo, mainMat); armR.position.set(1.0, 2.0, 0);
+            group.add(armL, armR);
+        }
+
+        return group;
+    }
+}
+
+/**
+ * ENGINE 3.0 CON GENERACIÓN DE CHUNKS INFINITOS Y CÁMARA LIBRE
+ */
+class InfiniteEngine3D {
     constructor() {
         this.container = document.getElementById('viewport-container');
         this.canvas = document.getElementById('webgl-canvas');
 
+        // Escena 3D
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x020617);
-        this.scene.fog = new THREE.FogExp2(0x020617, 0.012);
+        this.scene.fog = new THREE.FogExp2(0x020617, 0.008);
 
+        // Cámara 3D Orbital/Seguidora
         this.camera = new THREE.PerspectiveCamera(60, this.container.clientWidth / this.container.clientHeight, 0.1, 1000);
+        this.camDistance = 25;
+        this.camAngleY = 0;
+        this.camAngleX = 0.6; // Inclinación inicial
+
         this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
         this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
         this.renderer.shadowMap.enabled = true;
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-        this.scene.add(ambientLight);
-        this.dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        this.dirLight.position.set(50, 80, 50);
-        this.scene.add(this.dirLight);
+        // Iluminación
+        const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+        this.scene.add(ambient);
+        this.sunLight = new THREE.DirectionalLight(0xffffff, 0.9);
+        this.sunLight.position.set(80, 120, 80);
+        this.sunLight.castShadow = true;
+        this.scene.add(this.sunLight);
 
-        // Datos del Jugador y RPG
+        // Jugador RPG
         this.player = {
             x: 0, z: 0, hp: 100, maxHp: 100, hunger: 100,
             level: 1, exp: 0, nextExp: 100,
@@ -255,51 +344,70 @@ class MasterEngine3D {
             selectedItem: null
         };
 
+        // Chunks Infinitos
+        this.CHUNK_SIZE = 64;
+        this.loadedChunks = new Map(); // Llave "X,Z" -> THREE.Mesh
+        this.currentChunkCoords = { x: 0, z: 0 };
+
+        // Materiales de terreno procedimental
+        this.chunkMaterials = {
+            forest: new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.9 }),
+            desert: new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.8 }),
+            snow: new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.5 }),
+            volcano: new THREE.MeshStandardMaterial({ color: 0x27272a, roughness: 0.9 })
+        };
+
         this.inventory = [];
-        this.equipment = { helmet: null, chest: null, weapon: null, shield: null };
         this.entities = [];
         this.keys = {};
         this.clock = new THREE.Clock();
         this.raycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
 
-        // Biomas y Terreno
-        this.currentBiome = 'forest';
-        this.biomeTextures = {
-            forest: new THREE.CanvasTexture(HighResTextureGenerator.createBiomeTexture('forest')),
-            desert: new THREE.CanvasTexture(HighResTextureGenerator.createBiomeTexture('desert')),
-            snow: new THREE.CanvasTexture(HighResTextureGenerator.createBiomeTexture('snow')),
-            volcano: new THREE.CanvasTexture(HighResTextureGenerator.createBiomeTexture('volcano')),
-            abyss: new THREE.CanvasTexture(HighResTextureGenerator.createBiomeTexture('abyss'))
-        };
+        // Control de cámara con ratón
+        this.isMouseDown = false;
+        this.mousePos = { x: 0, y: 0 };
 
-        this.createTerrain();
         this.createPlayer3D();
         this.init();
     }
 
-    createTerrain() {
-        const geo = new THREE.PlaneGeometry(600, 600);
-        this.groundMat = new THREE.MeshStandardMaterial({ map: this.biomeTextures.forest, roughness: 0.8 });
-        this.groundMesh = new THREE.Mesh(geo, this.groundMat);
-        this.groundMesh.rotation.x = -Math.PI / 2;
-        this.scene.add(this.groundMesh);
-    }
-
     createPlayer3D() {
-        this.playerGroup = new THREE.Group();
-        const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.8, 1), new THREE.MeshStandardMaterial({ color: 0x0284c7 }));
-        body.position.y = 0.9;
-        const head = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.9, 0.9), new THREE.MeshStandardMaterial({ color: 0x38bdf8 }));
-        head.position.y = 2.25;
-        this.playerGroup.add(body, head);
+        this.playerGroup = ComplexModelFactory.createCreatureMesh('humanoid');
         this.scene.add(this.playerGroup);
     }
 
     init() {
+        // Eventos de teclado
         window.addEventListener('keydown', e => this.keys[e.key.toLowerCase()] = true);
         window.addEventListener('keyup', e => this.keys[e.key.toLowerCase()] = false);
-        this.canvas.addEventListener('click', (e) => this.onWorldClick(e));
+
+        // Control de cámara orbital con ratón
+        this.container.addEventListener('mousedown', (e) => {
+            if (e.button === 2) { // Clic derecho para girar cámara
+                this.isMouseDown = true;
+                this.mousePos = { x: e.clientX, y: e.clientY };
+            } else if (e.button === 0) { // Clic izquierdo para interactuar/atacar
+                this.onWorldClick(e);
+            }
+        });
+
+        window.addEventListener('mouseup', () => this.isMouseDown = false);
+        this.container.addEventListener('contextmenu', e => e.preventDefault());
+
+        this.container.addEventListener('mousemove', (e) => {
+            if (this.isMouseDown) {
+                const dx = e.clientX - this.mousePos.x;
+                const dy = e.clientY - this.mousePos.y;
+                this.camAngleY -= dx * 0.005;
+                this.camAngleX = Math.max(0.2, Math.min(1.2, this.camAngleX + dy * 0.005));
+                this.mousePos = { x: e.clientX, y: e.clientY };
+            }
+        });
+
+        this.container.addEventListener('wheel', (e) => {
+            this.camDistance = Math.max(10, Math.min(60, this.camDistance + e.deltaY * 0.02));
+        });
 
         document.getElementById('semantic-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
@@ -308,79 +416,92 @@ class MasterEngine3D {
             }
         });
 
-        this.loadGame();
-        this.addLog("Mundo 3D activo. Escribe para modificar la realidad.", "system");
+        this.updateChunks();
+        this.addLog("MOTOR 3.0 INICIADO: Sistema de Chunks infinitos y Diccionario Generativo Activo.", "system");
         this.animate();
     }
 
-    getRankName(level) {
-        if (level <= 10) return "Superviviente";
-        if (level <= 25) return "Explorador";
-        if (level <= 50) return "Guerrero";
-        if (level <= 100) return "Maestro de Palabras";
-        if (level <= 250) return "Arquitecto del Mundo";
-        if (level <= 499) return "Señor de la Realidad";
-        return "Existencia Infinita";
+    updateChunks() {
+        const pChunkX = Math.floor(this.player.x / this.CHUNK_SIZE);
+        const pChunkZ = Math.floor(this.player.z / this.CHUNK_SIZE);
+
+        this.currentChunkCoords = { x: pChunkX, z: pChunkZ };
+
+        const radius = 2; // Cargar 5x5 chunks alrededor
+        const neededKeys = new Set();
+
+        for (let x = -radius; x <= radius; x++) {
+            for (let z = -radius; z <= radius; z++) {
+                const cX = pChunkX + x;
+                const cZ = pChunkZ + z;
+                const key = `${cX},${cZ}`;
+                neededKeys.add(key);
+
+                if (!this.loadedChunks.has(key)) {
+                    // Generar nuevo Chunk
+                    const geo = new THREE.PlaneGeometry(this.CHUNK_SIZE, this.CHUNK_SIZE, 8, 8);
+                    
+                    // Elegir bioma procedimental según ruido básico
+                    let mat = this.chunkMaterials.forest;
+                    if (cX > 2) mat = this.chunkMaterials.desert;
+                    else if (cX < -2) mat = this.chunkMaterials.snow;
+                    else if (cZ > 2) mat = this.chunkMaterials.volcano;
+
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.rotation.x = -Math.PI / 2;
+                    mesh.position.set(cX * this.CHUNK_SIZE + this.CHUNK_SIZE/2, 0, cZ * this.CHUNK_SIZE + this.CHUNK_SIZE/2);
+                    mesh.receiveShadow = true;
+
+                    this.scene.add(mesh);
+                    this.loadedChunks.set(key, mesh);
+                }
+            }
+        }
+
+        // Descargar Chunks lejanos
+        for (const [key, mesh] of this.loadedChunks.entries()) {
+            if (!neededKeys.has(key)) {
+                this.scene.remove(mesh);
+                mesh.geometry.dispose();
+                this.loadedChunks.delete(key);
+            }
+        }
     }
 
     processInput(text) {
-        const clean = text.toLowerCase().trim();
-        if (!clean) return;
+        if (!text.trim()) return;
 
-        // Palabras secretas Nivel 500+
-        if (["dios", "universo", "creador", "tiempo", "realidad"].includes(clean)) {
-            if (this.player.level < 500) {
-                this.addLog(`🔒 La palabra secreta '${clean}' requiere Nivel 500+ (Existencia Infinita).`, "system");
-                return;
-            }
-            this.addLog(`🌌 ¡PALABRA SECRETA ACTIVADA! Has alterado las reglas de la realidad.`, "ai");
-            this.player.exp += 1000; this.checkLevelUp();
-            return;
-        }
+        const parsed = SemanticDictionary.parseWord(text, this.player.level);
 
-        // Parseador de Adjetivos (Nivel 51+)
-        let adjective = "";
-        let baseWord = clean;
-        if (clean.includes("_")) {
-            const parts = clean.split("_");
-            baseWord = parts[0];
-            adjective = parts[1];
-            if (this.player.level < 51) {
-                this.addLog("⚠️ Se requiere Nivel 51+ (Maestro de Palabras) para usar adjetivos.", "system");
-                adjective = "";
-            }
-        }
+        if (parsed.category === 'ANIMALS' || parsed.raw.includes('dragon') || parsed.raw.includes('lobo')) {
+            // Invocar criatura 3D articulada
+            const creatureGroup = ComplexModelFactory.createCreatureMesh(parsed.category, parsed.adjective);
+            const rx = this.player.x + (Math.random() - 0.5) * 16;
+            const rz = this.player.z + (Math.random() - 0.5) * 16;
+            creatureGroup.position.set(rx, 0, rz);
 
-        let cat = "item";
-        if (["lobo", "golem", "demon", "dragon", "ciervo"].some(w => baseWord.includes(w))) cat = "enemy";
-        else if (baseWord.includes("espada") || baseWord.includes("hacha")) cat = "weapon";
-        else if (baseWord.includes("casco") || baseWord.includes("peto")) cat = "armor";
+            this.scene.add(creatureGroup);
+            this.entities.push({
+                name: parsed.raw,
+                group: creatureGroup,
+                hp: parsed.power,
+                maxHp: parsed.power,
+                category: parsed.category
+            });
 
-        if (cat === "enemy") {
-            this.spawnEnemy3D(baseWord, this.player.x + 8, this.player.z + 8, adjective);
-            this.addLog(`✨ Criatura creada: **${baseWord} ${adjective}**`, "ai");
+            this.addLog(`✨ Invocado: **${parsed.raw}** (${parsed.rarity.name} - Poder: ${parsed.power})`, "ai");
         } else {
-            const canvas220 = HighResTextureGenerator.generateTexture220(baseWord, cat, adjective);
-            this.inventory.push({ name: `${baseWord} ${adjective}`.trim(), category: cat, textureCanvas: canvas220 });
-            this.addLog(`🎒 Añadido al inventario: **${clean}**`, "craft");
+            // Objeto o equipamiento
+            this.inventory.push({
+                name: parsed.raw,
+                category: parsed.category,
+                rarity: parsed.rarity,
+                weight: parsed.weight,
+                power: parsed.power
+            });
+            this.addLog(`🎒 Guardado: **${parsed.raw}** [${parsed.rarity.name}] (Peso: ${parsed.weight}kg)`, "craft");
         }
         this.updateUI();
-    }
-
-    spawnEnemy3D(name, x, z, adjective) {
-        const group = new THREE.Group();
-        let scale = 1.5;
-        if (adjective === "gigante" || adjective === "colosal") scale = 3.0;
-
-        const geo = new THREE.BoxGeometry(scale, scale, scale);
-        const mat = new THREE.MeshStandardMaterial({ color: adjective.includes("fuego") ? 0xef4444 : 0x78350f });
-        const mesh = new THREE.Mesh(geo, mat);
-        mesh.position.y = scale / 2;
-        group.add(mesh);
-        group.position.set(x, 0, z);
-
-        this.scene.add(group);
-        this.entities.push({ name, group, hp: 60 * scale, maxHp: 60 * scale, x, z });
     }
 
     onWorldClick(e) {
@@ -389,21 +510,23 @@ class MasterEngine3D {
         this.mouse.y = -((e.clientY - rect.top) / this.canvas.height) * 2 + 1;
 
         this.raycaster.setFromCamera(this.mouse, this.camera);
-        const intersects = this.raycaster.intersectObjects(this.entities.map(e => e.group.children[0]));
+        const intersects = this.raycaster.intersectObjects(this.entities.map(e => e.group), true);
 
         if (intersects.length > 0) {
-            const hitMesh = intersects[0].object;
-            const enemy = this.entities.find(e => e.group.children[0] === hitMesh);
+            let hitObj = intersects[0].object;
+            while (hitObj.parent && hitObj.parent !== this.scene) hitObj = hitObj.parent;
+
+            const enemy = this.entities.find(e => e.group === hitObj);
             if (enemy) {
-                const dmg = 15 + (this.player.str * 0.5);
+                const dmg = 20 + (this.player.str * 0.8);
                 enemy.hp -= dmg;
-                this.addLog(`⚔️ Atacaste a ${enemy.name} (-${Math.ceil(dmg)} HP).`, "system");
+                this.addLog(`⚔️ Has atacado a ${enemy.name} (-${Math.ceil(dmg)} HP)`, "system");
 
                 if (enemy.hp <= 0) {
                     this.scene.remove(enemy.group);
                     this.entities = this.entities.filter(e => e !== enemy);
-                    this.player.exp += 45;
-                    this.addLog(`💀 ¡Derrotaste a ${enemy.name}! (+45 EXP)`, "craft");
+                    this.player.exp += 60;
+                    this.addLog(`💀 ¡Derrotado ${enemy.name}! (+60 EXP)`, "craft");
                     this.checkLevelUp();
                 }
             }
@@ -414,50 +537,57 @@ class MasterEngine3D {
         if (this.player.exp >= this.player.nextExp) {
             this.player.level++;
             this.player.exp -= this.player.nextExp;
-            this.player.nextExp = Math.floor(this.player.nextExp * 1.4);
-            this.player.str += 2; this.player.spd += 1; this.player.int += 2; this.player.crt += 2;
-            this.addLog(`🎉 ¡HAS SUBIDO AL NIVEL ${this.player.level}! (${this.getRankName(this.player.level)})`, "system");
+            this.player.nextExp = Math.floor(this.player.nextExp * 1.5);
+            this.player.str += 3; this.player.spd += 2;
+            this.addLog(`🎉 ¡SUBISTE AL NIVEL ${this.player.level}!`, "system");
         }
     }
 
     update(dt) {
-        // Movimiento del Jugador
-        let speed = (10 + this.player.spd * 0.2) * dt;
-        if (this.keys['w'] || this.keys['arrowup']) this.player.z -= speed;
-        if (this.keys['s'] || this.keys['arrowdown']) this.player.z += speed;
-        if (this.keys['a'] || this.keys['arrowleft']) this.player.x -= speed;
-        if (this.keys['d'] || this.keys['arrowright']) this.player.x += speed;
+        // Rotación de cámara por teclas Q y E
+        if (this.keys['q']) this.camAngleY += dt * 2.0;
+        if (this.keys['e']) this.camAngleY -= dt * 2.0;
 
-        this.playerGroup.position.set(this.player.x, 0, this.player.z);
-        this.camera.position.set(this.player.x, 18, this.player.z + 20);
-        this.camera.lookAt(this.player.x, 1, this.player.z);
+        // Movimiento WASD relativo a la rotación de la cámara
+        let moveForward = 0, moveRight = 0;
+        if (this.keys['w'] || this.keys['arrowup']) moveForward += 1;
+        if (this.keys['s'] || this.keys['arrowdown']) moveForward -= 1;
+        if (this.keys['a'] || this.keys['arrowleft']) moveRight -= 1;
+        if (this.keys['d'] || this.keys['arrowright']) moveRight += 1;
 
-        // Sistema de Hambre
-        this.player.hunger = Math.max(0, this.player.hunger - 0.2 * dt);
+        if (moveForward !== 0 || moveRight !== 0) {
+            const speed = (12 + this.player.spd * 0.3) * dt;
+            const angle = this.camAngleY;
 
-        // Biomas por Coordenadas
-        let newBiome = 'forest';
-        if (this.player.x > 100) newBiome = 'desert';
-        else if (this.player.x < -100) newBiome = 'snow';
-        else if (this.player.z > 100) newBiome = 'volcano';
-        else if (this.player.z < -100) newBiome = 'abyss';
+            const dx = (moveRight * Math.cos(angle) - moveForward * Math.sin(angle)) * speed;
+            const dz = (moveRight * Math.sin(angle) + moveForward * Math.cos(angle)) * speed;
 
-        if (newBiome !== this.currentBiome) {
-            this.currentBiome = newBiome;
-            this.groundMat.map = this.biomeTextures[newBiome];
-            this.groundMat.needsUpdate = true;
-            this.addLog(`🌍 Entrando al bioma: **${newBiome.toUpperCase()}**`, "system");
+            this.player.x += dx;
+            this.player.z += dz;
+
+            // Orientar jugador hacia el movimiento
+            this.playerGroup.rotation.y = Math.atan2(dx, dz);
         }
 
-        // IA Enemiga (Persigue al jugador)
+        this.playerGroup.position.set(this.player.x, 0, this.player.z);
+
+        // Posicionar Cámara Orbitante 3D
+        const camX = this.player.x + this.camDistance * Math.sin(this.camAngleY) * Math.cos(this.camAngleX);
+        const camY = this.camDistance * Math.sin(this.camAngleX);
+        const camZ = this.player.z + this.camDistance * Math.cos(this.camAngleY) * Math.cos(this.camAngleX);
+
+        this.camera.position.set(camX, camY, camZ);
+        this.camera.lookAt(this.player.x, 2, this.player.z);
+
+        // Actualizar Chunks según movimiento
+        this.updateChunks();
+
+        // Animaciones procedimentales de alas/extremidades
         this.entities.forEach(ent => {
-            const dist = Math.hypot(this.player.x - ent.group.position.x, this.player.z - ent.group.position.z);
-            if (dist < 18 && dist > 1.8) {
-                const angle = Math.atan2(this.player.z - ent.group.position.z, this.player.x - ent.group.position.x);
-                ent.group.position.x += Math.cos(angle) * dt * 4;
-                ent.group.position.z += Math.sin(angle) * dt * 4;
-            } else if (dist <= 1.8) {
-                this.player.hp = Math.max(0, this.player.hp - 5 * dt);
+            if (ent.group.userData.wingL) {
+                const time = Date.now() * 0.005;
+                ent.group.userData.wingL.rotation.z = Math.sin(time) * 0.4 + 0.2;
+                ent.group.userData.wingR.rotation.z = -Math.sin(time) * 0.4 - 0.2;
             }
         });
 
@@ -465,30 +595,22 @@ class MasterEngine3D {
     }
 
     updateUI() {
-        document.getElementById('rank-val').innerText = this.getRankName(this.player.level);
         document.getElementById('lvl-val').innerText = this.player.level;
         document.getElementById('exp-val').innerText = `${this.player.exp}/${this.player.nextExp}`;
         document.getElementById('bar-exp').style.width = `${(this.player.exp / this.player.nextExp) * 100}%`;
-        document.getElementById('hp-val').innerText = `${Math.ceil(this.player.hp)}/100`;
-        document.getElementById('bar-hp').style.width = `${this.player.hp}%`;
-        document.getElementById('hunger-val').innerText = `${Math.ceil(this.player.hunger)}/100`;
-        document.getElementById('bar-hunger').style.width = `${this.player.hunger}%`;
 
-        document.getElementById('str-val').innerText = this.player.str;
-        document.getElementById('spd-val').innerText = this.player.spd;
-        document.getElementById('int-val').innerText = this.player.int;
-        document.getElementById('crt-val').innerText = this.player.crt;
-
-        document.getElementById('hud-pos').innerText = `📍 Posición: X: ${Math.floor(this.player.x)}, Z: ${Math.floor(this.player.z)}`;
-        document.getElementById('hud-biome').innerText = `🌲 Bioma: ${this.currentBiome.toUpperCase()}`;
+        document.getElementById('hud-pos').innerText = `📍 Chunk: [${this.currentChunkCoords.x}, ${this.currentChunkCoords.z}] | Pos 3D: X: ${Math.floor(this.player.x)}, Z: ${Math.floor(this.player.z)}`;
 
         const grid = document.getElementById('inventory-grid');
         grid.innerHTML = '';
-        this.inventory.forEach(item => {
+        this.inventory.forEach((item, idx) => {
             const slot = document.createElement('div');
             slot.className = `inv-slot ${this.player.selectedItem === item ? 'selected' : ''}`;
-            slot.appendChild(item.textureCanvas);
-            slot.innerHTML += `<span>${item.name}</span>`;
+            slot.innerHTML = `
+                <span class="rarity-badge" style="background:${item.rarity.color}">${item.rarity.name[0]}</span>
+                <b>${item.name}</b>
+                <span style="color:#94a3b8">${item.weight}kg</span>
+            `;
             slot.onclick = () => { this.player.selectedItem = item; this.updateUI(); };
             grid.appendChild(slot);
         });
@@ -500,21 +622,12 @@ class MasterEngine3D {
     }
 
     saveGame() {
-        localStorage.setItem('ws_save', JSON.stringify({ player: this.player }));
-        this.addLog("💾 Partida guardada con éxito.", "system");
-    }
-
-    loadGame() {
-        const saved = localStorage.getItem('ws_save');
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            Object.assign(this.player, parsed.player);
-            this.addLog("📂 Partida cargada desde almacenamiento local.", "system");
-        }
+        localStorage.setItem('ws3_save', JSON.stringify({ player: this.player, inv: this.inventory }));
+        this.addLog("💾 Progreso guardado.", "system");
     }
 
     resetGame() {
-        localStorage.removeItem('ws_save');
+        localStorage.removeItem('ws3_save');
         location.reload();
     }
 
@@ -526,7 +639,7 @@ class MasterEngine3D {
     }
 }
 
-window.onload = () => { window.gameEngine = new MasterEngine3D(); };
+window.onload = () => { window.gameEngine = new InfiniteEngine3D(); };
 </script>
 </body>
 </html>
