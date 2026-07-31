@@ -3,17 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WORD SURVIVAL ∞ — Infinite World & Interactive Mechanics</title>
+    <title>WORD SURVIVAL ∞ — Engine 3D Infinito Completo</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         :root {
             --bg-dark: #020617;
-            --panel-bg: rgba(15, 23, 42, 0.95);
+            --panel-bg: rgba(15, 23, 42, 0.90);
             --border: #1e293b;
             --text: #f8fafc;
             --accent: #38bdf8;
             --danger: #ef4444;
             --success: #10b981;
             --gold: #f59e0b;
+            --magic: #a855f7;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; user-select: none; }
@@ -33,11 +35,11 @@
         .panel {
             background: var(--panel-bg); border: 1px solid var(--border);
             border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto;
+            backdrop-filter: blur(8px);
         }
 
         h2 { color: var(--accent); font-size: 0.8rem; text-transform: uppercase; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
 
-        /* HUD y Stats */
         .stat-group { display: flex; flex-direction: column; gap: 3px; }
         .stat-row { display: flex; justify-content: space-between; font-size: 0.72rem; color: #94a3b8; }
         .stat-bar { background: #090d16; height: 8px; border-radius: 4px; overflow: hidden; }
@@ -45,51 +47,52 @@
         .fill-hp { background: var(--danger); }
         .fill-exp { background: var(--accent); }
 
-        /* Equipamiento */
         .equip-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
         .equip-slot {
             background: #090d16; border: 1px solid var(--border); border-radius: 6px;
-            padding: 6px; font-size: 0.7rem; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 50px;
+            padding: 6px; font-size: 0.7rem; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 52px;
         }
-        .equip-slot img { width: 24px; height: 24px; image-rendering: pixelated; }
+        .equip-slot canvas { width: 32px; height: 32px; border-radius: 4px; }
 
-        /* Inventario */
         .inv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-height: 160px; overflow-y: auto; }
         .inv-slot {
             background: #090d16; border: 1px solid var(--border); border-radius: 6px;
             aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            font-size: 0.6rem; text-align: center; padding: 2px; cursor: pointer;
+            font-size: 0.6rem; text-align: center; padding: 2px; cursor: pointer; transition: border-color 0.2s;
         }
-        .inv-slot.selected { border-color: var(--gold); }
-        .inv-slot img { width: 28px; height: 28px; image-rendering: pixelated; }
+        .inv-slot.selected { border-color: var(--gold); background: rgba(245, 158, 11, 0.1); }
+        .inv-slot canvas { width: 32px; height: 32px; }
 
-        /* Viewport Canvas */
         #viewport-container {
             position: relative; display: flex; justify-content: center; align-items: center;
             background: #000; border-radius: 10px; overflow: hidden; border: 1px solid var(--border);
         }
-        canvas { display: block; image-rendering: pixelated; }
+        #webgl-canvas { width: 100%; height: 100%; display: block; }
 
         #hud-overlay {
-            position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; pointer-events: none;
+            position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; pointer-events: none; z-index: 10;
         }
-        .hud-card { background: rgba(15, 23, 42, 0.85); border: 1px solid var(--border); padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; }
+        .hud-card { background: rgba(15, 23, 42, 0.85); border: 1px solid var(--border); padding: 5px 10px; border-radius: 6px; font-size: 0.75rem; }
 
-        /* Input & Logs */
         .prompt-input { width: 100%; background: #090d16; border: 1px solid var(--border); color: #fff; padding: 8px; border-radius: 6px; outline: none; font-size: 0.8rem; }
+        .prompt-input:focus { border-color: var(--accent); }
+
         #log-panel { flex-grow: 1; background: #040711; border: 1px solid var(--border); border-radius: 6px; padding: 6px; font-family: monospace; font-size: 0.7rem; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 4px; }
-        .log-entry { padding: 3px 5px; border-radius: 4px; border-left: 3px solid var(--border); background: rgba(255,255,255,0.02); }
+        .log-entry { padding: 4px 6px; border-radius: 4px; border-left: 3px solid var(--border); background: rgba(255,255,255,0.02); }
+        .log-entry.system { border-color: var(--accent); color: #7dd3fc; }
+        .log-entry.craft { border-color: var(--success); color: #a7f3d0; }
+        .log-entry.ai { border-color: var(--magic); color: #f0abfc; }
     </style>
 </head>
 <body>
 
 <header>
-    <div class="logo">WORD SURVIVAL ∞ — Engine de Acción e Interacción de Elementos</div>
+    <div class="logo">WORD SURVIVAL ∞ — Engine 3D Infinito & Texturas High-Res (220x220)</div>
 </header>
 
 <div id="game-layout">
     <div class="panel">
-        <h2>JUGADOR Y ESTADÍSTICAS</h2>
+        <h2>JUGADOR Y NIVEL</h2>
         <div class="stat-group">
             <div class="stat-row"><span>Nivel <b id="lvl-val">1</b></span><span>EXP: <span id="exp-val">0/100</span></span></div>
             <div class="stat-bar"><div id="bar-exp" class="stat-fill fill-exp" style="width: 0%"></div></div>
@@ -99,7 +102,7 @@
             <div class="stat-bar"><div id="bar-hp" class="stat-fill fill-hp" style="width: 100%"></div></div>
         </div>
 
-        <h2>🛡️ EQUIPAMIENTO</h2>
+        <h2>🛡️ EQUIPAMIENTO 3D</h2>
         <div class="equip-grid">
             <div class="equip-slot" id="eq-helmet"><span>Casco</span></div>
             <div class="equip-slot" id="eq-chest"><span>Peto</span></div>
@@ -107,25 +110,26 @@
             <div class="equip-slot" id="eq-shield"><span>Escudo</span></div>
         </div>
 
-        <h2>🎒 INVENTARIO</h2>
+        <h2>🎒 INVENTARIO GENERATIVO</h2>
         <div id="inventory-grid" class="inv-grid"></div>
     </div>
 
     <div id="viewport-container">
         <div id="hud-overlay">
-            <div class="hud-card" id="hud-pos">📍 Coordenadas: X: 0, Y: 0</div>
-            <div class="hud-card" id="hud-adj">✨ Modificadores: Bloqueados (Req. Nivel 5)</div>
+            <div class="hud-card" id="hud-pos">📍 Coordenadas 3D: X: 0, Y: 0, Z: 0</div>
+            <div class="hud-card" id="hud-adj">✨ Adjetivos: Bloqueados (Req. Nivel 5)</div>
         </div>
-        <canvas id="gameCanvas" width="600" height="600"></canvas>
+        <canvas id="webgl-canvas"></canvas>
     </div>
 
     <div class="panel">
-        <h2>✍️ CREACIÓN Y MODIFICADORES</h2>
-        <input type="text" id="semantic-input" class="prompt-input" placeholder="Ej: espada_fuego, casco_hierro, antorcha..." autofocus>
+        <h2>✍️ CREACIÓN Y COMBINACIÓN</h2>
+        <input type="text" id="semantic-input" class="prompt-input" placeholder="Ej: dragon_fuego, espada_cristal, madera+piedra..." autofocus>
         <div style="font-size:0.65rem; color: #94a3b8">
-            • <b>WASD / Flechas</b>: Moverse<br>
-            • <b>Espacio / Clic Izquierdo</b>: Usar Objeto Seleccionado (Atacar o Quemar)<br>
-            • <b>Clic en Inventario</b>: Seleccionar o Equipar
+            • <b>WASD / Flechas</b>: Moverse por el mapa 3D<br>
+            • <b>Clic Izquierdo en Mundo 3D</b>: Atacar o Quemar el terreno<br>
+            • <b>Clic en Inventario</b>: Seleccionar o Equipar objeto<br>
+            • <b>Usar '+'</b>: Craftear (ej. madera+piedra)
         </div>
 
         <h2>📜 REGISTRO DE EVENTOS</h2>
@@ -135,114 +139,180 @@
 
 <script>
 /**
- * 1. RENDERIZADOR AVANZADO DE TEXTURAS DE PÍXELES CON SOMBREADO
+ * GENERADOR PROCEDIMENTAL DE TEXTURAS EN ALTA RESOLUCIÓN (220x220)
  */
-class PixelRenderer {
-    static generateTexture(key, category, adjective = "") {
-        const size = 24;
+class HighResTextureGenerator {
+    static generateTexture220(name, category, adjective = "") {
+        const size = 220;
         const canvas = document.createElement('canvas');
         canvas.width = size; canvas.height = size;
         const ctx = canvas.getContext('2d');
-        const k = key.toLowerCase();
+        const k = name.toLowerCase();
 
-        ctx.imageSmoothingEnabled = false;
+        // Fondo base transparente
+        ctx.clearRect(0, 0, size, size);
 
-        // Paleta según adjetivo
-        let primaryColor = '#38bdf8';
-        if (adjective === "fuego" || k.includes("fuego")) primaryColor = '#ef4444';
-        if (adjective === "gigante" || k.includes("hierro")) primaryColor = '#94a3b8';
-        if (adjective === "venenoso" || k.includes("planta")) primaryColor = '#10b981';
+        // Paletas de color dinámicas según adjetivo
+        let primary = '#38bdf8', secondary = '#0284c7', glow = 'rgba(56, 189, 248, 0.4)';
+        if (adjective === "fuego" || k.includes("fuego")) { primary = '#ef4444'; secondary = '#b91c1c'; glow = 'rgba(239, 68, 68, 0.5)'; }
+        if (adjective === "sombra" || k.includes("sombra")) { primary = '#334155'; secondary = '#0f172a'; glow = 'rgba(168, 85, 247, 0.4)'; }
+        if (adjective === "cristal" || k.includes("cristal")) { primary = '#a855f7'; secondary = '#7e22ce'; glow = 'rgba(168, 85, 247, 0.6)'; }
 
+        // Renderizado detallado por categoría
         if (category === "weapon" || k.includes("espada")) {
-            // Hoja
-            ctx.fillStyle = primaryColor;
-            for(let i = 4; i < 18; i++) ctx.fillRect(i, 20 - i, 2, 2);
-            // Empuñadura
-            ctx.fillStyle = '#78350f'; ctx.fillRect(4, 18, 3, 3);
-            ctx.fillStyle = '#f59e0b'; ctx.fillRect(6, 15, 3, 3);
+            // Hoja afilada detallada
+            ctx.shadowColor = glow; ctx.shadowBlur = 15;
+            ctx.fillStyle = primary;
+            ctx.beginPath();
+            ctx.moveTo(110, 20); ctx.lineTo(130, 140); ctx.lineTo(110, 160); ctx.lineTo(90, 140);
+            ctx.closePath(); ctx.fill();
+
+            // Mango y Guardamano
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#f59e0b'; ctx.fillRect(70, 140, 80, 12);
+            ctx.fillStyle = '#78350f'; ctx.fillRect(102, 152, 16, 48);
+            ctx.fillStyle = '#f59e0b'; ctx.beginPath(); ctx.arc(110, 205, 10, 0, Math.PI * 2); ctx.fill();
         } else if (category === "armor" || k.includes("casco") || k.includes("peto")) {
-            ctx.fillStyle = primaryColor;
-            ctx.fillRect(4, 4, 16, 16);
-            ctx.fillStyle = '#0f172a'; ctx.fillRect(7, 8, 10, 4);
-        } else if (category === "fire" || k.includes("fuego") || k.includes("antorcha")) {
-            ctx.fillStyle = '#f59e0b'; ctx.fillRect(8, 6, 8, 14);
-            ctx.fillStyle = '#ef4444'; ctx.fillRect(10, 2, 4, 10);
-            ctx.fillStyle = '#fef08a'; ctx.fillRect(10, 10, 4, 6);
-        } else if (category === "enemy" || k.includes("lobo") || k.includes("golem")) {
-            ctx.fillStyle = primaryColor;
-            ctx.fillRect(4, 8, 16, 10);
-            ctx.fillRect(14, 4, 6, 6); // Cabeza
-            ctx.fillStyle = '#ef4444'; ctx.fillRect(18, 5, 2, 2); // Ojo
+            // Casco/Peto metálico con visera
+            ctx.fillStyle = primary; ctx.fillRect(40, 40, 140, 140);
+            ctx.fillStyle = secondary; ctx.fillRect(50, 50, 120, 120);
+            ctx.fillStyle = '#0f172a'; ctx.fillRect(60, 90, 100, 25); // Visera
+            ctx.fillStyle = '#fef08a'; ctx.fillRect(70, 98, 80, 8);  // Brillo
+        } else if (category === "fire" || k.includes("antorcha")) {
+            // Llama de fuego dinámica
+            const grad = ctx.createRadialGradient(110, 110, 10, 110, 110, 90);
+            grad.addColorStop(0, '#fef08a'); grad.addColorStop(0.5, '#f97316'); grad.addColorStop(1, '#ef4444');
+            ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(110, 110, 80, 0, Math.PI*2); ctx.fill();
         } else {
-            // Material básico
-            ctx.fillStyle = primaryColor; ctx.fillRect(6, 6, 12, 12);
-            ctx.fillStyle = '#ffffff'; ctx.fillRect(8, 8, 4, 4);
+            // Artefacto místico genérico
+            ctx.fillStyle = primary; ctx.beginPath(); ctx.arc(110, 110, 70, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(90, 90, 20, 0, Math.PI*2); ctx.fill();
         }
 
         return canvas;
     }
 
-    static getTileTexture(type) {
+    static createGroundTexture(type) {
         const canvas = document.createElement('canvas');
-        canvas.width = 32; canvas.height = 32;
+        canvas.width = 256; canvas.height = 256;
         const ctx = canvas.getContext('2d');
 
         if (type === 'grass') {
-            ctx.fillStyle = '#15803d'; ctx.fillRect(0, 0, 32, 32);
-            ctx.fillStyle = '#166534'; ctx.fillRect(4, 4, 8, 8); ctx.fillRect(18, 20, 6, 6);
+            ctx.fillStyle = '#15803d'; ctx.fillRect(0, 0, 256, 256);
+            ctx.fillStyle = '#166534';
+            for (let i = 0; i < 400; i++) {
+                ctx.fillRect(Math.random()*250, Math.random()*250, 4, 8);
+            }
         } else if (type === 'burned') {
-            ctx.fillStyle = '#18181b'; ctx.fillRect(0, 0, 32, 32); // Suelo quemado/ceniza
-            ctx.fillStyle = '#27272a'; ctx.fillRect(8, 8, 4, 4); ctx.fillRect(20, 14, 6, 6);
-        } else if (type === 'water') {
-            ctx.fillStyle = '#0284c7'; ctx.fillRect(0, 0, 32, 32);
-            ctx.fillStyle = '#38bdf8'; ctx.fillRect(2, 12, 12, 4);
+            ctx.fillStyle = '#18181b'; ctx.fillRect(0, 0, 256, 256);
+            ctx.fillStyle = '#27272a';
+            for (let i = 0; i < 300; i++) {
+                ctx.fillRect(Math.random()*250, Math.random()*250, 6, 6);
+            }
+            ctx.fillStyle = '#ef4444';
+            for (let i = 0; i < 40; i++) {
+                ctx.fillRect(Math.random()*250, Math.random()*250, 3, 3); // Chispas rojas
+            }
         }
         return canvas;
     }
 }
 
 /**
- * 2. MOTOR PRINCIPAL EN TIEMPO REAL CON MUNDO INFINITO Y CÁMARA
+ * MOTOR DE JUEGO 3D COMPLETO (THREE.JS)
  */
-class InfiniteGameEngine {
+class Engine3D {
     constructor() {
-        this.canvas = document.getElementById('gameCanvas');
-        this.ctx = this.canvas.getContext('2d');
-        this.keys = {};
+        this.container = document.getElementById('viewport-container');
+        this.canvas = document.getElementById('webgl-canvas');
+        
+        // Inicializar Escena, Cámara y Renderer 3D
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0x020617);
+        this.scene.fog = new THREE.FogExp2(0x020617, 0.015);
 
-        // Jugador en coordenadas absolutas del mundo
+        this.camera = new THREE.PerspectiveCamera(60, this.container.clientWidth / this.container.clientHeight, 0.1, 1000);
+        this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
+        this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+        this.renderer.shadowMap.enabled = true;
+
+        // Iluminación 3D
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        this.scene.add(ambientLight);
+
+        this.dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        this.dirLight.position.set(50, 80, 50);
+        this.dirLight.castShadow = true;
+        this.scene.add(this.dirLight);
+
+        // Estado del Jugador
         this.player = {
-            x: 0, y: 0, speed: 200,
+            x: 0, z: 0, speed: 12,
             hp: 100, maxHp: 100, level: 1, exp: 0, nextExp: 100,
             selectedItem: null
         };
 
-        // Cámara que sigue al jugador
-        this.camera = { x: 0, y: 0 };
+        // Materiales y Terreno 3D
+        this.grassTexture = new THREE.CanvasTexture(HighResTextureGenerator.createGroundTexture('grass'));
+        this.grassTexture.wrapS = THREE.RepeatWrapping; this.grassTexture.wrapT = THREE.RepeatWrapping;
+        this.grassTexture.repeat.set(40, 40);
 
-        // Almacenamiento dinámico del mapa infinito (Chunks/Tiles)
-        this.worldTiles = new Map(); // Llave: "X,Y" -> Tipo de terreno
+        this.burnedTexture = new THREE.CanvasTexture(HighResTextureGenerator.createGroundTexture('burned'));
+
+        const groundGeo = new THREE.PlaneGeometry(500, 500);
+        this.groundMat = new THREE.MeshStandardMaterial({ map: this.grassTexture, roughness: 0.8 });
+        this.groundMesh = new THREE.Mesh(groundGeo, this.groundMat);
+        this.groundMesh.rotation.x = -Math.PI / 2;
+        this.groundMesh.receiveShadow = true;
+        this.scene.add(this.groundMesh);
+
+        // Crear Jugador 3D
+        this.createPlayer3D();
+
+        // Arreglos de entidades, inventario y crafteo
         this.entities = [];
         this.inventory = [];
         this.equipment = { helmet: null, chest: null, weapon: null, shield: null };
-
-        this.tileCache = {
-            grass: PixelRenderer.getTileTexture('grass'),
-            burned: PixelRenderer.getTileTexture('burned'),
-            water: PixelRenderer.getTileTexture('water')
+        this.recipes = {
+            "madera+piedra": "Pico de Piedra",
+            "madera+hierro": "Espada de Hierro",
+            "espada+fuego": "Espada Flameante"
         };
 
-        this.playerSprite = PixelRenderer.generateTexture('player', 'hero');
-        this.lastTime = performance.now();
+        this.keys = {};
+        this.raycaster = new THREE.Raycaster();
+        this.mouse = new THREE.Vector2();
+        this.clock = new THREE.Clock();
 
         this.init();
+    }
+
+    createPlayer3D() {
+        this.playerGroup = new THREE.Group();
+        
+        // Cuerpo Vóxel / 3D
+        const bodyGeo = new THREE.BoxGeometry(1.2, 1.8, 1);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0284c7 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 0.9;
+        body.castShadow = true;
+        this.playerGroup.add(body);
+
+        // Cabeza
+        const headGeo = new THREE.BoxGeometry(0.9, 0.9, 0.9);
+        const headMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8 });
+        const head = new THREE.Mesh(headGeo, headMat);
+        head.position.y = 2.25;
+        this.playerGroup.add(head);
+
+        this.scene.add(this.playerGroup);
     }
 
     init() {
         window.addEventListener('keydown', e => this.keys[e.key.toLowerCase()] = true);
         window.addEventListener('keyup', e => this.keys[e.key.toLowerCase()] = false);
 
-        this.canvas.addEventListener('click', (e) => this.useItemWorld(e));
+        this.canvas.addEventListener('click', (e) => this.onWorldClick(e));
 
         document.getElementById('semantic-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
@@ -251,147 +321,142 @@ class InfiniteGameEngine {
             }
         });
 
-        // Enemigos iniciales cerca del spawn
-        this.spawnEntity("Lobo Sombra", 150, 100, "enemy");
-        this.spawnEntity("Golem de Piedra", -200, 150, "enemy");
+        // Spawn inicial de criaturas 3D
+        this.spawnEntity3D("Dragón de Fuego", 15, 12, "flyer");
+        this.spawnEntity3D("Lobo Sombra", -10, 8, "hunter");
+        this.spawnEntity3D("Ciervo Esmeralda", -15, -10, "prey");
 
-        this.addLog("Mundo infinito cargado con motor de cámara e interacciones físicas.", "system");
-        requestAnimationFrame((time) => this.loop(time));
+        this.addLog("Mundo 3D activo con Three.js, físicas de fuego e IA autónoma.", "system");
+        this.animate();
     }
 
-    getTileAt(worldX, worldY) {
-        const tileX = Math.floor(worldX / 32);
-        const tileY = Math.floor(worldY / 32);
-        const key = `${tileX},${tileY}`;
+    spawnEntity3D(name, x, z, category, adjective = "") {
+        const group = new THREE.Group();
+        let color = 0x78350f;
+        if (category === "flyer") color = 0xef4444;
+        if (category === "hunter") color = 0x334155;
+        if (category === "prey") color = 0x10b981;
 
-        if (!this.worldTiles.has(key)) {
-            // Generación procedimental simplificada
-            const isWater = (Math.sin(tileX * 0.1) + Math.cos(tileY * 0.1)) > 1.3;
-            this.worldTiles.set(key, isWater ? 'water' : 'grass');
-        }
-        return { type: this.worldTiles.get(key), tileX, tileY, key };
-    }
+        const geo = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+        const mat = new THREE.MeshStandardMaterial({ color });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.castShadow = true;
+        group.add(mesh);
 
-    setTileAt(tileX, tileY, newType) {
-        this.worldTiles.set(`${tileX},${tileY}`, newType);
-    }
+        // Si es volador, lo elevamos en Y
+        const startY = (category === "flyer") ? 8 : 0.75;
+        group.position.set(x, startY, z);
+        this.scene.add(group);
 
-    spawnEntity(name, x, y, category, adjective = "") {
-        const sprite = PixelRenderer.generateTexture(name, category, adjective);
-        this.entities.push({ name, x, y, category, sprite, hp: 50, adjective });
+        this.entities.push({
+            name, category, group, hp: 50,
+            flyOffset: Math.random() * 100
+        });
     }
 
     processInput(text) {
         const clean = text.toLowerCase().trim();
         if (!clean) return;
 
-        // Separar adjetivo si cumple nivel
-        let adjective = "";
-        let baseWord = clean;
-
-        if (clean.includes("_")) {
-            const parts = clean.split("_");
-            baseWord = parts[0];
-            adjective = parts[1];
-
-            if (this.player.level < 5) {
-                this.addLog("⚠️ Necesitas Nivel 5 para aplicar adjetivos a las entidades.", "system");
-                adjective = "";
-            }
-        }
-
-        let cat = "item";
-        if (baseWord.includes("espada")) cat = "weapon";
-        else if (baseWord.includes("casco") || baseWord.includes("peto")) cat = "armor";
-        else if (baseWord.includes("fuego") || baseWord.includes("antorcha")) cat = "fire";
-        else if (baseWord.includes("lobo") || baseWord.includes("golem")) cat = "enemy";
-
-        if (cat === "enemy") {
-            this.spawnEntity(baseWord, this.player.x + 50, this.player.y + 50, cat, adjective);
-            this.addLog(`✨ Enemigo invocado: **${baseWord} ${adjective}**`, "ai");
+        if (clean.includes("+")) {
+            // Crafteo
+            const result = this.recipes[clean] || ("Artefacto de " + clean);
+            const canvas220 = HighResTextureGenerator.generateTexture220(result, "weapon");
+            this.inventory.push({ name: result, category: "weapon", textureCanvas: canvas220 });
+            this.addLog(`🔨 Crafteo Exitoso: **${result}**`, "craft");
         } else {
-            const sprite = PixelRenderer.generateTexture(baseWord, cat, adjective);
-            const item = { name: `${baseWord} ${adjective}`.trim(), category: cat, sprite };
-            this.inventory.push(item);
-            this.addLog(`🎒 Añadido al inventario: **${item.name}**`, "craft");
+            let adjective = "";
+            let baseWord = clean;
+            if (clean.includes("_")) {
+                const parts = clean.split("_");
+                baseWord = parts[0];
+                adjective = parts[1];
+                if (this.player.level < 5) {
+                    this.addLog("⚠️ Se requiere Nivel 5 para usar adjetivos.", "system");
+                    adjective = "";
+                }
+            }
+
+            let cat = "item";
+            if (baseWord.includes("dragon") || baseWord.includes("aguila") || baseWord.includes("pajaro")) cat = "flyer";
+            else if (baseWord.includes("lobo") || baseWord.includes("golem") || baseWord.includes("monstruo")) cat = "hunter";
+            else if (baseWord.includes("ciervo") || baseWord.includes("vaca")) cat = "prey";
+            else if (baseWord.includes("espada")) cat = "weapon";
+            else if (baseWord.includes("casco") || baseWord.includes("peto")) cat = "armor";
+            else if (baseWord.includes("fuego") || baseWord.includes("antorcha")) cat = "fire";
+
+            if (cat === "flyer" || cat === "hunter" || cat === "prey") {
+                const rx = this.player.x + (Math.random() - 0.5) * 20;
+                const rz = this.player.z + (Math.random() - 0.5) * 20;
+                this.spawnEntity3D(clean, rx, rz, cat, adjective);
+                this.addLog(`✨ Criatura 3D invocada: **${clean}**`, "ai");
+            } else {
+                const canvas220 = HighResTextureGenerator.generateTexture220(baseWord, cat, adjective);
+                this.inventory.push({ name: clean, category: cat, textureCanvas: canvas220 });
+                this.addLog(`🎒 Objeto guardado en inventario: **${clean}**`, "craft");
+            }
         }
         this.updateUI();
     }
 
-    useItemWorld(e) {
-        if (!this.player.selectedItem) return;
-
+    onWorldClick(e) {
         const rect = this.canvas.getBoundingClientRect();
-        const clickX = e.clientX - rect.left;
-        const clickY = e.clientY - rect.top;
+        this.mouse.x = ((e.clientX - rect.left) / this.canvas.width) * 2 - 1;
+        this.mouse.y = -((e.clientY - rect.top) / this.canvas.height) * 2 + 1;
 
-        // Convertir posición del clic a coordenadas absolutas del mundo
-        const worldX = clickX + this.camera.x;
-        const worldY = clickY + this.camera.y;
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        const intersects = this.raycaster.intersectObjects([this.groundMesh]);
 
-        const item = this.player.selectedItem;
+        if (intersects.length > 0 && this.player.selectedItem) {
+            const point = intersects[0].point;
+            const item = this.player.selectedItem;
 
-        if (item.category === "fire" || item.name.includes("fuego")) {
-            // Quemar terreno en la posición elegida
-            const tile = this.getTileAt(worldX, worldY);
-            if (tile.type === "grass") {
-                this.setTileAt(tile.tileX, tile.tileY, "burned");
-                this.addLog(`🔥 Has quemado la hierba en [${tile.tileX}, ${tile.tileY}].`, "craft");
-            }
-        } else if (item.category === "weapon") {
-            // Atacar a enemigos cercanos a la posición elegida
-            this.entities.forEach((ent, idx) => {
-                const dist = Math.hypot(ent.x - worldX, ent.y - worldY);
-                if (dist < 40) {
-                    ent.hp -= 30;
-                    this.addLog(`⚔️ Has atacado a ${ent.name} (-30 HP).`, "system");
-                    if (ent.hp <= 0) {
-                        this.entities.splice(idx, 1);
-                        this.player.exp += 50;
-                        this.addLog(`☠️ ${ent.name} ha sido derrotado! (+50 EXP)`, "craft");
-                        this.checkLevelUp();
-                    }
-                }
-            });
-        }
-    }
-
-    checkLevelUp() {
-        if (this.player.exp >= this.player.nextExp) {
-            this.player.level++;
-            this.player.exp -= this.player.nextExp;
-            this.player.nextExp = Math.floor(this.player.nextExp * 1.5);
-            this.addLog(`🎉 ¡HAS SUBIDO AL NIVEL ${this.player.level}!`, "system");
-            if (this.player.level === 5) {
-                document.getElementById('hud-adj').innerText = "✨ Modificadores: ¡DESBLOQUEADOS!";
+            if (item.category === "fire" || item.name.includes("fuego")) {
+                // Crear parche de fuego 3D en el terreno
+                const fireGeo = new THREE.PlaneGeometry(6, 6);
+                const fireMat = new THREE.MeshBasicMaterial({ map: this.burnedTexture, transparent: true });
+                const patch = new THREE.Mesh(fireGeo, fireMat);
+                patch.rotation.x = -Math.PI / 2;
+                patch.position.set(point.x, 0.02, point.z);
+                this.scene.add(patch);
+                this.addLog(`🔥 Fuego aplicado en el terreno 3D [X: ${Math.floor(point.x)}, Z: ${Math.floor(point.z)}]`, "craft");
             }
         }
     }
 
     update(dt) {
-        // Movimiento de jugador
-        let dx = 0, dy = 0;
-        if (this.keys['w'] || this.keys['arrowup']) dy -= 1;
-        if (this.keys['s'] || this.keys['arrowdown']) dy += 1;
-        if (this.keys['a'] || this.keys['arrowleft']) dx -= 1;
-        if (this.keys['d'] || this.keys['arrowright']) dx += 1;
+        // Movimiento WASD 3D
+        let moveX = 0, moveZ = 0;
+        if (this.keys['w'] || this.keys['arrowup']) moveZ -= 1;
+        if (this.keys['s'] || this.keys['arrowdown']) moveZ += 1;
+        if (this.keys['a'] || this.keys['arrowleft']) moveX -= 1;
+        if (this.keys['d'] || this.keys['arrowright']) moveX += 1;
 
-        if (dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; }
+        if (moveX !== 0 && moveZ !== 0) { moveX *= 0.7071; moveZ *= 0.7071; }
 
-        this.player.x += dx * this.player.speed * dt;
-        this.player.y += dy * this.player.speed * dt;
+        this.player.x += moveX * this.player.speed * dt;
+        this.player.z += moveZ * this.player.speed * dt;
 
-        // Actualizar cámara suave centrada en el jugador
-        this.camera.x = this.player.x - this.canvas.width / 2;
-        this.camera.y = this.player.y - this.canvas.height / 2;
+        this.playerGroup.position.set(this.player.x, 0, this.player.z);
 
-        // IA Enemiga persiguiendo al jugador
+        // Cámara 3D siguiendo en tercera persona
+        this.camera.position.set(this.player.x, 18, this.player.z + 22);
+        this.camera.lookAt(this.player.x, 1, this.player.z);
+
+        // Actualizar IA de Criaturas 3D
         this.entities.forEach(ent => {
-            const dist = Math.hypot(this.player.x - ent.x, this.player.y - ent.y);
-            if (dist < 250 && dist > 20) {
-                const angle = Math.atan2(this.player.y - ent.y, this.player.x - ent.x);
-                ent.x += Math.cos(angle) * 60 * dt;
-                ent.y += Math.sin(angle) * 60 * dt;
+            if (ent.category === "flyer") {
+                ent.flyOffset += dt * 2;
+                ent.group.position.x += Math.sin(ent.flyOffset) * dt * 4;
+                ent.group.position.z += Math.cos(ent.flyOffset) * dt * 4;
+                ent.group.position.y = 8 + Math.sin(ent.flyOffset * 2) * 1.5;
+            } else if (ent.category === "hunter") {
+                const dist = Math.hypot(this.player.x - ent.group.position.x, this.player.z - ent.group.position.z);
+                if (dist < 20) {
+                    const angle = Math.atan2(this.player.z - ent.group.position.z, this.player.x - ent.group.position.x);
+                    ent.group.position.x += Math.cos(angle) * dt * 5;
+                    ent.group.position.z += Math.sin(angle) * dt * 5;
+                }
             }
         });
 
@@ -402,23 +467,19 @@ class InfiniteGameEngine {
         document.getElementById('lvl-val').innerText = this.player.level;
         document.getElementById('exp-val').innerText = `${this.player.exp}/${this.player.nextExp}`;
         document.getElementById('bar-exp').style.width = `${(this.player.exp / this.player.nextExp) * 100}%`;
-
         document.getElementById('hp-val').innerText = `${Math.ceil(this.player.hp)}/${this.player.maxHp}`;
-        document.getElementById('hud-pos').innerText = `📍 Coordenadas: X: ${Math.floor(this.player.x)}, Y: ${Math.floor(this.player.y)}`;
+        document.getElementById('hud-pos').innerText = `📍 Coordenadas 3D: X: ${Math.floor(this.player.x)}, Y: 0, Z: ${Math.floor(this.player.z)}`;
 
         const grid = document.getElementById('inventory-grid');
         grid.innerHTML = '';
-        this.inventory.forEach((item, idx) => {
+        this.inventory.forEach(item => {
             const slot = document.createElement('div');
             slot.className = `inv-slot ${this.player.selectedItem === item ? 'selected' : ''}`;
-            const img = document.createElement('img');
-            img.src = item.sprite.toDataURL();
-            slot.appendChild(img);
+            slot.appendChild(item.textureCanvas);
             slot.innerHTML += `<span>${item.name}</span>`;
 
             slot.onclick = () => {
                 if (item.category === "armor" || item.category === "weapon") {
-                    // Equipar
                     if (item.name.includes("casco")) this.equipment.helmet = item;
                     else if (item.name.includes("peto")) this.equipment.chest = item;
                     else this.equipment.weapon = item;
@@ -432,9 +493,18 @@ class InfiniteGameEngine {
     }
 
     renderEquipmentUI() {
-        if (this.equipment.helmet) document.getElementById('eq-helmet').innerHTML = `<img src="${this.equipment.helmet.sprite.toDataURL()}"><span>${this.equipment.helmet.name}</span>`;
-        if (this.equipment.chest) document.getElementById('eq-chest').innerHTML = `<img src="${this.equipment.chest.sprite.toDataURL()}"><span>${this.equipment.chest.name}</span>`;
-        if (this.equipment.weapon) document.getElementById('eq-weapon').innerHTML = `<img src="${this.equipment.weapon.sprite.toDataURL()}"><span>${this.equipment.weapon.name}</span>`;
+        if (this.equipment.helmet) {
+            const el = document.getElementById('eq-helmet'); el.innerHTML = '';
+            el.appendChild(this.equipment.helmet.textureCanvas); el.innerHTML += `<span>${this.equipment.helmet.name}</span>`;
+        }
+        if (this.equipment.chest) {
+            const el = document.getElementById('eq-chest'); el.innerHTML = '';
+            el.appendChild(this.equipment.chest.textureCanvas); el.innerHTML += `<span>${this.equipment.chest.name}</span>`;
+        }
+        if (this.equipment.weapon) {
+            const el = document.getElementById('eq-weapon'); el.innerHTML = '';
+            el.appendChild(this.equipment.weapon.textureCanvas); el.innerHTML += `<span>${this.equipment.weapon.name}</span>`;
+        }
     }
 
     addLog(msg, type = "system") {
@@ -442,47 +512,15 @@ class InfiniteGameEngine {
         log.innerHTML = `<div class="log-entry ${type}">${msg}</div>` + log.innerHTML;
     }
 
-    render() {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-        // 1. Renderizar Terreno Infinito basado en la posición de la cámara
-        const startTileX = Math.floor(this.camera.x / 32) - 1;
-        const endTileX = startTileX + Math.ceil(this.canvas.width / 32) + 2;
-        const startTileY = Math.floor(this.camera.y / 32) - 1;
-        const endTileY = startTileY + Math.ceil(this.canvas.height / 32) + 2;
-
-        for (let x = startTileX; x < endTileX; x++) {
-            for (let y = startTileY; y < endTileY; y++) {
-                const worldX = x * 32;
-                const worldY = y * 32;
-                const tile = this.getTileAt(worldX, worldY);
-
-                // Dibujar con offset de cámara
-                this.ctx.drawImage(this.tileCache[tile.type], worldX - this.camera.x, worldY - this.camera.y);
-            }
-        }
-
-        // 2. Renderizar Entidades
-        this.entities.forEach(ent => {
-            this.ctx.drawImage(ent.sprite, ent.x - this.camera.x - 12, ent.y - this.camera.y - 12, 24, 24);
-        });
-
-        // 3. Renderizar Jugador
-        this.ctx.drawImage(this.playerSprite, this.player.x - this.camera.x - 12, this.player.y - this.camera.y - 12, 24, 24);
-    }
-
-    loop(currentTime) {
-        const dt = Math.min((currentTime - this.lastTime) / 1000, 0.1);
-        this.lastTime = currentTime;
-
+    animate() {
+        requestAnimationFrame(() => this.animate());
+        const dt = this.clock.getDelta();
         this.update(dt);
-        this.render();
-
-        requestAnimationFrame((time) => this.loop(time));
+        this.renderer.render(this.scene, this.camera);
     }
 }
 
-window.onload = () => { window.gameEngine = new InfiniteGameEngine(); };
+window.onload = () => { window.gameEngine = new Engine3D(); };
 </script>
 </body>
 </html>
