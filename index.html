@@ -2,95 +2,265 @@
 <html>
 <head>
 <title>Word Survival</title>
+
 <style>
-body {
-  margin: 0;
-  overflow: hidden;
-  background: #111;
+body{
+    margin:0;
+    overflow:hidden;
+    background:black;
 }
 
-canvas {
-  display: block;
-  background: #222;
+canvas{
+    display:block;
 }
 </style>
+
 </head>
 
 <body>
 
 <canvas id="game"></canvas>
 
+
 <script>
 
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+canvas.width=window.innerWidth;
+canvas.height=window.innerHeight;
 
-let player = {
-  x: canvas.width / 2,
-  y: canvas.height / 2,
-  size: 30,
-  speed: 5
+
+// MUNDO
+
+let world={
+    width:5000,
+    height:5000
 };
 
-let keys = {};
 
-document.addEventListener("keydown", e=>{
-  keys[e.key] = true;
+// CAMARA
+
+let camera={
+    x:0,
+    y:0
+};
+
+
+// JUGADOR
+
+let player={
+    x:2500,
+    y:2500,
+    size:35,
+    speed:6,
+    life:100
+};
+
+
+// CONTROLES
+
+let keys={};
+
+document.addEventListener("keydown",e=>{
+    keys[e.key.toLowerCase()]=true;
 });
 
-document.addEventListener("keyup", e=>{
-  keys[e.key] = false;
+
+document.addEventListener("keyup",e=>{
+    keys[e.key.toLowerCase()]=false;
 });
 
 
-function update(){
+// RECURSOS
 
-  if(keys["w"] || keys["ArrowUp"])
-    player.y -= player.speed;
+let trees=[];
 
-  if(keys["s"] || keys["ArrowDown"])
-    player.y += player.speed;
+for(let i=0;i<100;i++){
 
-  if(keys["a"] || keys["ArrowLeft"])
-    player.x -= player.speed;
+trees.push({
 
-  if(keys["d"] || keys["ArrowRight"])
-    player.x += player.speed;
+x:Math.random()*world.width,
+y:Math.random()*world.height
+
+});
 
 }
 
+
+// ENEMIGOS
+
+let enemies=[];
+
+for(let i=0;i<20;i++){
+
+enemies.push({
+
+x:Math.random()*world.width,
+y:Math.random()*world.height,
+size:30,
+speed:2
+
+});
+
+}
+
+
+
+// ACTUALIZAR
+
+function update(){
+
+
+if(keys["w"])
+player.y-=player.speed;
+
+if(keys["s"])
+player.y+=player.speed;
+
+if(keys["a"])
+player.x-=player.speed;
+
+if(keys["d"])
+player.x+=player.speed;
+
+
+
+// limites del mapa
+
+player.x=Math.max(0,Math.min(world.width,player.x));
+player.y=Math.max(0,Math.min(world.height,player.y));
+
+
+// camara
+
+camera.x=player.x-canvas.width/2;
+camera.y=player.y-canvas.height/2;
+
+
+// enemigos siguen jugador
+
+enemies.forEach(e=>{
+
+let dx=player.x-e.x;
+let dy=player.y-e.y;
+
+let dist=Math.sqrt(dx*dx+dy*dy);
+
+if(dist>0){
+
+e.x+=(dx/dist)*e.speed;
+e.y+=(dy/dist)*e.speed;
+
+}
+
+});
+
+
+}
+
+
+
+// DIBUJAR
 
 function draw(){
 
 ctx.clearRect(0,0,canvas.width,canvas.height);
 
-// jugador
-ctx.fillStyle="lime";
+
+// suelo
+
+ctx.fillStyle="#3b703b";
+
 ctx.fillRect(
-player.x,
-player.y,
+-camera.x,
+-camera.y,
+world.width,
+world.height
+);
+
+
+
+// arboles
+
+ctx.fillStyle="darkgreen";
+
+trees.forEach(t=>{
+
+ctx.fillRect(
+t.x-camera.x,
+t.y-camera.y,
+30,
+40
+);
+
+});
+
+
+
+// enemigos
+
+ctx.fillStyle="red";
+
+enemies.forEach(e=>{
+
+ctx.fillRect(
+e.x-camera.x,
+e.y-camera.y,
+e.size,
+e.size
+);
+
+});
+
+
+
+// jugador
+
+ctx.fillStyle="cyan";
+
+ctx.fillRect(
+player.x-camera.x,
+player.y-camera.y,
 player.size,
 player.size
 );
 
+
+// vida
+
+ctx.fillStyle="white";
+
+ctx.font="25px Arial";
+
+ctx.fillText(
+"Vida: "+player.life,
+20,
+40
+);
+
+
 }
 
 
-function loop(){
+
+// LOOP
+
+function gameLoop(){
 
 update();
 draw();
 
-requestAnimationFrame(loop);
+requestAnimationFrame(gameLoop);
 
 }
 
-loop();
+
+gameLoop();
+
 
 </script>
+
 
 </body>
 </html>
