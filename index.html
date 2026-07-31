@@ -1,18 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Word Survival</title>
+
+<title>Word Survival 1.2</title>
 
 <style>
+
 body{
-    margin:0;
-    overflow:hidden;
-    background:black;
+margin:0;
+overflow:hidden;
+background:black;
 }
 
 canvas{
-    display:block;
+display:block;
 }
+
 </style>
 
 </head>
@@ -27,78 +30,151 @@ canvas{
 const canvas=document.getElementById("game");
 const ctx=canvas.getContext("2d");
 
+
 canvas.width=window.innerWidth;
 canvas.height=window.innerHeight;
+
 
 
 // MUNDO
 
 let world={
-    width:5000,
-    height:5000
+width:5000,
+height:5000
 };
 
 
-// CAMARA
 
 let camera={
-    x:0,
-    y:0
+x:0,
+y:0
 };
+
 
 
 // JUGADOR
 
 let player={
-    x:2500,
-    y:2500,
-    size:35,
-    speed:6,
-    life:100
+
+x:2500,
+y:2500,
+
+size:35,
+
+speed:6,
+
+life:100,
+
+words:[]
+
 };
+
 
 
 // CONTROLES
 
 let keys={};
 
+
 document.addEventListener("keydown",e=>{
-    keys[e.key.toLowerCase()]=true;
+keys[e.key.toLowerCase()]=true;
 });
 
 
 document.addEventListener("keyup",e=>{
-    keys[e.key.toLowerCase()]=false;
+keys[e.key.toLowerCase()]=false;
 });
 
 
-// RECURSOS
 
-let trees=[];
+
+// BASE DE PALABRAS
+
+let wordDatabase=[
+
+{
+word:"madera",
+type:"material"
+},
+
+{
+word:"piedra",
+type:"material"
+},
+
+{
+word:"fuego",
+type:"elemento"
+},
+
+{
+word:"agua",
+type:"recurso"
+},
+
+{
+word:"hierro",
+type:"material"
+},
+
+{
+word:"espada",
+type:"arma"
+}
+
+];
+
+
+
+
+// PALABRAS EN EL MAPA
+
+let wordsOnMap=[];
+
 
 for(let i=0;i<100;i++){
 
-trees.push({
+
+let data=
+wordDatabase[
+Math.floor(Math.random()*wordDatabase.length)
+];
+
+
+wordsOnMap.push({
 
 x:Math.random()*world.width,
-y:Math.random()*world.height
+
+y:Math.random()*world.height,
+
+word:data.word,
+
+type:data.type
 
 });
 
+
 }
+
+
+
 
 
 // ENEMIGOS
 
 let enemies=[];
 
+
 for(let i=0;i<20;i++){
 
 enemies.push({
 
 x:Math.random()*world.width,
+
 y:Math.random()*world.height,
+
 size:30,
+
 speed:2
 
 });
@@ -107,10 +183,13 @@ speed:2
 
 
 
+
 // ACTUALIZAR
 
 function update(){
 
+
+// movimiento
 
 if(keys["w"])
 player.y-=player.speed;
@@ -126,38 +205,45 @@ player.x+=player.speed;
 
 
 
-// limites del mapa
-
-player.x=Math.max(0,Math.min(world.width,player.x));
-player.y=Math.max(0,Math.min(world.height,player.y));
-
-
-// camara
 
 camera.x=player.x-canvas.width/2;
 camera.y=player.y-canvas.height/2;
 
 
-// enemigos siguen jugador
 
-enemies.forEach(e=>{
 
-let dx=player.x-e.x;
-let dy=player.y-e.y;
+// recoger palabras
 
-let dist=Math.sqrt(dx*dx+dy*dy);
 
-if(dist>0){
+wordsOnMap.forEach((w,index)=>{
 
-e.x+=(dx/dist)*e.speed;
-e.y+=(dy/dist)*e.speed;
+
+let dx=player.x-w.x;
+let dy=player.y-w.y;
+
+
+let distance=Math.sqrt(dx*dx+dy*dy);
+
+
+
+if(distance<50){
+
+
+player.words.push(w);
+
+
+wordsOnMap.splice(index,1);
+
 
 }
+
 
 });
 
 
+
 }
+
 
 
 
@@ -165,7 +251,9 @@ e.y+=(dy/dist)*e.speed;
 
 function draw(){
 
+
 ctx.clearRect(0,0,canvas.width,canvas.height);
+
 
 
 // suelo
@@ -181,20 +269,41 @@ world.height
 
 
 
-// arboles
+// palabras
 
-ctx.fillStyle="darkgreen";
+wordsOnMap.forEach(w=>{
 
-trees.forEach(t=>{
 
-ctx.fillRect(
-t.x-camera.x,
-t.y-camera.y,
-30,
-40
+ctx.fillStyle="yellow";
+
+ctx.beginPath();
+
+ctx.arc(
+w.x-camera.x,
+w.y-camera.y,
+15,
+0,
+Math.PI*2
 );
 
+ctx.fill();
+
+
+
+ctx.fillStyle="white";
+
+ctx.font="14px Arial";
+
+ctx.fillText(
+w.word,
+w.x-camera.x-25,
+w.y-camera.y-20
+);
+
+
+
 });
+
 
 
 
@@ -202,16 +311,23 @@ t.y-camera.y,
 
 ctx.fillStyle="red";
 
+
 enemies.forEach(e=>{
 
 ctx.fillRect(
+
 e.x-camera.x,
+
 e.y-camera.y,
+
 e.size,
+
 e.size
+
 );
 
 });
+
 
 
 
@@ -219,24 +335,55 @@ e.size
 
 ctx.fillStyle="cyan";
 
+
 ctx.fillRect(
+
 player.x-camera.x,
+
 player.y-camera.y,
+
 player.size,
+
 player.size
+
 );
 
 
-// vida
+
+
+// inventario
 
 ctx.fillStyle="white";
 
-ctx.font="25px Arial";
+ctx.font="20px Arial";
+
 
 ctx.fillText(
-"Vida: "+player.life,
+
+"Palabras: "+player.words.length,
+
 20,
-40
+
+30
+
+);
+
+
+
+if(player.words.length>0){
+
+
+ctx.font="15px Arial";
+
+
+ctx.fillText(
+
+"Última: "+player.words[player.words.length-1].word,
+
+20,
+
+55
+
 );
 
 
@@ -244,23 +391,28 @@ ctx.fillText(
 
 
 
-// LOOP
+}
 
-function gameLoop(){
+
+
+
+
+function loop(){
 
 update();
+
 draw();
 
-requestAnimationFrame(gameLoop);
+requestAnimationFrame(loop);
 
 }
 
 
-gameLoop();
+loop();
 
 
 </script>
 
-
 </body>
+
 </html>
