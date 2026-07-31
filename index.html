@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WORD SURVIVAL ∞ — Ultimate Crafting & Entities Engine</title>
+    <title>WORD SURVIVAL ∞ — Real-Time Action Engine</title>
     <style>
         :root {
-            --bg-dark: #030712;
+            --bg-dark: #020617;
             --panel-bg: rgba(15, 23, 42, 0.95);
             --border-color: #1e293b;
             --text-main: #f8fafc;
@@ -19,7 +19,7 @@
             --gold: #f59e0b;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; user-select: none; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; user-select: none; }
         body { background-color: var(--bg-dark); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
         header {
@@ -32,28 +32,12 @@
             height: 48px;
         }
         .logo { font-weight: 900; font-size: 1.1rem; background: linear-gradient(135deg, var(--accent-light), var(--magic)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .nav-tabs { display: flex; gap: 8px; }
-        .tab-btn {
-            background: #1e293b;
-            color: var(--text-muted);
-            border: 1px solid var(--border-color);
-            padding: 6px 14px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .tab-btn.active, .tab-btn:hover { background: var(--accent); color: #000; border-color: var(--accent-light); }
-
-        .view-content { flex: 1; display: none; height: calc(100vh - 48px); }
-        .view-content.active { display: flex; }
 
         #game-layout {
             display: grid;
-            grid-template-columns: 340px 1fr 380px;
+            grid-template-columns: 320px 1fr 360px;
             width: 100vw;
-            height: 100%;
+            height: calc(100vh - 48px);
             gap: 12px;
             padding: 12px;
             background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
@@ -68,21 +52,17 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
             overflow-y: auto;
         }
 
         h2 { color: var(--accent-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.2px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
 
-        .rank-badge { background: linear-gradient(135deg, var(--accent), var(--magic)); color: #fff; font-size: 0.65rem; padding: 2px 8px; border-radius: 12px; font-weight: bold; }
-
         .stat-group { display: flex; flex-direction: column; gap: 3px; }
         .stat-row { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted); }
-        .stat-bar { background: #090d16; height: 7px; border-radius: 4px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
-        .stat-fill { height: 100%; transition: width 0.3s; }
-        .fill-hp { background: var(--danger); } .fill-energy { background: var(--gold); } .fill-exp { background: var(--accent-light); } .fill-hunger { background: var(--success); }
+        .stat-bar { background: #090d16; height: 8px; border-radius: 4px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
+        .stat-fill { height: 100%; transition: width 0.1s linear; }
+        .fill-hp { background: var(--danger); } .fill-hunger { background: var(--success); }
 
-        .btn-group { display: flex; gap: 6px; }
         .btn {
             background: #1e293b;
             color: var(--text-main);
@@ -91,10 +71,9 @@
             border-radius: 6px;
             font-size: 0.75rem;
             cursor: pointer;
-            transition: all 0.2s;
             font-weight: bold;
-            flex: 1;
             text-align: center;
+            transition: all 0.2s;
         }
         .btn:hover { background: var(--accent); color: #000; }
 
@@ -105,480 +84,344 @@
         canvas { display: block; image-rendering: pixelated; }
 
         #hud-overlay {
-            position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; pointer-events: none; gap: 8px;
+            position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; pointer-events: none;
         }
         .hud-card { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); border: 1px solid var(--border-color); padding: 5px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
 
-        .inv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-height: 200px; overflow-y: auto; padding-right: 4px; }
+        .inv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-height: 180px; overflow-y: auto; }
         .inv-slot { 
-            background: #090d16; 
-            border: 1px solid var(--border-color); 
-            border-radius: 6px; 
-            aspect-ratio: 1; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            font-size: 0.6rem; 
-            text-align: center; 
-            padding: 4px; 
-            gap: 2px; 
-            cursor: pointer;
-            transition: transform 0.1s, border-color 0.2s;
+            background: #090d16; border: 1px solid var(--border-color); border-radius: 6px; aspect-ratio: 1; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.6rem; text-align: center; padding: 4px; gap: 2px;
         }
-        .inv-slot:hover { border-color: var(--accent-light); transform: scale(1.03); }
         .inv-slot img { width: 32px; height: 32px; image-rendering: pixelated; }
 
-        .craft-recipes-box {
-            background: #090d16;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 8px;
-            font-size: 0.7rem;
-            max-height: 140px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        .recipe-item {
-            display: flex;
-            justify-content: space-between;
-            background: rgba(255,255,255,0.03);
-            padding: 4px 6px;
-            border-radius: 4px;
-        }
-
         .prompt-input { width: 100%; background: #090d16; border: 1px solid var(--border-color); color: #fff; padding: 10px; border-radius: 8px; outline: none; font-size: 0.85rem; }
-        .prompt-input:focus { border-color: var(--accent-light); box-shadow: 0 0 10px rgba(56, 189, 248, 0.2); }
+        .prompt-input:focus { border-color: var(--accent-light); }
 
-        #log-panel { flex-grow: 1; background: #040711; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px; font-family: 'Courier New', monospace; font-size: 0.72rem; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 5px; }
+        #log-panel { flex-grow: 1; background: #040711; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px; font-family: monospace; font-size: 0.72rem; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 5px; }
         .log-entry { padding: 4px 6px; border-radius: 4px; border-left: 3px solid var(--border-color); background: rgba(255,255,255,0.02); }
         .log-entry.system { border-color: var(--accent-light); color: #7dd3fc; }
         .log-entry.craft { border-color: var(--success); color: #a7f3d0; }
         .log-entry.ai { border-color: var(--magic); color: #f0abfc; }
 
-        #manual-view { padding: 24px; overflow-y: auto; width: 100%; background: #090d16; color: #cbd5e1; line-height: 1.6; display: flex; justify-content: center; }
-        .manual-container { max-width: 900px; width: 100%; background: #0f172a; border: 1px solid var(--border-color); padding: 32px; border-radius: 12px; }
-        .manual-container h1 { color: var(--accent-light); font-size: 1.8rem; margin-bottom: 12px; border-bottom: 2px solid var(--accent); padding-bottom: 8px; }
-        .manual-container h2 { color: var(--gold); font-size: 1.2rem; margin-top: 24px; margin-bottom: 8px; border-bottom: none; }
-        .manual-container ul { margin-left: 20px; margin-bottom: 12px; }
-        .manual-container code { background: #1e293b; color: var(--accent-light); padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+        .recipe-list { display: flex; flex-direction: column; gap: 4px; font-size: 0.68rem; color: var(--text-muted); max-height: 120px; overflow-y: auto; }
+        .recipe-tag { background: rgba(255,255,255,0.05); padding: 3px 6px; border-radius: 4px; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
 
 <header>
-    <div class="logo">WORD SURVIVAL ∞ — World & Station Engine</div>
-    <div class="nav-tabs">
-        <button class="tab-btn active" onclick="switchTab('game')">🎮 JUEGO EN VIVO</button>
-        <button class="tab-btn" onclick="switchTab('manual')">📜 MANUAL Y GUÍA</button>
-    </div>
+    <div class="logo">WORD SURVIVAL ∞ — Real-Time Engine (FPS Fluid Action)</div>
 </header>
 
-<div id="view-game" class="view-content active">
-    <div id="game-layout">
-        <div class="panel">
-            <h2>ESTADO JUGADOR <span id="player-rank" class="rank-badge">Superviviente</span></h2>
-            
-            <div class="btn-group">
-                <button class="btn" onclick="gameEngine.saveGame()">💾 Guardar JSON</button>
-                <button class="btn" onclick="gameEngine.loadGame()">📂 Cargar JSON</button>
-            </div>
-
-            <div class="stat-group">
-                <div class="stat-row"><span>Nivel: <b id="lvl-val">1</b></span><span>EXP: <span id="exp-val">0/100</span></span></div>
-                <div class="stat-bar"><div id="bar-exp" class="stat-fill fill-exp" style="width: 0%"></div></div>
-            </div>
-
-            <div class="stat-group">
-                <div class="stat-row"><span>Salud</span><span id="hp-val">100/100</span></div>
-                <div class="stat-bar"><div id="bar-hp" class="stat-fill fill-hp" style="width: 100%"></div></div>
-            </div>
-
-            <div class="stat-group">
-                <div class="stat-row"><span>Hambre</span><span id="hunger-val">100/100</span></div>
-                <div class="stat-bar"><div id="bar-hunger" class="stat-fill fill-hunger" style="width: 100%"></div></div>
-            </div>
-
-            <h2>🎒 INVENTARIO (<span id="inv-count">0</span>)</h2>
-            <div id="inventory-grid" class="inv-grid"></div>
-
-            <h2>🏗️ ESTACIONES Y ACCIONES</h2>
-            <div class="btn-group" style="flex-wrap: wrap;">
-                <button class="btn" onclick="gameEngine.useStation('mesa')">🔨 Mesa Crafteo</button>
-                <button class="btn" onclick="gameEngine.useStation('fogon')">🍳 Cocinar Fogón</button>
-            </div>
-
-            <h2>🔨 RECETAS</h2>
-            <div class="craft-recipes-box" id="recipes-list"></div>
+<div id="game-layout">
+    <div class="panel">
+        <h2>JUGADOR (ACCION EN VIVO)</h2>
+        <div class="stat-group">
+            <div class="stat-row"><span>Salud</span><span id="hp-val">100/100</span></div>
+            <div class="stat-bar"><div id="bar-hp" class="stat-fill fill-hp" style="width: 100%"></div></div>
+        </div>
+        <div class="stat-group">
+            <div class="stat-row"><span>Energía / Hambre</span><span id="hunger-val">100/100</span></div>
+            <div class="stat-bar"><div id="bar-hunger" class="stat-fill fill-hunger" style="width: 100%"></div></div>
         </div>
 
-        <div id="viewport-container">
-            <div id="hud-overlay">
-                <div class="hud-card" id="hud-biome">🗺️ Terreno: Bosque</div>
-                <div class="hud-card" id="hud-time">⏰ Tiempo: 12:00</div>
-                <div class="hud-card" id="hud-weather">☀️ Clima: Despejado</div>
-            </div>
-            <canvas id="gameCanvas" width="512" height="512"></canvas>
-        </div>
+        <h2>🎒 INVENTARIO</h2>
+        <div id="inventory-grid" class="inv-grid"></div>
 
-        <div class="panel">
-            <h2>✍️ INVOCAR / CREAR / ACCIÓN</h2>
-            <input type="text" id="semantic-input" class="prompt-input" placeholder="Ej: lobo_feroz, alce_pacifico, carne+fuego, mesa_trabajo..." autofocus>
-            <div style="font-size:0.68rem; color: var(--text-muted)">Usa <b>WASD/Flechas</b> para moverte. Acércate a criaturas o estaciones para interactuar.</div>
-
-            <h2>📜 REGISTRO DE EVENTOS</h2>
-            <div id="log-panel"></div>
-        </div>
+        <h2>RECETARIOS DE CRAFTEO</h2>
+        <div class="recipe-list" id="recipe-box"></div>
     </div>
-</div>
 
-<div id="view-manual" class="view-content">
-    <div id="manual-view">
-        <div class="manual-container">
-            <h1>WORD SURVIVAL ∞ — GUÍA DE ESTACIONES Y ENTIDADES</h1>
-            
-            <h2>ESTACIONES DE TRABAJO Y COCINA</h2>
-            <p>Para crear ítems avanzados o cocinar alimentos, debes construir y colocar las estaciones en el mundo:</p>
-            <ul>
-                <li><code>mesa_trabajo</code> ➔ Permite crear herramientas avanzadas, armas y armaduras.</li>
-                <li><code>fogon</code> ➔ Permite cocinar alimentos (ej: <code>carne + fuego</code>) para restaurar más salud y hambre.</li>
-            </ul>
-
-            <h2>CRIATURAS NO HOSTILES Y ENEMIGOS</h2>
-            <p>El mapa se puebla automáticamente de entidades con texturas pixeladas únicas:</p>
-            <ul>
-                <li><b>Pacíficos (Alce, Vaca, Aldeano, Ciervo):</b> Si interactúas con ellos o te acercas, te darán alimento o suministros de cocina.</li>
-                <li><b>Hostiles (Lobo, Golem, Esqueleto, Dragón):</b> Variantes enemigas con estadísticas altas.</li>
-            </ul>
+    <div id="viewport-container">
+        <div id="hud-overlay">
+            <div class="hud-card">⚡ Modo: Tiempo Real Completo</div>
+            <div class="hud-card" id="hud-entities">🐾 Entidades en vivo: 0</div>
         </div>
+        <canvas id="gameCanvas" width="600" height="600"></canvas>
+    </div>
+
+    <div class="panel">
+        <h2>✍️ CREACIÓN / INVOCACIÓN SEMÁNTICA</h2>
+        <input type="text" id="semantic-input" class="prompt-input" placeholder="Ej: dragon_fuego, aguila_dorada, espada_cristal, lobo_sombra..." autofocus>
+        <div style="font-size:0.68rem; color: var(--text-muted)">Muévete en tiempo real manteniendo pulsado <b>WASD / Flechas</b>. La IA de cada entidad actúa segundo a segundo.</div>
+
+        <h2>📜 REGISTRO DE EVENTOS</h2>
+        <div id="log-panel"></div>
     </div>
 </div>
 
 <script>
-function switchTab(tab) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.view-content').forEach(v => v.classList.remove('active'));
-
-    if (tab === 'game') {
-        document.querySelectorAll('.tab-btn')[0].classList.add('active');
-        document.getElementById('view-game').classList.add('active');
-    } else {
-        document.querySelectorAll('.tab-btn')[1].classList.add('active');
-        document.getElementById('view-manual').classList.add('active');
-    }
-}
-
 /**
- * GENERADOR DE TEXTURAS DE PÍXELES PARA TERRENOS, JUGADOR Y ENTIDADES
+ * GENERADOR DE TEXTURAS DE PÍXELES RECONOCIBLES Y REALISTAS
  */
-class ProceduralPixelEngine {
-    static generateTexture(word, category) {
-        const size = 16;
-        const canvas = document.createElement('canvas');
-        canvas.width = size;
-        canvas.height = size;
-        const ctx = canvas.getContext('2d');
-
-        let hash = 0;
-        const lower = word.toLowerCase();
-        for (let i = 0; i < lower.length; i++) {
-            hash = lower.charCodeAt(i) + ((hash << 5) - hash);
-        }
-
-        const palettes = {
-            player: ['#000000', '#38bdf8', '#0284c7', '#fef08a', '#1e293b'],
-            enemy: ['#000000', '#ef4444', '#991b1b', '#f59e0b', '#450a0a'],
-            friendly: ['#000000', '#22c55e', '#15803d', '#fef08a', '#14532d'],
-            station: ['#000000', '#f59e0b', '#b45309', '#78350f', '#fff'],
-            weapon: ['#000000', '#38bdf8', '#0284c7', '#f59e0b', '#78350f'],
-            food: ['#000000', '#ef4444', '#f59e0b', '#22c55e', '#78350f'],
-            material: ['#000000', '#cbd5e1', '#94a3b8', '#64748b', '#334155']
-        };
-
-        let palette = palettes[category] || palettes.material;
-        let grid = Array(size).fill(0).map(() => Array(size).fill(0));
-
-        if (category === "player") {
-            // Textura del Jugador
-            for (let r = 3; r < 13; r++) {
-                for (let c = 5; c < 11; c++) grid[r][c] = 1;
-            }
-            grid[4][6] = 3; grid[4][9] = 3; // Ojos
-            grid[8][4] = 2; grid[8][11] = 2; // Brazos
-        } else if (category === "station") {
-            // Mesa o fogón
-            for (let r = 4; r < 13; r++) {
-                for (let c = 2; c < 14; c++) grid[r][c] = (r === 4 || c === 2 || c === 13) ? 1 : 2;
-            }
-            grid[6][6] = 3; grid[6][9] = 3;
-        } else if (category === "enemy" || category === "friendly") {
-            // Criaturas
-            for (let r = 4; r < 12; r++) {
-                for (let c = 3; c < 13; c++) {
-                    const v = (Math.abs(hash + r * c) % 3) + 1;
-                    grid[r][c] = v;
-                }
-            }
-            grid[5][4] = 3; grid[5][11] = 3;
-        } else {
-            // Terreno u objetos
-            for (let r = 1; r < 15; r++) {
-                for (let c = 1; c < 8; c++) {
-                    const colorVal = (Math.abs(hash ^ (r * 7 + c * 13)) % 3) + 1;
-                    grid[r][c] = colorVal;
-                    grid[r][15 - c] = colorVal;
-                }
-            }
-        }
-
-        for (let r = 0; r < size; r++) {
-            for (let c = 0; c < size; c++) {
-                const code = grid[r][c];
-                if (code !== 0) {
-                    ctx.fillStyle = palette[code] || '#ffffff';
-                    ctx.fillRect(c, r, 1, 1);
-                }
-            }
-        }
-
-        return canvas;
-    }
-
-    static generateTileTexture(type) {
-        const size = 16;
+class AdvancedPixelRenderer {
+    static createDetailedSprite(key, category) {
+        const size = 24;
         const canvas = document.createElement('canvas');
         canvas.width = size; canvas.height = size;
         const ctx = canvas.getContext('2d');
+        const k = key.toLowerCase();
 
-        const tileColors = {
-            grass: ['#15803d', '#166534', '#22c55e'],
-            dirt: ['#78350f', '#451a03', '#92400e'],
-            stone: ['#475569', '#334155', '#64748b'],
-            water: ['#0284c7', '#0369a1', '#38bdf8']
-        };
+        ctx.imageSmoothingEnabled = false;
 
-        const pal = tileColors[type] || tileColors.grass;
-        for (let r = 0; r < size; r++) {
-            for (let c = 0; c < size; c++) {
-                const rand = Math.floor(Math.random() * pal.length);
-                ctx.fillStyle = pal[rand];
-                ctx.fillRect(c, r, 1, 1);
+        if (k.includes("espada") || category === "weapon") {
+            // Hoja de la espada
+            ctx.fillStyle = k.includes("fuego") ? '#f97316' : (k.includes("cristal") ? '#38bdf8' : '#e2e8f0');
+            for(let i=4; i<18; i++) {
+                ctx.fillRect(i, 20-i, 2, 2);
             }
+            // Mango y empuñadura
+            ctx.fillStyle = '#b45309';
+            ctx.fillRect(4, 18, 3, 3);
+            ctx.fillStyle = '#fbbf24';
+            ctx.fillRect(6, 15, 3, 3);
+        } else if (k.includes("pocion") || category === "potion") {
+            // Frasco de poción
+            ctx.fillStyle = '#e2e8f0';
+            ctx.fillRect(9, 3, 6, 3);
+            ctx.fillRect(7, 6, 10, 14);
+            // Líquido
+            ctx.fillStyle = k.includes("vida") ? '#ef4444' : (k.includes("mana") ? '#a855f7' : '#10b981');
+            ctx.fillRect(8, 9, 8, 10);
+        } else if (category === "flyer" || k.includes("dragon") || k.includes("aguila") || k.includes("pajaro")) {
+            // Silueta de criatura voladora con alas
+            ctx.fillStyle = k.includes("fuego") || k.includes("dragon") ? '#dc2626' : '#f59e0b';
+            // Cuerpo
+            ctx.fillRect(10, 8, 4, 12);
+            // Alas extendidas
+            ctx.fillRect(2, 6, 8, 4);
+            ctx.fillRect(14, 6, 8, 4);
+            ctx.fillRect(0, 4, 4, 3);
+            ctx.fillRect(20, 4, 4, 3);
+            // Ojos
+            ctx.fillStyle = '#fef08a';
+            ctx.fillRect(11, 6, 2, 2);
+        } else if (category === "hunter" || k.includes("lobo") || k.includes("oso")) {
+            // Criatura cuadrúpeda / Cazador
+            ctx.fillStyle = k.includes("sombra") ? '#334155' : '#78350f';
+            ctx.fillRect(5, 10, 14, 7); // Torso
+            ctx.fillRect(15, 6, 6, 6);  // Cabeza
+            ctx.fillRect(4, 17, 3, 5);  // Patas
+            ctx.fillRect(8, 17, 3, 5);
+            ctx.fillRect(13, 17, 3, 5);
+            ctx.fillRect(17, 17, 3, 5);
+            ctx.fillStyle = '#ef4444'; // Ojo hostil
+            ctx.fillRect(19, 7, 2, 2);
+        } else if (category === "prey" || k.includes("ciervo") || k.includes("vaca") || k.includes("conejo")) {
+            // Presa pacífica
+            ctx.fillStyle = '#15803d';
+            ctx.fillRect(6, 11, 12, 6);
+            ctx.fillRect(14, 5, 5, 6);
+            ctx.fillStyle = '#fef08a'; // Cuernos o detalles
+            ctx.fillRect(13, 2, 2, 4);
+            ctx.fillRect(16, 2, 2, 4);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(17, 6, 2, 2);
+        } else {
+            // Ítem genérico con brillo
+            ctx.fillStyle = '#38bdf8';
+            ctx.fillRect(6, 6, 12, 12);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(8, 8, 4, 4);
         }
+
+        return canvas;
+    }
+
+    static createPlayerSprite() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 24; canvas.height = 24;
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+
+        // Cabeza y cuerpo del héroe
+        ctx.fillStyle = '#38bdf8'; // Casco/Armadura
+        ctx.fillRect(7, 3, 10, 8);
+        ctx.fillStyle = '#0284c7';
+        ctx.fillRect(6, 11, 12, 8);
+        // Ojos/Visor
+        ctx.fillStyle = '#fef08a';
+        ctx.fillRect(9, 6, 6, 2);
+        // Extremidades
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(7, 19, 4, 4);
+        ctx.fillRect(13, 19, 4, 4);
+
         return canvas;
     }
 }
 
 /**
- * LÓGICA DE IA Y OBJETOS DE JUEGO
+ * MOTOR DE ACCIÓN EN TIEMPO REAL
  */
-class SemanticWordAI {
-    constructor() {
-        this.recipes = {
-            "madera+piedra": "Pico de Piedra",
-            "madera+hierro": "Espada de Hierro",
-            "carne+fuego": "Carne Asada (Comida)",
-            "trigo+agua": "Pan Recién Horneado",
-            "planta+agua": "Poción Sanadora"
-        };
-    }
-
-    process(phrase) {
-        const clean = phrase.toLowerCase().trim();
-        if (!clean) return null;
-
-        if (clean.includes('+')) {
-            const parts = clean.split('+').sort();
-            const comboKey = parts.join('+');
-            let name = this.recipes[comboKey] || ("Plato/Artefacto de " + clean);
-            const canvas = ProceduralPixelEngine.generateTexture(name, "food");
-            return { type: 'CRAFT', name, category: "food", canvas };
-        }
-
-        let category = "material";
-        let isHostile = false;
-
-        if (clean.includes("mesa") || clean.includes("fogon") || clean.includes("horno")) category = "station";
-        else if (clean.includes("lobo") || clean.includes("golem") || clean.includes("esqueleto") || clean.includes("dragon")) {
-            category = "enemy"; isHostile = true;
-        } else if (clean.includes("vaca") || clean.includes("alce") || clean.includes("aldeano") || clean.includes("ciervo")) {
-            category = "friendly";
-        } else if (clean.includes("espada") || clean.includes("hacha") || clean.includes("pico")) category = "weapon";
-
-        const nameFormatted = phrase.charAt(0).toUpperCase() + phrase.slice(1);
-        const canvas = ProceduralPixelEngine.generateTexture(nameFormatted, category);
-
-        return { name: nameFormatted, category, isHostile, canvas };
-    }
-}
-
-/**
- * MOTOR DE JUEGO
- */
-class GameEngine {
+class RealTimeEngine {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
-        this.ai = new SemanticWordAI();
-        this.player = { x: 6, y: 6, level: 1, exp: 0, nextExp: 100, hp: 100, maxHp: 100, hunger: 100 };
+        this.keys = {};
+        
+        // Posición del jugador en coordenadas reales continuas (float)
+        this.player = {
+            x: 300, y: 300,
+            speed: 180, // píxeles por segundo
+            hp: 100, maxHp: 100, hunger: 100
+        };
+
+        this.entities = [];
         this.inventory = [];
-        this.worldEntities = [];
-        this.tiles = [];
-        this.tileTextures = {};
-        this.playerTexture = ProceduralPixelEngine.generateTexture("Jugador", "player");
-        this.initMap();
+        this.recipes = {
+            "madera+piedra": "Pico de Piedra",
+            "madera+hierro": "Espada de Hierro",
+            "espada+fuego": "Espada Flameante",
+            "carne+fuego": "Carne Asada",
+            "cristal+agua": "Poción de Vida Superior"
+        };
+
+        this.playerSprite = AdvancedPixelRenderer.createPlayerSprite();
+        this.lastTime = performance.now();
+        
         this.init();
     }
 
-    initMap() {
-        this.tileTextures = {
-            grass: ProceduralPixelEngine.generateTileTexture('grass'),
-            dirt: ProceduralPixelEngine.generateTileTexture('dirt'),
-            stone: ProceduralPixelEngine.generateTileTexture('stone'),
-            water: ProceduralPixelEngine.generateTileTexture('water')
-        };
-
-        for (let r = 0; r < 13; r++) {
-            this.tiles[r] = [];
-            for (let c = 0; c < 13; c++) {
-                let type = 'grass';
-                if (r === 0 || c === 0 || r === 12 || c === 12) type = 'stone';
-                else if ((r === 3 && c === 4) || (r === 3 && c === 5)) type = 'water';
-                else if (r > 8 && c < 5) type = 'dirt';
-                this.tiles[r][c] = type;
-            }
-        }
-
-        // Entidades iniciales pacíficas y hostiles
-        this.spawnEntity("Alce Pacífico", 3, 2, "friendly");
-        this.spawnEntity("Aldeano Cocinero", 8, 8, "friendly");
-        this.spawnEntity("Lobo Feroz", 10, 2, "enemy");
-    }
-
-    spawnEntity(name, x, y, category) {
-        const canvas = ProceduralPixelEngine.generateTexture(name, category);
-        this.worldEntities.push({ name, x, y, category, canvas });
-    }
-
     init() {
-        window.addEventListener('keydown', (e) => {
-            let dx = 0, dy = 0;
-            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') dy = -1;
-            if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') dy = 1;
-            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') dx = -1;
-            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') dx = 1;
-            if (dx !== 0 || dy !== 0) this.move(dx, dy);
-        });
+        window.addEventListener('keydown', e => this.keys[e.key.toLowerCase()] = true);
+        window.addEventListener('keyup', e => this.keys[e.key.toLowerCase()] = false);
 
         document.getElementById('semantic-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
-                this.handleInput(e.target.value);
+                this.processWord(e.target.value);
                 e.target.value = '';
             }
         });
 
-        this.renderRecipesList();
-        this.addLog("Mundo cargado con biomas, personaje animado y entidades.", "system");
-        this.loop();
+        this.renderRecipes();
+
+        // Criaturas iniciales
+        this.spawnEntity("Dragón de Fuego", 100, 100, "flyer");
+        this.spawnEntity("Águila Dorada", 450, 120, "flyer");
+        this.spawnEntity("Lobo Sombra", 500, 400, "hunter");
+        this.spawnEntity("Ciervo Esmeralda", 150, 450, "prey");
+
+        this.addLog("Motor en Tiempo Real Activo. Todo se mueve autónomamente.", "system");
+        requestAnimationFrame((time) => this.loop(time));
     }
 
-    renderRecipesList() {
-        const box = document.getElementById('recipes-list');
+    renderRecipes() {
+        const box = document.getElementById('recipe-box');
         box.innerHTML = '';
-        for (let r in this.ai.recipes) {
-            const row = document.createElement('div');
-            row.className = 'recipe-item';
-            row.innerHTML = `<span><code>${r}</code></span><b style="color:var(--accent-light)">${this.ai.recipes[r]}</b>`;
-            box.appendChild(row);
+        for(let r in this.recipes) {
+            const div = document.createElement('div');
+            div.className = 'recipe-tag';
+            div.innerHTML = `<span>${r}</span><b>${this.recipes[r]}</b>`;
+            box.appendChild(div);
         }
     }
 
-    handleInput(text) {
-        const res = this.ai.process(text);
-        if (!res) return;
+    spawnEntity(name, x, y, category) {
+        const sprite = AdvancedPixelRenderer.createDetailedSprite(name, category);
+        this.entities.push({
+            name, x, y, category, sprite,
+            vx: (Math.random() - 0.5) * 40,
+            vy: (Math.random() - 0.5) * 40,
+            timer: 0,
+            flyAngle: Math.random() * Math.PI * 2
+        });
+    }
 
-        if (res.category === 'friendly' || res.category === 'enemy' || res.category === 'station') {
-            const rx = Math.floor(Math.random() * 10) + 1;
-            const ry = Math.floor(Math.random() * 10) + 1;
-            this.worldEntities.push({ name: res.name, x: rx, y: ry, category: res.category, canvas: res.canvas });
-            this.addLog(`✨ Colocado en mapa: **${res.name}** [${res.category}]`, "ai");
+    processWord(phrase) {
+        const clean = phrase.toLowerCase().trim();
+        if(!clean) return;
+
+        if (clean.includes('+')) {
+            const parts = clean.split('+').sort().join('+');
+            const resultName = this.recipes[parts] || ("Artefacto de " + phrase);
+            const sprite = AdvancedPixelRenderer.createDetailedSprite(resultName, "weapon");
+            this.inventory.push({ name: resultName, sprite });
+            this.addLog(`🔨 Crafteo Exitoso: **${resultName}**`, "craft");
         } else {
-            this.inventory.push(res);
-            this.addLog(`🎒 Añadido a inventario: **${res.name}**`, "craft");
-        }
+            let cat = "item";
+            if (clean.includes("dragon") || clean.includes("pajaro") || clean.includes("aguila")) cat = "flyer";
+            else if (clean.includes("lobo") || clean.includes("oso") || clean.includes("monstruo")) cat = "hunter";
+            else if (clean.includes("ciervo") || clean.includes("vaca") || clean.includes("conejo")) cat = "prey";
 
+            if (cat === "item") {
+                const sprite = AdvancedPixelRenderer.createDetailedSprite(clean, "item");
+                this.inventory.push({ name: phrase, sprite });
+                this.addLog(`🎒 Añadido al inventario: **${phrase}**`, "craft");
+            } else {
+                const rx = Math.random() * 500 + 50;
+                const ry = Math.random() * 500 + 50;
+                this.spawnEntity(phrase, rx, ry, cat);
+                this.addLog(`✨ Entidad generada en tiempo real: **${phrase}**`, "ai");
+            }
+        }
         this.updateUI();
     }
 
-    useStation(type) {
-        if (type === 'mesa') {
-            this.addLog("🔨 Abierta Mesa de Trabajo: Puedes usar fórmulas compuestas.", "system");
-        } else if (type === 'fogon') {
-            this.addLog("🍳 Fogón Activo: Prueba combinando 'carne+fuego'.", "system");
-        }
-    }
+    update(dt) {
+        // 1. Movimiento del jugador en tiempo real (WASD)
+        let dx = 0, dy = 0;
+        if (this.keys['w'] || this.keys['arrowup']) dy -= 1;
+        if (this.keys['s'] || this.keys['arrowdown']) dy += 1;
+        if (this.keys['a'] || this.keys['arrowleft']) dx -= 1;
+        if (this.keys['d'] || this.keys['arrowright']) dx += 1;
 
-    move(dx, dy) {
-        const nx = Math.max(0, Math.min(12, this.player.x + dx));
-        const ny = Math.max(0, Math.min(12, this.player.y + dy));
+        if (dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; }
 
-        if (this.tiles[ny][nx] === 'water') {
-            this.addLog("🌊 El agua profunda te frena.", "system");
-            return;
-        }
+        this.player.x = Math.max(12, Math.min(588, this.player.x + dx * this.player.speed * dt));
+        this.player.y = Math.max(12, Math.min(588, this.player.y + dy * this.player.speed * dt));
 
-        this.player.x = nx;
-        this.player.y = ny;
-        this.player.hunger = Math.max(0, this.player.hunger - 0.1);
+        // Consumo constante de energía en tiempo real
+        this.player.hunger = Math.max(0, this.player.hunger - 0.8 * dt);
 
-        // Comprobar colisión con entidades
-        this.worldEntities.forEach((ent, idx) => {
-            if (ent.x === nx && ent.y === ny) {
-                if (ent.category === 'friendly') {
-                    this.addLog(`🍎 ${ent.name} te ha regalado Suministros de Comida!`, "craft");
-                    this.player.hunger = Math.min(100, this.player.hunger + 25);
-                } else if (ent.category === 'enemy') {
-                    this.addLog(`⚔️ ¡Has luchado contra ${ent.name}!`, "system");
-                    this.player.hp = Math.max(0, this.player.hp - 15);
+        // 2. IA Autónoma en Tiempo Real para cada entidad
+        this.entities.forEach(ent => {
+            const dist = Math.hypot(this.player.x - ent.x, this.player.y - ent.y);
+
+            if (ent.category === "flyer") {
+                // Vuelo fluido circular
+                ent.flyAngle += dt * 1.5;
+                ent.x += Math.cos(ent.flyAngle) * 60 * dt;
+                ent.y += Math.sin(ent.flyAngle) * 60 * dt;
+            } else if (ent.category === "hunter") {
+                // Persecución directa en tiempo real si el jugador está cerca
+                if (dist < 180) {
+                    const angle = Math.atan2(this.player.y - ent.y, this.player.x - ent.x);
+                    ent.x += Math.cos(angle) * 75 * dt;
+                    ent.y += Math.sin(angle) * 75 * dt;
+
+                    if (dist < 20) {
+                        this.player.hp = Math.max(0, this.player.hp - 10 * dt);
+                    }
+                } else {
+                    ent.x += ent.vx * dt; ent.y += ent.vy * dt;
+                }
+            } else if (ent.category === "prey") {
+                // Huida en tiempo real
+                if (dist < 120) {
+                    const angle = Math.atan2(ent.y - this.player.y, ent.x - this.player.x);
+                    ent.x += Math.cos(angle) * 90 * dt;
+                    ent.y += Math.sin(angle) * 90 * dt;
+                } else {
+                    ent.x += ent.vx * dt; ent.y += ent.vy * dt;
                 }
             }
+
+            // Rebotes en los bordes del mapa
+            if (ent.x < 20 || ent.x > 580) ent.vx *= -1;
+            if (ent.y < 20 || ent.y > 580) ent.vy *= -1;
         });
 
         this.updateUI();
     }
 
-    saveGame() {
-        const data = { player: this.player, invNames: this.inventory.map(i => i.name) };
-        localStorage.setItem('WORD_SURVIVAL_MASTER_SAVE', JSON.stringify(data));
-        this.addLog("💾 Guardado completo.", "system");
-    }
-
-    loadGame() {
-        const raw = localStorage.getItem('WORD_SURVIVAL_MASTER_SAVE');
-        if (raw) {
-            const data = JSON.parse(raw);
-            this.player = data.player;
-            this.inventory = [];
-            data.invNames.forEach(n => this.handleInput(n));
-            this.addLog("📂 Carga realizada.", "system");
-            this.updateUI();
-        }
-    }
-
     updateUI() {
-        document.getElementById('lvl-val').innerText = this.player.level;
-        document.getElementById('exp-val').innerText = `${this.player.exp}/${this.player.nextExp}`;
-        document.getElementById('bar-exp').style.width = `${(this.player.exp / this.player.nextExp) * 100}%`;
-
         document.getElementById('hp-val').innerText = `${Math.ceil(this.player.hp)}/${this.player.maxHp}`;
         document.getElementById('bar-hp').style.width = `${(this.player.hp / this.player.maxHp) * 100}%`;
-
         document.getElementById('hunger-val').innerText = `${Math.ceil(this.player.hunger)}/100`;
         document.getElementById('bar-hunger').style.width = `${this.player.hunger}%`;
-
-        document.getElementById('inv-count').innerText = this.inventory.length;
+        document.getElementById('hud-entities').innerText = `🐾 Entidades en vivo: ${this.entities.length}`;
 
         const grid = document.getElementById('inventory-grid');
         grid.innerHTML = '';
@@ -586,7 +429,7 @@ class GameEngine {
             const slot = document.createElement('div');
             slot.className = 'inv-slot';
             const img = document.createElement('img');
-            img.src = item.canvas.toDataURL();
+            img.src = item.sprite.toDataURL();
             slot.appendChild(img);
             slot.innerHTML += `<span>${item.name}</span>`;
             grid.appendChild(slot);
@@ -599,34 +442,51 @@ class GameEngine {
     }
 
     render() {
-        this.ctx.clearRect(0, 0, 512, 512);
-        const tileSize = 39;
+        this.ctx.clearRect(0, 0, 600, 600);
 
-        // Renderizar Mapa con textura Pixel Art por tipo de terreno
-        for (let r = 0; r < 13; r++) {
-            for (let c = 0; c < 13; c++) {
-                const type = this.tiles[r][c];
-                const tex = this.tileTextures[type];
-                this.ctx.drawImage(tex, c * tileSize, r * tileSize, tileSize, tileSize);
-            }
+        // Fondo del bioma
+        this.ctx.fillStyle = '#15803d';
+        this.ctx.fillRect(0, 0, 600, 600);
+
+        // Detalles del terreno
+        this.ctx.fillStyle = '#166534';
+        for(let i=0; i<600; i+=40) {
+            this.ctx.fillRect(i, (i*3)%600, 16, 16);
         }
 
-        // Renderizar Entidades en el mundo
-        this.worldEntities.forEach(ent => {
-            this.ctx.drawImage(ent.canvas, ent.x * tileSize + 4, ent.y * tileSize + 4, 32, 32);
+        // Entidades
+        this.entities.forEach(ent => {
+            if (ent.category === "flyer") {
+                // Sombra proyectada
+                this.ctx.fillStyle = 'rgba(0,0,0,0.25)';
+                this.ctx.beginPath();
+                this.ctx.ellipse(ent.x, ent.y + 18, 12, 5, 0, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                // Altura de vuelo flotante continua
+                const hover = Math.sin(performance.now() / 150) * 6;
+                this.ctx.drawImage(ent.sprite, ent.x - 12, ent.y - 18 + hover, 24, 24);
+            } else {
+                this.ctx.drawImage(ent.sprite, ent.x - 12, ent.y - 12, 24, 24);
+            }
         });
 
-        // Renderizar Personaje Principal en Pixel Art
-        this.ctx.drawImage(this.playerTexture, this.player.x * tileSize + 4, this.player.y * tileSize + 4, 32, 32);
+        // Jugador
+        this.ctx.drawImage(this.playerSprite, this.player.x - 12, this.player.y - 12, 24, 24);
     }
 
-    loop() {
+    loop(currentTime) {
+        const dt = Math.min((currentTime - this.lastTime) / 1000, 0.1);
+        this.lastTime = currentTime;
+
+        this.update(dt);
         this.render();
-        requestAnimationFrame(() => this.loop());
+
+        requestAnimationFrame((time) => this.loop(time));
     }
 }
 
-window.onload = () => { window.gameEngine = new GameEngine(); };
+window.onload = () => { window.gameEngine = new RealTimeEngine(); };
 </script>
 </body>
 </html>
