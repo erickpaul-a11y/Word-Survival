@@ -3,89 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WORD SURVIVAL ∞ — Engine 3.0 (Chunks, Modelos 3D & Diccionario)</title>
+    <title>WORD SURVIVAL ∞ — Engine 6.0 COMPLETO</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         :root {
-            --bg-dark: #020617;
-            --panel-bg: rgba(15, 23, 42, 0.94);
-            --border: #1e293b;
-            --text: #f8fafc;
-            --accent: #38bdf8;
-            --danger: #ef4444;
-            --success: #10b981;
-            --gold: #f59e0b;
-            --magic: #a855f7;
+            --bg-dark: #020617; --panel-bg: rgba(15, 23, 42, 0.94); --border: #1e293b;
+            --text: #f8fafc; --accent: #38bdf8; --danger: #ef4444; --success: #10b981;
+            --gold: #f59e0b; --magic: #a855f7; --info: #8b5cf6; --warn: #f97316;
         }
-
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; user-select: none; }
         body { background-color: var(--bg-dark); color: var(--text); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
-
-        header {
-            background: #0f172a; border-bottom: 1px solid var(--border);
-            padding: 8px 16px; display: flex; justify-content: space-between; align-items: center; height: 48px;
-        }
+        header { background: #0f172a; border-bottom: 1px solid var(--border); padding: 8px 16px; display: flex; justify-content: space-between; align-items: center; height: 48px; }
         .logo { font-weight: 900; font-size: 1.1rem; color: var(--accent); }
-
-        #game-layout {
-            display: grid; grid-template-columns: 340px 1fr 340px;
-            width: 100vw; height: calc(100vh - 48px); gap: 10px; padding: 10px;
-        }
-
-        .panel {
-            background: var(--panel-bg); border: 1px solid var(--border);
-            border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto;
-            backdrop-filter: blur(8px);
-        }
-
+        #game-layout { display: grid; grid-template-columns: 340px 1fr 340px; width: 100vw; height: calc(100vh - 48px); gap: 10px; padding: 10px; }
+        .panel { background: var(--panel-bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; backdrop-filter: blur(8px); }
         h2 { color: var(--accent); font-size: 0.78rem; text-transform: uppercase; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
-
         .stat-group { display: flex; flex-direction: column; gap: 2px; }
         .stat-row { display: flex; justify-content: space-between; font-size: 0.7rem; color: #94a3b8; }
         .stat-bar { background: #090d16; height: 7px; border-radius: 4px; overflow: hidden; }
         .stat-fill { height: 100%; transition: width 0.1s; }
-        .fill-hp { background: var(--danger); }
-        .fill-exp { background: var(--accent); }
-        .fill-hunger { background: var(--gold); }
-
+        .fill-hp { background: var(--danger); } .fill-exp { background: var(--accent); }
+        .fill-hunger { background: var(--gold); } .fill-mana { background: var(--magic); }
         .attr-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; font-size: 0.7rem; }
         .attr-box { background: #090d16; border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; }
-
         .equip-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; }
-        .equip-slot {
-            background: #090d16; border: 1px solid var(--border); border-radius: 6px;
-            padding: 4px; font-size: 0.65rem; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 48px;
-        }
-
+        .equip-slot { background: #090d16; border: 1px solid var(--border); border-radius: 6px; padding: 4px; font-size: 0.65rem; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 48px; }
         .inv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; max-height: 140px; overflow-y: auto; }
-        .inv-slot {
-            background: #090d16; border: 1px solid var(--border); border-radius: 6px;
-            aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            font-size: 0.58rem; text-align: center; padding: 2px; cursor: pointer; position: relative;
-        }
+        .inv-slot { background: #090d16; border: 1px solid var(--border); border-radius: 6px; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.58rem; text-align: center; padding: 2px; cursor: pointer; position: relative; }
         .inv-slot.selected { border-color: var(--gold); background: rgba(245, 158, 11, 0.1); }
         .inv-slot .rarity-badge { position: absolute; top: 2px; right: 2px; font-size: 0.5rem; padding: 1px 3px; border-radius: 3px; }
-
-        #viewport-container {
-            position: relative; display: flex; justify-content: center; align-items: center;
-            background: #000; border-radius: 10px; overflow: hidden; border: 1px solid var(--border);
-            cursor: grab;
-        }
+        #viewport-container { position: relative; display: flex; justify-content: center; align-items: center; background: #000; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); cursor: grab; }
         #viewport-container:active { cursor: grabbing; }
         #webgl-canvas { width: 100%; height: 100%; display: block; }
-
-        #hud-overlay {
-            position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; pointer-events: none; z-index: 10;
-        }
+        #hud-overlay { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; pointer-events: none; z-index: 10; }
         .hud-card { background: rgba(15, 23, 42, 0.88); border: 1px solid var(--border); padding: 4px 8px; border-radius: 6px; font-size: 0.72rem; }
-
         .prompt-input { width: 100%; background: #090d16; border: 1px solid var(--border); color: #fff; padding: 8px; border-radius: 6px; outline: none; font-size: 0.8rem; }
         #log-panel { flex-grow: 1; background: #040711; border: 1px solid var(--border); border-radius: 6px; padding: 6px; font-family: monospace; font-size: 0.68rem; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 4px; }
         .log-entry { padding: 3px 5px; border-radius: 4px; border-left: 3px solid var(--border); background: rgba(255,255,255,0.02); }
         .log-entry.system { border-color: var(--accent); color: #7dd3fc; }
         .log-entry.craft { border-color: var(--success); color: #a7f3d0; }
         .log-entry.ai { border-color: var(--magic); color: #f0abfc; }
-        
+        .log-entry.danger { border-color: var(--danger); color: #fca5a5; }
         .btn { background: #1e293b; color: #fff; border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
         .btn:hover { background: var(--accent); }
     </style>
@@ -93,10 +51,10 @@
 <body>
 
 <header>
-    <div class="logo">WORD SURVIVAL ∞ — Engine 3.0</div>
+    <div class="logo">WORD SURVIVAL ∞ — Engine 6.0</div>
     <div>
-        <button class="btn" onclick="window.gameEngine.saveGame()">💾 Guardar</button>
-        <button class="btn" onclick="window.gameEngine.resetGame()">🔄 Reiniciar</button>
+        <button class="btn" onclick="window.gameEngine.guardar()">💾 Guardar</button>
+        <button class="btn" onclick="window.gameEngine.reiniciar()">🔄 Reiniciar</button>
     </div>
 </header>
 
@@ -113,19 +71,27 @@
             <div class="stat-bar"><div id="bar-hp" class="stat-fill fill-hp" style="width: 100%"></div></div>
         </div>
         <div class="stat-group">
+            <div class="stat-row"><span>Maná</span><span id="mana-val">100/100</span></div>
+            <div class="stat-bar"><div id="bar-mana" class="stat-fill fill-mana" style="width: 100%"></div></div>
+        </div>
+        <div class="stat-group">
             <div class="stat-row"><span>Hambre</span><span id="hunger-val">100/100</span></div>
             <div class="stat-bar"><div id="bar-hunger" class="stat-fill fill-hunger" style="width: 100%"></div></div>
         </div>
 
-        <h2>📊 ATRIBUTOS RPG</h2>
+        <h2>📊 ATRIBUTOS RPG COMPLETOS</h2>
         <div class="attr-grid">
             <div class="attr-box">💪 Fuerza: <b id="str-val">10</b></div>
+            <div class="attr-box">🛡️ Defensa: <b id="def-val">5</b></div>
             <div class="attr-box">⚡ Velocidad: <b id="spd-val">10</b></div>
             <div class="attr-box">🧠 Inteligencia: <b id="int-val">10</b></div>
             <div class="attr-box">🎨 Creatividad: <b id="crt-val">10</b></div>
+            <div class="attr-box">🎯 Precisión: <b id="prc-val">10</b></div>
+            <div class="attr-box">💥 Crítico: <b id="crit-val">5%</b></div>
+            <div class="attr-box">🍀 Suerte: <b id="lck-val">5</b></div>
         </div>
 
-        <h2>🛡️ EQUIPAMIENTO Y PESO</h2>
+        <h2>🛡️ EQUIPAMIENTO</h2>
         <div class="equip-grid">
             <div class="equip-slot" id="eq-helmet"><span>Casco</span></div>
             <div class="equip-slot" id="eq-chest"><span>Peto</span></div>
@@ -133,513 +99,462 @@
             <div class="equip-slot" id="eq-shield"><span>Escudo</span></div>
         </div>
 
-        <h2>🎒 INVENTARIO (Rareza & Peso)</h2>
+        <h2>🎒 INVENTARIO</h2>
         <div id="inventory-grid" class="inv-grid"></div>
     </div>
 
     <div id="viewport-container">
         <div id="hud-overlay">
             <div class="hud-card" id="hud-pos">📍 Chunk: [0, 0] | X: 0, Z: 0</div>
-            <div class="hud-card" id="hud-biome">🌲 Bioma Procedural: Cerca del Bosque</div>
+            <div class="hud-card" id="hud-biome">🌲 Bioma: Bosque Inicial</div>
+            <div class="hud-card" id="hud-tiempo">⏱️ Día: 00:00</div>
         </div>
         <canvas id="webgl-canvas"></canvas>
     </div>
 
     <div class="panel">
-        <h2>✍️ GENERADOR SEMÁNTICO INTELIGENTE</h2>
-        <input type="text" id="semantic-input" class="prompt-input" placeholder="Ej: dragon_ancestro, katana_fuego, tanque, castillo..." autofocus>
+        <h2>✍️ CREACIÓN POR PALABRAS</h2>
+        <input type="text" id="semantic-input" class="prompt-input" placeholder="Ej: espada fuego, casa madera, dragon hielo..." autofocus>
         <div style="font-size:0.63rem; color: #94a3b8">
-            • <b>WASD / Flechas</b>: Moverse por los Chunks<br>
-            • <b>Clic Derecho + Arrastrar Ratón</b>: Rotar Cámara 3D<br>
-            • <b>Rueda del Ratón</b>: Zoom In / Zoom Out<br>
-            • <b>Teclas Q / E</b>: Rotar cámara a izquierda / derecha<br>
-            • <b>Clic Izquierdo</b>: Atacar criatura apuntada
+            • WASD/Flechas: Moverse<br>
+            • Clic Derecho + Arrastrar: Rotar cámara<br>
+            • Rueda: Zoom<br>
+            • Q/E: Girar vista<br>
+            • Clic Izquierdo: Atacar<br>
+            • E: Comer alimento seleccionado
         </div>
 
-        <h2>📜 REGISTRO DE EVENTOS</h2>
+        <h2>📜 REGISTRO</h2>
         <div id="log-panel"></div>
     </div>
 </div>
 
 <script>
-/**
- * DICCIONARIO Y PARSER SEMÁNTICO INTELIGENTE (+20,000 PALABRAS PROCEDIMENTALES)
- */
-class SemanticDictionary {
-    static CATEGORIES = {
-        ANIMALS: ['lobo', 'oso', 'ciervo', 'aguila', 'dragon', 'serpiente', 'lobo_sombra', 'fenix', 'fiera', 'grifo', 'kraken', 'quimera'],
-        WEAPONS: ['espada', 'katana', 'hacha', 'lanza', 'arco', 'daga', 'martillo', 'baston', 'pistola', 'rifle', 'escopeta', 'canon'],
-        ARMOR: ['casco', 'peto', 'coraza', 'escudo', 'grebas', 'botas', 'guantes', 'yelmo', 'capa'],
-        MATERIALS: ['madera', 'piedra', 'hierro', 'acero', 'oro', 'diamante', 'cristal', 'obsidiana', 'titanio', 'mithril', 'vibranium'],
-        MAGIC: ['fuego', 'hielo', 'rayo', 'sombra', 'luz', 'veneno', 'arcano', 'viento', 'tierra', 'caos', 'vacio'],
-        BUILDINGS: ['casa', 'torre', 'castillo', 'muralla', 'fortaleza', 'templo', 'puente', 'ciudad', 'faro'],
-        FOOD: ['manzana', 'carne', 'pan', 'sopa', 'pescado', 'pocion', 'elixir', 'fruta'],
-        VEHICLES: ['carro', 'barco', 'tanque', 'avion', 'cohete', 'moto', 'submarino', 'nave'],
-        TECH: ['robot', 'cyborg', 'laser', 'drone', 'pantalla', 'reactor', 'android', 'torreta']
+// ======================================================
+// SISTEMA 1: BASE DE DATOS AMPLIADA
+// ======================================================
+class WordDatabase {
+    static CATEGORIAS = {
+        ARMAS: ["espada", "katana", "hacha", "lanza", "arco", "daga", "martillo", "baston", "pistola", "rifle", "escopeta", "alabarda"],
+        CRIATURAS: ["lobo", "oso", "ciervo", "aguila", "dragon", "serpiente", "lobo_sombra", "fenix", "grifo", "esqueleto", "golem"],
+        MATERIALES: ["madera", "piedra", "hierro", "acero", "oro", "diamante", "cristal", "obsidiana", "tierra", "agua"],
+        MAGIA: ["fuego", "hielo", "rayo", "sombra", "luz", "viento", "tierra"],
+        CONSTRUCCION: ["casa", "torre", "castillo", "puente", "muralla", "templo", "pared", "puerta"],
+        COMIDA: ["manzana", "carne", "pan", "pescado", "fruta", "pocion"],
+        RECURSOS: ["arbol", "roca", "hierro", "carbon", "planta"]
     };
+    static ADJETIVOS = {
+        COLOR: ["rojo", "azul", "verde", "negro", "blanco", "dorado", "plateado"],
+        TAMAÑO: ["pequeño", "mediano", "grande", "gigante", "colosal"],
+        PODER: ["comun", "raro", "epico", "legendario", "ancestral", "divino"],
+        ELEMENTO: ["de_fuego", "de_hielo", "de_rayo", "de_sombra"]
+    };
+}
 
-    static RARITIES = [
-        { name: 'Común', color: '#94a3b8', mult: 1.0 },
-        { name: 'Raro', color: '#38bdf8', mult: 1.5 },
-        { name: 'Épico', color: '#a855f7', mult: 2.2 },
-        { name: 'Legendario', color: '#f59e0b', mult: 3.5 },
-        { name: 'Mítico', color: '#ef4444', mult: 5.0 }
+// ======================================================
+// SISTEMA 2: INTÉRPRETE SEMÁNTICO CON CONSTRUCCIÓN
+// ======================================================
+class SemanticParser {
+    static RARIDADES = [
+        {n:"Común", c:"#94a3b8", m:1.0}, {n:"Raro", c:"#38bdf8", m:1.5},
+        {n:"Épico", c:"#a855f7", m:2.2}, {n:"Legendario", c:"#f59e0b", m:3.5},
+        {n:"Mítico", c:"#ef4444", m:5.0}, {n:"Divino", c:"#ec4899", m:7.0}
     ];
 
-    static parseWord(input, playerLevel) {
-        const clean = input.toLowerCase().trim();
-        const parts = clean.split('_');
-        const root = parts[0];
-        const adjective = parts[1] || '';
+    static analizar(frase, nivelJugador) {
+        const t = frase.toLowerCase().replace(/[^\w\s]/g, "").trim();
+        const partes = t.split(/\s|_/);
+        
+        let tipo = "objeto", raiz = "", elem = "", tam = "", rar = "Común";
+        let daño = 10, peso = 1, valor = 10;
 
-        // Buscar categoría por coincidencias o hash semántico
-        let detectedCategory = 'misc';
-        for (const [cat, words] of Object.entries(this.CATEGORIES)) {
-            if (words.some(w => root.includes(w) || w.includes(root))) {
-                detectedCategory = cat;
-                break;
+        for(const p of partes) {
+            if(WordDatabase.CATEGORIAS.ARMAS.includes(p)) { raiz=p; tipo="arma"; daño=20; peso=3; }
+            else if(WordDatabase.CATEGORIAS.CRIATURAS.includes(p)) { raiz=p; tipo="criatura"; daño=15; peso=10; }
+            else if(WordDatabase.CATEGORIAS.CONSTRUCCION.includes(p)) { raiz=p; tipo="construccion"; }
+            else if(WordDatabase.CATEGORIAS.COMIDA.includes(p)) { raiz=p; tipo="comida"; valor=5; }
+            else if(WordDatabase.CATEGORIAS.MAGIA.includes(p)) { elem=p; daño+=25; }
+            else if(WordDatabase.ADJETIVOS.TAMAÑO.includes(p)) tam=p;
+            else if(WordDatabase.ADJETIVOS.PODER.includes(p)) {
+                rar=p;
+                const idx = ["común","raro","épico","legendario","mítico","divino"].indexOf(p);
+                if(idx>=0) daño *= this.RARIDADES[idx].m;
             }
         }
 
-        // Selección de rareza basada en la longitud/complejidad y azar
-        const rarityIdx = Math.min(4, Math.floor((clean.length / 4) + (Math.random() * 2)));
-        const rarity = this.RARITIES[rarityIdx];
-
-        // Generar atributos procedimentales
-        const weight = Math.max(0.5, Math.floor((root.length * 1.5) + (adjective ? 3 : 0)));
-        const power = Math.floor((10 + root.length * 5) * rarity.mult);
+        const idxR = Math.min(5, Math.floor((t.length/5)+(nivelJugador/20)+(Math.random()*2)));
+        const finalR = this.RARIDADES.find(r=>r.n.toLowerCase()===rar) || this.RARIDADES[idxR];
 
         return {
-            raw: clean,
-            root: root,
-            adjective: adjective,
-            category: detectedCategory,
-            rarity: rarity,
-            weight: weight,
-            power: power
+            nombre: `${raiz}${tam?"_"+tam:""}${elem?"_"+elem:""}`,
+            tipo, elemento:elem, tamaño:tam, rareza:finalR,
+            estadisticas: { daño:Math.round(daño), peso:Math.max(0.5,peso), valor:Math.round(valor*finalR.m) }
         };
     }
 }
 
-/**
- * GENERADOR DE MODELOS 3D COMPLEJOS (CON CUERPOS, EXTREMIDADES Y ARTICULACIONES)
- */
-class ComplexModelFactory {
-    static createCreatureMesh(category, adjective = '') {
-        const group = new THREE.Group();
+// ======================================================
+// SISTEMA 3: FÁBRICA DE MODELOS + BARRAS DE VIDA 3D
+// ======================================================
+class ModelFactory {
+    static crearJugador() {
+        const g = new THREE.Group();
+        const matCuerpo = new THREE.MeshStandardMaterial({color:0x3b82f6, roughness:0.8});
+        const matCabeza = new THREE.MeshStandardMaterial({color:0xfcd34d, roughness:0.7});
+        const torso = new THREE.Mesh(new THREE.BoxGeometry(0.8,1.2,0.5), matCuerpo); torso.position.y=1.4; g.add(torso);
+        const cabeza = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.5), matCabeza); cabeza.position.y=2.2; g.add(cabeza);
+        const brazoL = new THREE.Mesh(new THREE.BoxGeometry(0.2,1,0.2), matCuerpo); brazoL.position.set(-0.5,1.4,0); g.add(brazoL);
+        const brazoR = brazoL.clone(); brazoR.position.x=0.5; g.add(brazoR);
+        const piernaL = new THREE.Mesh(new THREE.BoxGeometry(0.2,1,0.2), matCuerpo); piernaL.position.set(-0.25,0.4,0); g.add(piernaL);
+        const piernaR = piernaL.clone(); piernaR.position.x=0.25; g.add(piernaR);
+        g.userData = { piernaL, piernaR, brazoL, brazoR };
+        return g;
+    }
 
-        let primaryColor = 0x78350f;
-        if (adjective.includes('fuego')) primaryColor = 0xef4444;
-        if (adjective.includes('hielo')) primaryColor = 0x38bdf8;
-        if (adjective.includes('sombra')) primaryColor = 0x334155;
+    static crearBarraVida(vida, maxVida) {
+        const canvas = document.createElement("canvas"); canvas.width=128; canvas.height=32;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle="#222"; ctx.fillRect(0,0,128,32);
+        ctx.fillStyle="#ef4444"; ctx.fillRect(2,2,Math.max(2,(vida/maxVida)*124),28);
+        const tex = new THREE.CanvasTexture(canvas); tex.needsUpdate=true;
+        const mat = new THREE.SpriteMaterial({map:tex, transparent:true, depthTest:false});
+        const spr = new THREE.Sprite(mat); spr.scale.set(6,1.5,1); spr.position.y=3.5;
+        return spr;
+    }
 
-        const mainMat = new THREE.MeshStandardMaterial({ color: primaryColor, roughness: 0.6 });
-        const detailMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.4 });
-
-        if (category === 'ANIMALS' || category === 'hunter') {
-            // Cuadrúpedo (Lobo/Fiera)
-            // Torso
-            const body = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.0, 2.4), mainMat);
-            body.position.y = 1.2; body.castShadow = true;
-            group.add(body);
-
-            // Cabeza + Hocico
-            const headGroup = new THREE.Group();
-            headGroup.position.set(0, 1.8, 1.4);
-            const head = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.9), mainMat);
-            const snout = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.4, 0.6), detailMat);
-            snout.position.set(0, -0.1, 0.6);
-            headGroup.add(head, snout);
-            group.add(headGroup);
-
-            // 4 Patas
-            const legGeo = new THREE.BoxGeometry(0.4, 1.2, 0.4);
-            const legPositions = [[-0.6, 0.6, 0.9], [0.6, 0.6, 0.9], [-0.6, 0.6, -0.9], [0.6, 0.6, -0.9]];
-            legPositions.forEach(pos => {
-                const leg = new THREE.Mesh(legGeo, detailMat);
-                leg.position.set(...pos);
-                group.add(leg);
-            });
-
-        } else if (category === 'flyer' || adjective.includes('dragon')) {
-            // Dragón / Monstruo Volador
-            // Pecho y Cuello
-            const chest = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.8, 2.8), mainMat);
-            chest.position.y = 4.0; group.add(chest);
-
-            const neck = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.5, 0.8), mainMat);
-            neck.position.set(0, 5.2, 1.2); neck.rotation.x = -0.4; group.add(neck);
-
-            // Cabeza con Cuernos
-            const head = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.9, 1.4), mainMat);
-            head.position.set(0, 5.8, 1.8);
-            const hornL = new THREE.Mesh(new THREE.ConeGeometry(0.2, 1.0, 4), detailMat);
-            hornL.position.set(-0.4, 0.6, -0.3); hornL.rotation.x = -0.5;
-            const hornR = hornL.clone(); hornR.position.x = 0.4;
-            head.add(hornL, hornR); group.add(head);
-
-            // Alas Gigantes
-            const wingGeo = new THREE.BoxGeometry(3.5, 0.1, 1.8);
-            const wingL = new THREE.Mesh(wingGeo, detailMat);
-            wingL.position.set(-2.5, 4.5, 0); wingL.rotation.z = 0.3;
-            const wingR = new THREE.Mesh(wingGeo, detailMat);
-            wingR.position.set(2.5, 4.5, 0); wingR.rotation.z = -0.3;
-            group.add(wingL, wingR);
-            group.userData.wingL = wingL; group.userData.wingR = wingR;
-
-        } else {
-            // Humanoide / Bicho Mecánico / Guerrero
-            const torso = new THREE.Mesh(new THREE.BoxGeometry(1.4, 2.0, 1.0), mainMat);
-            torso.position.y = 2.0; group.add(torso);
-
-            const head = new THREE.Mesh(new THREE.SphereGeometry(0.6, 8, 8), detailMat);
-            head.position.y = 3.3; group.add(head);
-
-            const armGeo = new THREE.BoxGeometry(0.4, 1.6, 0.4);
-            const armL = new THREE.Mesh(armGeo, mainMat); armL.position.set(-1.0, 2.0, 0);
-            const armR = new THREE.Mesh(armGeo, mainMat); armR.position.set(1.0, 2.0, 0);
-            group.add(armL, armR);
+    static crearCriatura(obj) {
+        const g = new THREE.Group();
+        let mat = new THREE.MeshStandardMaterial({color:0x78350f});
+        if(obj.elemento==="fuego") mat.color.setHex(0xef4444);
+        if(obj.elemento==="hielo") mat.color.setHex(0x38bdf8);
+        const cuerpo = new THREE.Mesh(new THREE.BoxGeometry(1.2,0.8,1.8), mat); cuerpo.position.y=1; g.add(cuerpo);
+        const cabeza = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.6,0.8), mat); cabeza.position.set(0,1.5,1.2); g.add(cabeza);
+        for(let i=0;i<4;i++) {
+            const pata = new THREE.Mesh(new THREE.BoxGeometry(0.25,0.8,0.25), mat);
+            pata.position.set((i%2===0?-0.4:0.4),0.3,(i<2?0.7:-0.7)); g.add(pata);
         }
+        const vida = obj.estadisticas.daño*3;
+        const barra = this.crearBarraVida(vida, vida); g.add(barra);
+        g.userData = { vida, maxVida:vida, barra };
+        return g;
+    }
 
-        return group;
+    static crearConstruccion(obj, x, z) {
+        const g = new THREE.Group();
+        const tam = {pequeño:0.6, mediano:1, grande:1.6, gigante:2.5, colosal:4}[obj.tamaño]||1;
+        const col = {madera:0x92400e, piedra:0x6b7280, hielo:0x93c5fd, obsidiana:0x1e1b4b}[obj.elemento||"madera"]||0x92400e;
+        const mat = new THREE.MeshStandardMaterial({color:col});
+        if(obj.nombre.startsWith("casa")||obj.nombre.startsWith("castillo")) {
+            const base = new THREE.Mesh(new THREE.BoxGeometry(4*tam,3*tam,4*tam), mat); base.position.y=1.5*tam; g.add(base);
+            const techo = new THREE.Mesh(new THREE.ConeGeometry(3.5*tam,1.5*tam,4), mat); techo.position.y=3.7*tam; techo.rotation.y=Math.PI/4; g.add(techo);
+        } else if(obj.nombre.startsWith("torre")) {
+            const base = new THREE.Mesh(new THREE.CylinderGeometry(1.2*tam,1.5*tam,6*tam,8), mat); base.position.y=3*tam; g.add(base);
+        } else if(obj.nombre.startsWith("puente")) {
+            const base = new THREE.Mesh(new THREE.BoxGeometry(8*tam,0.4*tam,1.5*tam), mat); base.position.y=0.2*tam; g.add(base);
+        }
+        g.position.set(x,0,z); return g;
+    }
+
+    static crearArbol(x,z) {
+        const g = new THREE.Group();
+        const tronco = new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.3,1.8,6), new THREE.MeshStandardMaterial({color:0x92400e})); tronco.position.y=0.9; g.add(tronco);
+        const copa = new THREE.Mesh(new THREE.SphereGeometry(1.2,8,8), new THREE.MeshStandardMaterial({color:0x15803d})); copa.position.y=2.2; g.add(copa);
+        g.position.set(x,0,z); return g;
     }
 }
 
-/**
- * ENGINE 3.0 CON GENERACIÓN DE CHUNKS INFINITOS Y CÁMARA LIBRE
- */
-class InfiniteEngine3D {
+// ======================================================
+// SISTEMA 4: MUNDO PROCEDURAL CON LIMPIEZA COMPLETA
+// ======================================================
+class WorldGenerator {
+    static getBioma(x,z) {
+        const ruido = Math.sin(x*0.08)*Math.cos(z*0.08) + Math.sin(x*0.02)*0.3;
+        if(ruido < -0.5) return "nieve";
+        if(ruido < -0.15) return "bosque";
+        if(ruido < 0.25) return "desierto";
+        return "volcan";
+    }
+
+    static generarChunk(x,z,escena) {
+        const datos = {malla:null, objetos:[]};
+        const geo = new THREE.PlaneGeometry(64,64,16,16);
+        const pos = geo.attributes.position;
+        for(let i=0;i<pos.count;i++) {
+            const vx = pos.getX(i) + x*64;
+            const vz = pos.getZ(i) + z*64;
+            const altura = Math.sin(vx*0.05)*Math.cos(vz*0.05)*2 + Math.sin(vx*0.02)*1.2;
+            pos.setY(i, altura);
+        }
+        geo.computeVertexNormals();
+        const bioma = this.getBioma(x,z);
+        const colores = {bosque:0x166534, desierto:0xf59e0b, nieve:0xe2e8f0, volcan:0x292524};
+        const mat = new THREE.MeshStandardMaterial({color:colores[bioma], roughness:0.9});
+        datos.malla = new THREE.Mesh(geo, mat);
+        datos.malla.rotation.x=-Math.PI/2; datos.malla.position.set(x*64+32,0,z*64+32); datos.malla.receiveShadow=true;
+        escena.add(datos.malla);
+
+        for(let i=0;i<8;i++) {
+            const ex = x*64 + Math.random()*60;
+            const ez = z*64 + Math.random()*60;
+            if(bioma==="bosque") {
+                const arbol = ModelFactory.crearArbol(ex,ez); escena.add(arbol); datos.objetos.push(arbol);
+            }
+        }
+        return datos;
+    }
+}
+
+// ======================================================
+// MOTOR 6.0 COMPLETO
+// ======================================================
+class GameEngine {
     constructor() {
-        this.container = document.getElementById('viewport-container');
-        this.canvas = document.getElementById('webgl-canvas');
+        this.escena = new THREE.Scene();
+        this.escena.background = new THREE.Color(0x020617);
+        this.escena.fog = new THREE.FogExp2(0x020617, 0.012);
+        this.camara = new THREE.PerspectiveCamera(60, 1, 0.1, 500);
+        this.render = new THREE.WebGLRenderer({canvas:document.getElementById("webgl-canvas"), antialias:true});
+        this.render.shadowMap.enabled = true;
 
-        // Escena 3D
-        this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x020617);
-        this.scene.fog = new THREE.FogExp2(0x020617, 0.008);
+        this.jugador = {x:0,z:0,hp:100,maxHp:100,mana:100,hambre:100,nivel:1,exp:0,expSig:100,str:10,def:5,spd:10,int:10,lck:5};
+        this.grupoJugador = ModelFactory.crearJugador(); this.escena.add(this.grupoJugador);
+        
+        this.inventario = []; this.entidades = []; this.construcciones = []; this.teclas={};
+        this.chunks = new Map(); this.tamChunk=64; this.distCam=26; this.angY=0; this.angX=0.6;
+        this.raycaster = new THREE.Raycaster(); this.raton = new THREE.Vector2();
+        this.ultimoAtaque=0; this.tiempoJuego=0; this.ultimaHambre=0;
 
-        // Cámara 3D Orbital/Seguidora
-        this.camera = new THREE.PerspectiveCamera(60, this.container.clientWidth / this.container.clientHeight, 0.1, 1000);
-        this.camDistance = 25;
-        this.camAngleY = 0;
-        this.camAngleX = 0.6; // Inclinación inicial
+        this.luzAmb = new THREE.AmbientLight(0xffffff,0.5);
+        this.sol = new THREE.DirectionalLight(0xffffff,0.8);
+        this.sol.position.set(50,100,50); this.sol.castShadow=true;
+        this.escena.add(this.luzAmb, this.sol);
 
-        this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
-        this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
-        this.renderer.shadowMap.enabled = true;
-
-        // Iluminación
-        const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-        this.scene.add(ambient);
-        this.sunLight = new THREE.DirectionalLight(0xffffff, 0.9);
-        this.sunLight.position.set(80, 120, 80);
-        this.sunLight.castShadow = true;
-        this.scene.add(this.sunLight);
-
-        // Jugador RPG
-        this.player = {
-            x: 0, z: 0, hp: 100, maxHp: 100, hunger: 100,
-            level: 1, exp: 0, nextExp: 100,
-            str: 10, spd: 10, int: 10, crt: 10,
-            selectedItem: null
-        };
-
-        // Chunks Infinitos
-        this.CHUNK_SIZE = 64;
-        this.loadedChunks = new Map(); // Llave "X,Z" -> THREE.Mesh
-        this.currentChunkCoords = { x: 0, z: 0 };
-
-        // Materiales de terreno procedimental
-        this.chunkMaterials = {
-            forest: new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.9 }),
-            desert: new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.8 }),
-            snow: new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.5 }),
-            volcano: new THREE.MeshStandardMaterial({ color: 0x27272a, roughness: 0.9 })
-        };
-
-        this.inventory = [];
-        this.entities = [];
-        this.keys = {};
-        this.clock = new THREE.Clock();
-        this.raycaster = new THREE.Raycaster();
-        this.mouse = new THREE.Vector2();
-
-        // Control de cámara con ratón
-        this.isMouseDown = false;
-        this.mousePos = { x: 0, y: 0 };
-
-        this.createPlayer3D();
-        this.init();
+        this.iniciar(); this.bucle();
     }
 
-    createPlayer3D() {
-        this.playerGroup = ComplexModelFactory.createCreatureMesh('humanoid');
-        this.scene.add(this.playerGroup);
+    iniciar() {
+        window.addEventListener("keydown",e=>{
+            this.teclas[e.key.toLowerCase()]=true;
+            if(e.key.toLowerCase()==="e" && this.inventario.length>0) this.comer();
+        });
+        window.addEventListener("keyup",e=>this.teclas[e.key.toLowerCase()]=false);
+        document.getElementById("semantic-input").addEventListener("keydown",e=>{
+            if(e.key==="Enter") {this.procesar(e.target.value); e.target.value="";}
+        });
+        this.configurarControles(); this.actualizarMundo(); this.cargar();
+        this.log("✅ MOTOR 6.0 CARGADO — Construcción, Supervivencia y Guardado Total","system");
+        window.addEventListener("resize",()=>this.ajustar()); this.ajustar();
     }
 
-    init() {
-        // Eventos de teclado
-        window.addEventListener('keydown', e => this.keys[e.key.toLowerCase()] = true);
-        window.addEventListener('keyup', e => this.keys[e.key.toLowerCase()] = false);
-
-        // Control de cámara orbital con ratón
-        this.container.addEventListener('mousedown', (e) => {
-            if (e.button === 2) { // Clic derecho para girar cámara
-                this.isMouseDown = true;
-                this.mousePos = { x: e.clientX, y: e.clientY };
-            } else if (e.button === 0) { // Clic izquierdo para interactuar/atacar
-                this.onWorldClick(e);
-            }
-        });
-
-        window.addEventListener('mouseup', () => this.isMouseDown = false);
-        this.container.addEventListener('contextmenu', e => e.preventDefault());
-
-        this.container.addEventListener('mousemove', (e) => {
-            if (this.isMouseDown) {
-                const dx = e.clientX - this.mousePos.x;
-                const dy = e.clientY - this.mousePos.y;
-                this.camAngleY -= dx * 0.005;
-                this.camAngleX = Math.max(0.2, Math.min(1.2, this.camAngleX + dy * 0.005));
-                this.mousePos = { x: e.clientX, y: e.clientY };
-            }
-        });
-
-        this.container.addEventListener('wheel', (e) => {
-            this.camDistance = Math.max(10, Math.min(60, this.camDistance + e.deltaY * 0.02));
-        });
-
-        document.getElementById('semantic-input').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                this.processInput(e.target.value);
-                e.target.value = '';
-            }
-        });
-
-        this.updateChunks();
-        this.addLog("MOTOR 3.0 INICIADO: Sistema de Chunks infinitos y Diccionario Generativo Activo.", "system");
-        this.animate();
+    ajustar() {
+        const c = document.getElementById("viewport-container");
+        this.camara.aspect = c.clientWidth/c.clientHeight; this.camara.updateProjectionMatrix();
+        this.render.setSize(c.clientWidth,c.clientHeight);
     }
 
-    updateChunks() {
-        const pChunkX = Math.floor(this.player.x / this.CHUNK_SIZE);
-        const pChunkZ = Math.floor(this.player.z / this.CHUNK_SIZE);
+    configurarControles() {
+        const c = document.getElementById("viewport-container");
+        let ratonAbajo=false, ant={x:0,y:0};
+        c.addEventListener("mousedown",e=>{if(e.button===2){ratonAbajo=true;ant={x:e.clientX,y:e.clientY}};if(e.button===0)this.atacar(e);});
+        window.addEventListener("mouseup",()=>ratonAbajo=false);
+        c.addEventListener("mousemove",e=>{if(ratonAbajo){this.angY-=(e.clientX-ant.x)*0.005;this.angX=Math.max(0.2,Math.min(1.2,this.angX+(e.clientY-ant.y)*0.005));ant={x:e.clientX,y:e.clientY}}});
+        c.addEventListener("wheel",e=>{this.distCam=Math.max(12,Math.min(50,this.distCam+e.deltaY*0.02))});
+        c.addEventListener("contextmenu",e=>e.preventDefault());
+    }
 
-        this.currentChunkCoords = { x: pChunkX, z: pChunkZ };
+    actualizarMundo() {
+        const cx = Math.floor(this.jugador.x/this.tamChunk);
+        const cz = Math.floor(this.jugador.z/this.tamChunk);
+        const necesarios = new Set();
+        for(let x=-2;x<=2;x++) for(let z=-2;z<=2;z++) {
+            const k = `${cx+x},${cz+z}`; necesarios.add(k);
+            if(!this.chunks.has(k)) this.chunks.set(k, WorldGenerator.generarChunk(cx+x,cz+z,this.escena));
+        }
+        for(const [k,datos] of this.chunks) {
+            if(!necesarios.has(k)) {
+                this.escena.remove(datos.malla);
+                datos.objetos.forEach(o=>this.escena.remove(o));
+                this.chunks.delete(k);
+            }
+        }
+        const biomaAct = WorldGenerator.getBioma(this.jugador.x,this.jugador.z);
+        const nomBioma = {bosque:"🌲 Bosque", desierto:"🏜️ Desierto", nieve:"❄️ Tundra", volcan:"🌋 Volcán"}[biomaAct];
+        document.getElementById("hud-biome").textContent = `Bioma: ${nomBioma}`;
+        document.getElementById("hud-pos").textContent = `📍 Chunk: [${cx},${cz}] | X:${Math.round(this.jugador.x)} Z:${Math.round(this.jugador.z)}`;
+    }
 
-        const radius = 2; // Cargar 5x5 chunks alrededor
-        const neededKeys = new Set();
-
-        for (let x = -radius; x <= radius; x++) {
-            for (let z = -radius; z <= radius; z++) {
-                const cX = pChunkX + x;
-                const cZ = pChunkZ + z;
-                const key = `${cX},${cZ}`;
-                neededKeys.add(key);
-
-                if (!this.loadedChunks.has(key)) {
-                    // Generar nuevo Chunk
-                    const geo = new THREE.PlaneGeometry(this.CHUNK_SIZE, this.CHUNK_SIZE, 8, 8);
-                    
-                    // Elegir bioma procedimental según ruido básico
-                    let mat = this.chunkMaterials.forest;
-                    if (cX > 2) mat = this.chunkMaterials.desert;
-                    else if (cX < -2) mat = this.chunkMaterials.snow;
-                    else if (cZ > 2) mat = this.chunkMaterials.volcano;
-
-                    const mesh = new THREE.Mesh(geo, mat);
-                    mesh.rotation.x = -Math.PI / 2;
-                    mesh.position.set(cX * this.CHUNK_SIZE + this.CHUNK_SIZE/2, 0, cZ * this.CHUNK_SIZE + this.CHUNK_SIZE/2);
-                    mesh.receiveShadow = true;
-
-                    this.scene.add(mesh);
-                    this.loadedChunks.set(key, mesh);
+    atacar(e) {
+        if(Date.now()-this.ultimoAtaque<500) return; this.ultimoAtaque=Date.now();
+        const rect = this.render.domElement.getBoundingClientRect();
+        this.raton.x = ((e.clientX-rect.left)/rect.width)*2-1;
+        this.raton.y = -((e.clientY-rect.top)/rect.height)*2+1;
+        this.raycaster.setFromCamera(this.raton,this.camara);
+        const golpe = this.raycaster.intersectObjects(this.entidades.map(e=>e.grupo), true);
+        if(golpe.length>0) {
+            let obj = golpe[0].object; while(obj.parent&&obj.parent!==this.escena)obj=obj.parent;
+            const enemigo = this.entidades.find(e=>e.grupo===obj);
+            if(enemigo) {
+                const daño = 15 + this.jugador.str*0.8;
+                enemigo.vida -= daño;
+                const porc = Math.max(0,enemigo.vida/enemigo.grupo.userData.maxVida);
+                const canvas = document.createElement("canvas"); canvas.width=128; canvas.height=32;
+                const ctx = canvas.getContext("2d"); ctx.fillStyle="#222"; ctx.fillRect(0,0,128,32); ctx.fillStyle="#ef4444"; ctx.fillRect(2,2,porc*124,28);
+                enemigo.grupo.userData.barra.material.map.image=canvas; enemigo.grupo.userData.barra.material.map.needsUpdate=true;
+                this.log(`⚔️ Atacas a ${enemigo.nombre} (-${Math.round(daño)} HP)`,"system");
+                if(enemigo.vida<=0) {
+                    this.escena.remove(enemigo.grupo); this.entidades=this.entidades.filter(e=>e!==enemigo);
+                    this.jugador.exp+=50; this.log(`💀 Derrotaste a ${enemigo.nombre}`,"craft"); this.subirNivel();
                 }
             }
         }
+    }
 
-        // Descargar Chunks lejanos
-        for (const [key, mesh] of this.loadedChunks.entries()) {
-            if (!neededKeys.has(key)) {
-                this.scene.remove(mesh);
-                mesh.geometry.dispose();
-                this.loadedChunks.delete(key);
-            }
+    subirNivel() {
+        if(this.jugador.exp>=this.jugador.expSig) {
+            this.jugador.nivel++; this.jugador.exp-=this.jugador.expSig; this.jugador.expSig=Math.floor(this.jugador.expSig*1.6);
+            this.jugador.str+=2; this.jugador.def+=1; this.jugador.spd+=1;
+            this.log(`🎉 ¡NIVEL ${this.jugador.nivel} ALCANZADO!`,"system");
         }
     }
 
-    processInput(text) {
-        if (!text.trim()) return;
+    comer() {
+        const comida = this.inventario.find(i=>i.tipo==="comida");
+        if(comida) {
+            this.inventario.splice(this.inventario.indexOf(comida),1);
+            this.jugador.hambre = Math.min(100, this.jugador.hambre+35);
+            this.log(`🍖 Comiste ${comida.nombre} (+35 Hambre)`,"craft"); this.actualizarUI();
+        }
+    }
 
-        const parsed = SemanticDictionary.parseWord(text, this.player.level);
-
-        if (parsed.category === 'ANIMALS' || parsed.raw.includes('dragon') || parsed.raw.includes('lobo')) {
-            // Invocar criatura 3D articulada
-            const creatureGroup = ComplexModelFactory.createCreatureMesh(parsed.category, parsed.adjective);
-            const rx = this.player.x + (Math.random() - 0.5) * 16;
-            const rz = this.player.z + (Math.random() - 0.5) * 16;
-            creatureGroup.position.set(rx, 0, rz);
-
-            this.scene.add(creatureGroup);
-            this.entities.push({
-                name: parsed.raw,
-                group: creatureGroup,
-                hp: parsed.power,
-                maxHp: parsed.power,
-                category: parsed.category
-            });
-
-            this.addLog(`✨ Invocado: **${parsed.raw}** (${parsed.rarity.name} - Poder: ${parsed.power})`, "ai");
+    procesar(texto) {
+        if(!texto.trim()) return;
+        const res = SemanticParser.analizar(texto, this.jugador.nivel);
+        if(res.tipo==="criatura") {
+            const m = ModelFactory.crearCriatura(res);
+            m.position.set(this.jugador.x+(Math.random()-0.5)*25,0,this.jugador.z+(Math.random()-0.5)*25);
+            this.escena.add(m); this.entidades.push({nombre:res.nombre, grupo:m, vida:m.userData.vida});
+            this.log(`✨ CRIATURA: ${res.nombre} | ${res.rareza.n}`,"ai");
+        } else if(res.tipo==="construccion") {
+            const m = ModelFactory.crearConstruccion(res, this.jugador.x+5, this.jugador.z);
+            this.escena.add(m); this.construcciones.push({datos:res, grupo:m});
+            this.log(`🏗️ CONSTRUCCIÓN: ${res.nombre}`,"craft");
         } else {
-            // Objeto o equipamiento
-            this.inventory.push({
-                name: parsed.raw,
-                category: parsed.category,
-                rarity: parsed.rarity,
-                weight: parsed.weight,
-                power: parsed.power
+            this.inventario.push({...res});
+            this.log(`🎒 OBJETO: ${res.nombre} | ${res.rareza.n}`,"craft");
+        }
+        this.actualizarUI();
+    }
+
+    log(texto, tipo="system") {
+        const p = document.getElementById("log-panel");
+        p.innerHTML = `<div class="log-entry ${tipo}">${texto}</div>` + p.innerHTML;
+    }
+
+    actualizarUI() {
+        document.getElementById("lvl-val").textContent = this.jugador.nivel;
+        document.getElementById("exp-val").textContent = `${this.jugador.exp}/${this.jugador.expSig}`;
+        document.getElementById("bar-exp").style.width = `${(this.jugador.exp/this.jugador.expSig)*100}%`;
+        document.getElementById("hp-val").textContent = `${this.jugador.hp}/${this.jugador.maxHp}`;
+        document.getElementById("bar-hp").style.width = `${(this.jugador.hp/this.jugador.maxHp)*100}%`;
+        document.getElementById("mana-val").textContent = `${this.jugador.mana}/100`;
+        document.getElementById("bar-mana").style.width = `${this.jugador.mana}%`;
+        document.getElementById("hunger-val").textContent = `${Math.round(this.jugador.hambre)}/100`;
+        document.getElementById("bar-hunger").style.width = `${this.jugador.hambre}%`;
+        document.getElementById("str-val").textContent = this.jugador.str;
+        document.getElementById("def-val").textContent = this.jugador.def;
+        document.getElementById("spd-val").textContent = this.jugador.spd;
+
+        const inv = document.getElementById("inventory-grid"); inv.innerHTML="";
+        this.inventario.forEach(it=>{
+            const s = document.createElement("div"); s.className="inv-slot";
+            s.innerHTML = `<span class="rarity-badge" style="background:${it.rareza.c}">${it.rareza.n[0]}</span><b>${it.nombre}</b>`;
+            inv.appendChild(s);
+        });
+    }
+
+    guardar() {
+        const datos = {jugador:this.jugador, inventario:this.inventario, construcciones:this.construcciones.map(c=>({d:c.datos,x:c.grupo.position.x,z:c.grupo.position.z}))};
+        localStorage.setItem("ws6",JSON.stringify(datos));
+        this.log("💾 GUARDADO TOTAL COMPLETADO","system");
+    }
+    cargar() {
+        const guardado = localStorage.getItem("ws6");
+        if(guardado) {
+            const d = JSON.parse(guardado);
+            this.jugador = {...this.jugador, ...d.jugador};
+            this.inventario = d.inventario||[];
+            (d.construcciones||[]).forEach(c=>{
+                const m = ModelFactory.crearConstruccion(c.datos,c.x,c.z);
+                this.escena.add(m); this.construcciones.push({datos:c.datos, grupo:m});
             });
-            this.addLog(`🎒 Guardado: **${parsed.raw}** [${parsed.rarity.name}] (Peso: ${parsed.weight}kg)`, "craft");
+            this.log("📂 CARGA COMPLETADA","system");
         }
-        this.updateUI();
     }
+    reiniciar() {localStorage.removeItem("ws6"); location.reload();}
 
-    onWorldClick(e) {
-        const rect = this.canvas.getBoundingClientRect();
-        this.mouse.x = ((e.clientX - rect.left) / this.canvas.width) * 2 - 1;
-        this.mouse.y = -((e.clientY - rect.top) / this.canvas.height) * 2 + 1;
+    bucle() {
+        requestAnimationFrame(()=>this.bucle());
+        const dt=0.016; this.tiempoJuego+=dt;
 
-        this.raycaster.setFromCamera(this.mouse, this.camera);
-        const intersects = this.raycaster.intersectObjects(this.entities.map(e => e.group), true);
+        // Supervivencia: Hambre
+        if(this.tiempoJuego - this.ultimaHambre > 2) {
+            this.ultimaHambre = this.tiempoJuego;
+            if(this.jugador.hambre>0) this.jugador.hambre-=0.5;
+            else this.jugador.hp-=0.3;
+        }
 
-        if (intersects.length > 0) {
-            let hitObj = intersects[0].object;
-            while (hitObj.parent && hitObj.parent !== this.scene) hitObj = hitObj.parent;
+        // Movimiento
+        let dx=0, dz=0, vel=5.5+this.jugador.spd*0.2;
+        if(this.teclas.w||this.teclas.arrowup) dz-=vel;
+        if(this.teclas.s||this.teclas.arrowdown) dz+=vel;
+        if(this.teclas.a||this.teclas.arrowleft) dx-=vel;
+        if(this.teclas.d||this.teclas.arrowright) dx+=vel;
+        if(this.teclas.q) this.angY+=2*dt;
+        if(this.teclas.e) this.angY-=2*dt;
 
-            const enemy = this.entities.find(e => e.group === hitObj);
-            if (enemy) {
-                const dmg = 20 + (this.player.str * 0.8);
-                enemy.hp -= dmg;
-                this.addLog(`⚔️ Has atacado a ${enemy.name} (-${Math.ceil(dmg)} HP)`, "system");
+        // Animación caminar
+        const t=Date.now()*0.005;
+        if(dx||dz) {
+            this.grupoJugador.userData.piernaL.rotation.x=Math.sin(t)*0.4;
+            this.grupoJugador.userData.piernaR.rotation.x=Math.sin(t+Math.PI)*0.4;
+            this.grupoJugador.userData.brazoL.rotation.x=Math.sin(t+Math.PI)*0.2;
+            this.grupoJugador.userData.brazoR.rotation.x=Math.sin(t)*0.2;
+        } else Object.values(this.grupoJugador.userData).forEach(p=>p.rotation.x=0);
 
-                if (enemy.hp <= 0) {
-                    this.scene.remove(enemy.group);
-                    this.entities = this.entities.filter(e => e !== enemy);
-                    this.player.exp += 60;
-                    this.addLog(`💀 ¡Derrotado ${enemy.name}! (+60 EXP)`, "craft");
-                    this.checkLevelUp();
-                }
+        if(dx||dz) {
+            const ca=Math.cos(this.angY), sa=Math.sin(this.angY);
+            this.jugador.x+=dx*ca-dz*sa; this.jugador.z+=dx*sa+dz*ca;
+            this.grupoJugador.rotation.y=this.angY;
+        }
+        this.grupoJugador.position.set(this.jugador.x,0,this.jugador.z);
+
+        // IA enemiga
+        this.entidades.forEach(e=>{
+            const dist=Math.hypot(e.grupo.position.x-this.jugador.x,e.grupo.position.z-this.jugador.z);
+            if(dist<15&&dist>2) {
+                const ang=Math.atan2(this.jugador.z-e.grupo.position.z,this.jugador.x-e.grupo.position.x);
+                e.grupo.position.x+=Math.cos(ang)*2*dt; e.grupo.position.z+=Math.sin(ang)*2*dt;
+                e.grupo.rotation.y=ang;
             }
-        }
-    }
-
-    checkLevelUp() {
-        if (this.player.exp >= this.player.nextExp) {
-            this.player.level++;
-            this.player.exp -= this.player.nextExp;
-            this.player.nextExp = Math.floor(this.player.nextExp * 1.5);
-            this.player.str += 3; this.player.spd += 2;
-            this.addLog(`🎉 ¡SUBISTE AL NIVEL ${this.player.level}!`, "system");
-        }
-    }
-
-    update(dt) {
-        // Rotación de cámara por teclas Q y E
-        if (this.keys['q']) this.camAngleY += dt * 2.0;
-        if (this.keys['e']) this.camAngleY -= dt * 2.0;
-
-        // Movimiento WASD relativo a la rotación de la cámara
-        let moveForward = 0, moveRight = 0;
-        if (this.keys['w'] || this.keys['arrowup']) moveForward += 1;
-        if (this.keys['s'] || this.keys['arrowdown']) moveForward -= 1;
-        if (this.keys['a'] || this.keys['arrowleft']) moveRight -= 1;
-        if (this.keys['d'] || this.keys['arrowright']) moveRight += 1;
-
-        if (moveForward !== 0 || moveRight !== 0) {
-            const speed = (12 + this.player.spd * 0.3) * dt;
-            const angle = this.camAngleY;
-
-            const dx = (moveRight * Math.cos(angle) - moveForward * Math.sin(angle)) * speed;
-            const dz = (moveRight * Math.sin(angle) + moveForward * Math.cos(angle)) * speed;
-
-            this.player.x += dx;
-            this.player.z += dz;
-
-            // Orientar jugador hacia el movimiento
-            this.playerGroup.rotation.y = Math.atan2(dx, dz);
-        }
-
-        this.playerGroup.position.set(this.player.x, 0, this.player.z);
-
-        // Posicionar Cámara Orbitante 3D
-        const camX = this.player.x + this.camDistance * Math.sin(this.camAngleY) * Math.cos(this.camAngleX);
-        const camY = this.camDistance * Math.sin(this.camAngleX);
-        const camZ = this.player.z + this.camDistance * Math.cos(this.camAngleY) * Math.cos(this.camAngleX);
-
-        this.camera.position.set(camX, camY, camZ);
-        this.camera.lookAt(this.player.x, 2, this.player.z);
-
-        // Actualizar Chunks según movimiento
-        this.updateChunks();
-
-        // Animaciones procedimentales de alas/extremidades
-        this.entities.forEach(ent => {
-            if (ent.group.userData.wingL) {
-                const time = Date.now() * 0.005;
-                ent.group.userData.wingL.rotation.z = Math.sin(time) * 0.4 + 0.2;
-                ent.group.userData.wingR.rotation.z = -Math.sin(time) * 0.4 - 0.2;
-            }
+            e.grupo.userData.barra.lookAt(this.camara.position);
         });
 
-        this.updateUI();
-    }
+        // Cámara
+        this.camara.position.x=this.jugador.x+this.distCam*Math.sin(this.angY)*Math.cos(this.angX);
+        this.camara.position.y=this.distCam*Math.sin(this.angX);
+        this.camara.position.z=this.jugador.z+this.distCam*Math.cos(this.angY)*Math.cos(this.angX);
+        this.camara.lookAt(this.jugador.x,1.5,this.jugador.z);
 
-    updateUI() {
-        document.getElementById('lvl-val').innerText = this.player.level;
-        document.getElementById('exp-val').innerText = `${this.player.exp}/${this.player.nextExp}`;
-        document.getElementById('bar-exp').style.width = `${(this.player.exp / this.player.nextExp) * 100}%`;
+        // Hora
+        const hora = Math.floor((this.tiempoJuego*2)%24);
+        const min = Math.floor(((this.tiempoJuego*2)%1)*60);
+        document.getElementById("hud-tiempo").textContent = `⏱️ Día: ${hora.toString().padStart(2,'0')}:${min.toString().padStart(2,'0')}`;
 
-        document.getElementById('hud-pos').innerText = `📍 Chunk: [${this.currentChunkCoords.x}, ${this.currentChunkCoords.z}] | Pos 3D: X: ${Math.floor(this.player.x)}, Z: ${Math.floor(this.player.z)}`;
-
-        const grid = document.getElementById('inventory-grid');
-        grid.innerHTML = '';
-        this.inventory.forEach((item, idx) => {
-            const slot = document.createElement('div');
-            slot.className = `inv-slot ${this.player.selectedItem === item ? 'selected' : ''}`;
-            slot.innerHTML = `
-                <span class="rarity-badge" style="background:${item.rarity.color}">${item.rarity.name[0]}</span>
-                <b>${item.name}</b>
-                <span style="color:#94a3b8">${item.weight}kg</span>
-            `;
-            slot.onclick = () => { this.player.selectedItem = item; this.updateUI(); };
-            grid.appendChild(slot);
-        });
-    }
-
-    addLog(msg, type = "system") {
-        const log = document.getElementById('log-panel');
-        log.innerHTML = `<div class="log-entry ${type}">${msg}</div>` + log.innerHTML;
-    }
-
-    saveGame() {
-        localStorage.setItem('ws3_save', JSON.stringify({ player: this.player, inv: this.inventory }));
-        this.addLog("💾 Progreso guardado.", "system");
-    }
-
-    resetGame() {
-        localStorage.removeItem('ws3_save');
-        location.reload();
-    }
-
-    animate() {
-        requestAnimationFrame(() => this.animate());
-        const dt = this.clock.getDelta();
-        this.update(dt);
-        this.renderer.render(this.scene, this.camera);
+        this.actualizarMundo(); this.actualizarUI(); this.render.render(this.escena,this.camara);
     }
 }
 
-window.onload = () => { window.gameEngine = new InfiniteEngine3D(); };
+window.onload = () => { window.gameEngine = new GameEngine(); };
 </script>
 </body>
 </html>
