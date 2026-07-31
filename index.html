@@ -1,25 +1,19 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Word Survival</title>
-
 <style>
-html,body{
-margin:0;
-padding:0;
-overflow:hidden;
-background:#000;
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #111;
 }
 
-canvas{
-display:block;
-background:#6dbb4b;
+canvas {
+  display: block;
+  background: #222;
 }
 </style>
-
 </head>
 
 <body>
@@ -31,73 +25,70 @@ background:#6dbb4b;
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-function resize(){
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
-}
 
-window.addEventListener("resize",resize);
-resize();
-
-const player={
-x:300,
-y:300,
-size:30,
-speed:4
+let player = {
+  x: canvas.width / 2,
+  y: canvas.height / 2,
+  size: 30,
+  speed: 5
 };
 
-const keys={};
+let keys = {};
 
-addEventListener("keydown",(e)=>{
-keys[e.key.toLowerCase()]=true;
+document.addEventListener("keydown", e=>{
+  keys[e.key] = true;
 });
 
-addEventListener("keyup",(e)=>{
-keys[e.key.toLowerCase()]=false;
+document.addEventListener("keyup", e=>{
+  keys[e.key] = false;
 });
+
 
 function update(){
 
-if(keys["w"]||keys["arrowup"])
-player.y-=player.speed;
+  if(keys["w"] || keys["ArrowUp"])
+    player.y -= player.speed;
 
-if(keys["s"]||keys["arrowdown"])
-player.y+=player.speed;
+  if(keys["s"] || keys["ArrowDown"])
+    player.y += player.speed;
 
-if(keys["a"]||keys["arrowleft"])
-player.x-=player.speed;
+  if(keys["a"] || keys["ArrowLeft"])
+    player.x -= player.speed;
 
-if(keys["d"]||keys["arrowright"])
-player.x+=player.speed;
+  if(keys["d"] || keys["ArrowRight"])
+    player.x += player.speed;
 
 }
+
 
 function draw(){
 
 ctx.clearRect(0,0,canvas.width,canvas.height);
 
-ctx.fillStyle="#6dbb4b";
-ctx.fillRect(0,0,canvas.width,canvas.height);
-
-ctx.fillStyle="#2b7cff";
-ctx.fillRect(player.x,player.y,player.size,player.size);
-
-ctx.fillStyle="white";
-ctx.font="20px Arial";
-ctx.fillText("WORD SURVIVAL PRE-ALPHA",20,30);
+// jugador
+ctx.fillStyle="lime";
+ctx.fillRect(
+player.x,
+player.y,
+player.size,
+player.size
+);
 
 }
 
-function gameLoop(){
+
+function loop(){
 
 update();
 draw();
 
-requestAnimationFrame(gameLoop);
+requestAnimationFrame(loop);
 
 }
 
-gameLoop();
+loop();
 
 </script>
 
