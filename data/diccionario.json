@@ -1,1 +1,8 @@
-["hola","mundo","palabra"]
+{
+  "madera": {"tipo":"material","letras":["M","A","D","E","R"]},
+  "piedra": {"tipo":"material","letras":["P","I","E","D","R","A"]},
+  "lobo": {"tipo":"criatura","vida":50,"daño":8,"letras":["L","O","B","O"]},
+  "hacha": {"tipo":"herramienta","accion":"cortar","letras":["H","A","C","H","A"]},
+  "pico": {"tipo":"herramienta","accion":"minar","letras":["P","I","C","O"]},
+  "espada": {"tipo":"arma","daño":25,"letras":["E","S","P","A","D","A"]}
+}
