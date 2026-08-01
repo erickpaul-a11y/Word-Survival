@@ -1,4 +1,4 @@
-class Motor {
+class Jugador {
 
 constructor(){
 
