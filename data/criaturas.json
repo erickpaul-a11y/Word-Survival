@@ -1,1 +1,3 @@
-{"lobo":{"vida":50,"daño":8,"velocidad":0.04}}
+[
+  {"tipo":"lobo","vida":20,"daño":8}
+]

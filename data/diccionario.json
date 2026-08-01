@@ -1,7 +1,1 @@
-{
-  "sinonimos": {}, "categorias": {}, "elementos": {}, "biomas": {}, "rareza": {}, "eras": {},
-  "madera": {"tipo":"material","letras":["M","A","D","E","R","A"]},
-  "piedra": {"tipo":"material","letras":["P","I","E","D","R","A"]},
-  "lobo": {"tipo":"criatura","vida":50,"daño":8,"letras":["L","O","B","O"]},
-  "espada": {"tipo":"arma","daño":30,"letras":["E","S","P","A","D","A"]}
-}
+["hola","mundo","palabra"]
