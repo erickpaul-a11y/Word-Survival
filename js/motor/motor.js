@@ -1,356 +1,267 @@
 class Motor {
 
-    constructor(){
 
-        this.escena = new THREE.Scene();
+constructor(){
 
-        this.escena.background =
-            new THREE.Color(0x87ceeb);
 
-        this.escena.fog =
-            new THREE.FogExp2(0x87ceeb,0.007);
+this.escena=new THREE.Scene();
 
 
-        this.cam =
-            new THREE.PerspectiveCamera(
-                70,
-                innerWidth/innerHeight,
-                0.1,
-                1000
-            );
+this.escena.background=
+new THREE.Color(0x87ceeb);
 
 
-        this.ren =
-            new THREE.WebGLRenderer({
-                antialias:true
-            });
 
+this.cam=new THREE.PerspectiveCamera(
+70,
+innerWidth/innerHeight,
+0.1,
+1000
+);
 
-        this.ren.setSize(
-            innerWidth,
-            innerHeight
-        );
 
 
-        document.body.appendChild(
-            this.ren.domElement
-        );
+this.ren=new THREE.WebGLRenderer({
+antialias:true
+});
 
 
-        this.j = new Jugador();
+this.ren.setSize(
+innerWidth,
+innerHeight
+);
 
-        this.len = new GestorLenguaje();
 
-        this.tiempo = new Tiempo();
+document.body.appendChild(
+this.ren.domElement
+);
 
-        this.clima = new Clima();
 
-        this.mundo = new Mundo(this);
 
+this.j=new Jugador();
 
-        this.datos=null;
 
-        this.criaturas=null;
+this.mundo=new Mundo(this);
 
 
-        this.teclas={};
+this.teclas={};
 
 
-        this.ang={
-            y:0,
-            x:0
-        };
 
+this.ang={
+x:0,
+y:0
+};
 
-        this.grav=-0.022;
 
-        this.velY=0;
 
-        this.suelo=false;
+this.grav=-0.022;
 
+this.velY=0;
 
-        this.salto=0.38;
+this.suelo=false;
 
-        this.andar=0.15;
 
-        this.correr=0.28;
 
+this.salto=0.35;
 
 
-        const sol =
-        new THREE.DirectionalLight(
-            0xfffffa,
-            1.2
-        );
+this.andar=0.08;
 
+this.correr=0.16;
 
-        this.escena.add(
-            new THREE.AmbientLight(
-                0xffffff,
-                0.5
-            )
-        );
 
 
-        this.escena.add(sol);
+this.distCam=8;
 
-    }
 
 
+this.escena.add(
+new THREE.AmbientLight(
+0xffffff,
+0.6
+)
+);
 
 
-    async cargar(){
 
+let luz=new THREE.DirectionalLight(
+0xffffff,
+1
+);
 
-        let d1 =
-        await fetch(
-            "data/diccionario.json"
-        );
 
-        this.datos =
-        await d1.json();
+this.escena.add(luz);
 
 
 
-        let d2 =
-        await fetch(
-            "data/letras.json"
-        );
+}
 
-        this.confLetras =
-        await d2.json();
 
 
 
-        this.len.letrasConocidas =
-        this.confLetras.inicioJugador;
+iniciar(){
 
+this.bucle();
 
+}
 
-        this.len.configuracionLetras =
-        this.confLetras.letras;
 
 
 
-        let d3 =
-        await fetch(
-            "data/criaturas.json"
-        );
 
+bucle(){
 
-        let datosCriaturas =
-        await d3.json();
 
+requestAnimationFrame(
+()=>this.bucle()
+);
 
 
-        this.criaturas =
-        new GestorCriaturas(
-            this,
-            datosCriaturas
-        );
 
+this.mundo.actualizar(
+this.j.x,
+this.j.z
+);
 
-        this.criaturas.generarIniciales();
 
-    }
 
+let dx=0;
 
+let dz=0;
 
 
 
-    iniciar(){
+let velocidad=
+this.teclas.shift ?
+this.correr :
+this.andar;
 
-        this.cargar()
-        .then(()=>this.bucle());
 
-    }
 
+if(this.teclas.w) dz-=velocidad;
 
+if(this.teclas.s) dz+=velocidad;
 
+if(this.teclas.a) dx-=velocidad;
 
+if(this.teclas.d) dx+=velocidad;
 
-    bucle(){
 
 
-        requestAnimationFrame(
-            ()=>this.bucle()
-        );
+if(dx||dz){
 
 
-        this.tiempo.avanzar(
-            0.016
-        );
+let c=Math.cos(this.ang.y);
 
+let s=Math.sin(this.ang.y);
 
 
-        this.mundo.actualizar(
-            this.j.x,
-            this.j.z
-        );
 
+this.j.x += dx*c-dz*s;
 
+this.j.z += dx*s+dz*c;
 
-        // IA criaturas
-        if(this.criaturas){
 
-            this.criaturas.actualizar();
+}
 
-        }
 
 
 
-        let dx=0;
-        let dz=0;
+if(this.teclas[" "] && this.suelo){
 
+this.velY=this.salto;
 
+this.suelo=false;
 
-        const v =
-        this.teclas.shift ?
-        this.correr :
-        this.andar;
+}
 
 
 
-        if(this.teclas.w)
-            dz-=v;
 
+this.velY+=this.grav;
 
-        if(this.teclas.s)
-            dz+=v;
+this.j.y+=this.velY;
 
 
-        if(this.teclas.a)
-            dx-=v;
 
+let suelo=
+this.mundo.altura(
+this.j.x,
+this.j.z
+)+2;
 
-        if(this.teclas.d)
-            dx+=v;
 
 
+if(this.j.y<suelo){
 
-        if(
-            this.teclas.space &&
-            this.suelo
-        ){
+this.j.y=suelo;
 
-            this.velY=this.salto;
+this.velY=0;
 
-            this.suelo=false;
+this.suelo=true;
 
-        }
+}
 
 
 
-        if(dx||dz){
 
+// CAMARA
 
-            const c=
-            Math.cos(this.ang.y);
+let camX=
+this.j.x -
+Math.sin(this.ang.y)
+*this.distCam;
 
 
-            const s=
-            Math.sin(this.ang.y);
 
+let camZ=
+this.j.z -
+Math.cos(this.ang.y)
+*this.distCam;
 
 
-            this.j.x +=
-            dx*c-dz*s;
 
+this.cam.position.set(
 
-            this.j.z +=
-            dx*s+dz*c;
+camX,
 
-        }
+this.j.y+3,
 
+camZ
 
+);
 
 
 
-        this.velY += this.grav;
+this.cam.lookAt(
 
-        this.j.y += this.velY;
+this.j.x,
 
+this.j.y+1,
 
+this.j.z
 
-        const suelo =
+);
 
-        this.mundo.altura(
-            this.j.x,
-            this.j.z
-        )+2;
 
 
 
+this.j.actualizarPosicion();
 
-        if(this.j.y < suelo){
+this.j.actualizarHUD();
 
-            this.j.y=suelo;
 
-            this.velY=0;
 
-            this.suelo=true;
+this.ren.render(
+this.escena,
+this.cam
+);
 
 
-        }else{
 
-            this.suelo=false;
+}
 
-        }
 
-
-
-
-        this.ang.x =
-        Math.max(
-            -1.4,
-            Math.min(
-                1.4,
-                this.ang.x
-            )
-        );
-
-
-
-        this.j.actualizarPosicion();
-
-        this.j.actualizarHUD();
-
-
-
-
-        this.cam.position.set(
-
-            this.j.x,
-
-            this.j.y+1.4,
-
-            this.j.z
-
-        );
-
-
-
-        this.cam.rotation.order="YXZ";
-
-
-        this.cam.rotation.y=
-        this.ang.y;
-
-
-        this.cam.rotation.x=
-        this.ang.x;
-
-
-
-
-        this.ren.render(
-
-            this.escena,
-
-            this.cam
-
-        );
-
-    }
 
 }
