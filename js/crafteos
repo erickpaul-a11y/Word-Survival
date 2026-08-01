@@ -1,9 +1,0 @@
-class Crafteo {
-    constructor(motor) {
-        this.motor = motor;
-    }
-
-    puedeHacer(receta) {
-        return true;
-    }
-}
