@@ -2,295 +2,77 @@ class Jugador {
 
 constructor(){
 
-this.escena = new THREE.Scene();
+    this.x = 0;
+    this.z = 0;
+    this.y = 2;
 
-this.escena.background =
-new THREE.Color(0x87ceeb);
+    this.hp = 100;
+    this.maxHp = 100;
 
+    this.mana = 100;
+    this.hambre = 100;
 
-this.escena.fog =
-new THREE.FogExp2(0x87ceeb,0.007);
-
-
-
-this.cam =
-new THREE.PerspectiveCamera(
-70,
-innerWidth/innerHeight,
-0.1,
-1000
-);
+    this.nivel = 1;
+    this.exp = 0;
 
 
+    this.modelo = new THREE.Mesh(
 
-this.ren =
-new THREE.WebGLRenderer({
-antialias:true
-});
+        new THREE.BoxGeometry(
+            0.5,
+            1.2,
+            0.5
+        ),
 
+        new THREE.MeshLambertMaterial({
+            color:0x22c55e
+        })
 
-this.ren.setSize(
-innerWidth,
-innerHeight
-);
-
-
-document.body.appendChild(
-this.ren.domElement
-);
+    );
 
 
-
-this.j = new Jugador();
-
-
-this.len = new GestorLenguaje();
-
-
-this.tiempo = new Tiempo();
-
-
-this.clima = new Clima();
-
-
-this.mundo = new Mundo(this);
-
-
-this.criaturas=null;
-
-
-
-this.teclas={};
-
-
-this.ang={
-y:0,
-x:0
-};
-
-
-
-// movimiento
-
-this.grav=-0.022;
-
-this.velY=0;
-
-this.suelo=false;
-
-this.salto=0.38;
-
-this.andar=0.15;
-
-this.correr=0.28;
-
-
-
-// distancia camara
-
-this.distCam=6;
-
-
-
-const luz =
-new THREE.DirectionalLight(
-0xfffffa,
-1.2
-);
-
-
-this.escena.add(
-new THREE.AmbientLight(
-0xffffff,
-0.5
-)
-);
-
-
-this.escena.add(luz);
-
+    this.modelo.position.y = 0.6;
 
 }
 
 
 
+agregarAEscena(escena){
 
-
-bucle(){
-
-
-requestAnimationFrame(
-()=>this.bucle()
-);
-
-
-
-this.mundo.actualizar(
-this.j.x,
-this.j.z
-);
-
-
-
-if(this.criaturas){
-
-this.criaturas.actualizar();
+    escena.add(this.modelo);
 
 }
 
 
 
+actualizarPosicion(){
 
-
-let dx=0;
-let dz=0;
-
-
-let v =
-this.teclas.shift ?
-this.correr :
-this.andar;
-
-
-
-if(this.teclas.w)dz-=v;
-
-if(this.teclas.s)dz+=v;
-
-if(this.teclas.a)dx-=v;
-
-if(this.teclas.d)dx+=v;
-
-
-
-if(dx||dz){
-
-let c=Math.cos(this.ang.y);
-
-let s=Math.sin(this.ang.y);
-
-
-
-this.j.x += dx*c-dz*s;
-
-this.j.z += dx*s+dz*c;
-
+    this.modelo.position.set(
+        this.x,
+        this.y-0.6,
+        this.z
+    );
 
 }
 
 
 
+actualizarHUD(){
+
+    const lvl=document.getElementById("lvl");
+
+    if(lvl)
+    lvl.textContent=this.nivel;
 
 
-// gravedad
+    const pos=document.getElementById("pos");
 
-this.velY += this.grav;
-
-this.j.y += this.velY;
-
-
-
-let suelo =
-this.mundo.altura(
-this.j.x,
-this.j.z
-)+2;
-
-
-
-if(this.j.y<suelo){
-
-this.j.y=suelo;
-
-this.velY=0;
-
-this.suelo=true;
-
-
-}else{
-
-this.suelo=false;
-
-}
-
-
-
-
-
-// limites de camara
-
-this.ang.x =
-Math.max(
--1.2,
-Math.min(
-1.2,
-this.ang.x
-)
-);
-
-
-
-
-// CAMARA TERCERA PERSONA
-
-let camX =
-this.j.x -
-Math.sin(this.ang.y)
-*this.distCam;
-
-
-
-let camZ =
-this.j.z -
-Math.cos(this.ang.y)
-*this.distCam;
-
-
-
-this.cam.position.set(
-
-camX,
-
-this.j.y+3,
-
-camZ
-
-);
-
-
-
-this.cam.lookAt(
-
-this.j.x,
-
-this.j.y+1,
-
-this.j.z
-
-);
-
-
-
-
-
-this.j.actualizarPosicion();
-
-this.j.actualizarHUD();
-
-
-
-
-this.ren.render(
-
-this.escena,
-
-this.cam
-
-);
+    if(pos)
+    pos.textContent=
+    `X:${Math.round(this.x)} Z:${Math.round(this.z)}`;
 
 
 }
-
 
 
 }
