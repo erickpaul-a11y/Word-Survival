@@ -1,298 +1,516 @@
 class Mundo {
-    constructor(m) {
-        this.m = m;
-        this.chunks = new Map();
-        this.tam = 16;
 
-        this.distanciaCarga = 2; // chunks alrededor del jugador
-        this.recursos = [];
-        this.animales = [];
+constructor(m){
+
+    this.m=m;
+
+    this.chunks=new Map();
+
+    this.tam=16;
+
+    this.radioCarga=4;
+
+    this.radioEliminar=5;
+
+}
+
+
+
+altura(x,z){
+
+    return ruido(x*0.08,z*0.08)*6+
+           ruido(x*0.25,z*0.25)*1.2;
+
+}
+
+
+
+tipoBloque(h){
+
+    if(h<0.5)return "agua";
+    if(h<2)return "arena";
+    if(h<4)return "cesped";
+    if(h<6)return "tierra";
+
+    return "piedra";
+
+}
+
+
+
+
+
+crearArbol(x,z,h,chunk){
+
+
+    let arbol=new THREE.Group();
+
+
+    let tronco=new THREE.Mesh(
+
+        new THREE.CylinderGeometry(
+            .25,.35,2.5
+        ),
+
+        new THREE.MeshLambertMaterial({
+            color:0x92400e
+        })
+
+    );
+
+
+    let hojas=new THREE.Mesh(
+
+        new THREE.SphereGeometry(1.2),
+
+        new THREE.MeshLambertMaterial({
+            color:0x15803d
+        })
+
+    );
+
+
+    tronco.position.y=1.25;
+
+    hojas.position.y=3;
+
+
+    arbol.add(tronco);
+
+    arbol.add(hojas);
+
+
+    arbol.position.set(
+        x,
+        h,
+        z
+    );
+
+
+    arbol.tipo="arbol";
+
+
+    this.m.escena.add(arbol);
+
+
+    chunk.objetos.push(arbol);
+
+}
+
+
+
+
+crearRoca(x,z,h,chunk){
+
+
+    let roca=new THREE.Mesh(
+
+        new THREE.DodecahedronGeometry(.7),
+
+        new THREE.MeshLambertMaterial({
+            color:0x6b7280
+        })
+
+    );
+
+
+    roca.position.set(
+        x,
+        h+.5,
+        z
+    );
+
+
+    roca.tipo="roca";
+
+
+    this.m.escena.add(roca);
+
+
+    chunk.objetos.push(roca);
+
+}
+
+
+
+
+
+crearAnimal(x,z,tipo,chunk){
+
+
+    let color=
+    tipo==="lobo"
+    ?0x555555
+    :0x92400e;
+
+
+
+    let animal=new THREE.Mesh(
+
+        new THREE.BoxGeometry(
+            1,
+            1,
+            1.8
+        ),
+
+        new THREE.MeshLambertMaterial({
+            color
+        })
+
+    );
+
+
+    animal.position.set(
+        x,
+        1,
+        z
+    );
+
+
+    animal.tipo=tipo;
+
+
+
+    this.m.escena.add(animal);
+
+
+    chunk.objetos.push(animal);
+
+
+
+    if(this.m.criaturas){
+
+        this.m.criaturas.lista.push({
+
+            tipo:tipo,
+
+            x:x,
+
+            z:z,
+
+            y:1,
+
+            vida:100,
+
+            daño:10,
+
+            modelo:animal
+
+        });
+
     }
 
 
-    altura(x,z) {
-        return ruido(x*0.08,z*0.08)*6 +
-               ruido(x*0.25,z*0.25)*1.2;
-    }
+}
 
 
-    tipoBloque(x,z,h) {
-        if(h < 0.5) return "agua";
-        if(h < 2) return "arena";
-        if(h < 4) return "cesped";
-        if(h < 6) return "tierra";
-        return "piedra";
-    }
 
 
-    generarRecurso(x,z,h,tipo,chunk) {
 
-        let recurso = new THREE.Group();
+generar(cx,cz){
 
-        if(tipo==="arbol"){
 
-            let tronco = new THREE.Mesh(
-                new THREE.CylinderGeometry(.25,.35,2.5),
-                new THREE.MeshLambertMaterial({color:0x92400e})
-            );
+let clave=`${cx},${cz}`;
 
-            let hojas = new THREE.Mesh(
-                new THREE.SphereGeometry(1.2),
-                new THREE.MeshLambertMaterial({color:0x15803d})
-            );
 
-            tronco.position.y=1.25;
-            hojas.position.y=3;
+if(this.chunks.has(clave))
+return;
 
-            recurso.add(tronco);
-            recurso.add(hojas);
 
-            recurso.dato={
-                tipo:"arbol",
-                item:"madera",
-                cantidad:3
-            };
-        }
 
+let chunk={
 
-        if(tipo==="roca"){
+    grupo:new THREE.Group(),
 
-            let piedra=new THREE.Mesh(
-                new THREE.DodecahedronGeometry(.7),
-                new THREE.MeshLambertMaterial({color:0x6b7280})
-            );
+    objetos:[]
 
-            recurso.add(piedra);
+};
 
-            recurso.dato={
-                tipo:"roca",
-                item:"piedra",
-                cantidad:2
-            };
-        }
 
 
-        recurso.position.set(x,h+1,z);
+let geo=new THREE.BoxGeometry();
 
-        this.m.escena.add(recurso);
 
-        this.recursos.push(recurso);
 
-        chunk.recursos.push(recurso);
-    }
+for(let x=0;x<this.tam;x++){
 
+for(let z=0;z<this.tam;z++){
 
 
-    generarAnimal(x,z,tipo,chunk){
 
-        let color=0xffffff;
+let wx=cx*this.tam+x;
 
-        if(tipo==="lobo")
-            color=0x78716c;
+let wz=cz*this.tam+z;
 
-        let animal=new THREE.Mesh(
-            new THREE.BoxGeometry(1,1,1.8),
-            new THREE.MeshLambertMaterial({color})
-        );
 
+let h=Math.floor(
+this.altura(wx,wz)
+);
 
-        animal.position.set(x,1,z);
 
 
-        animal.dato={
-            tipo,
-            vida:100
-        };
+let tipo=this.tipoBloque(h);
 
 
-        this.m.escena.add(animal);
 
-        this.animales.push(animal);
+let colores={
 
-        chunk.animales.push(animal);
-    }
+agua:0x1d4ed8,
 
+arena:0xfcd34d,
 
+cesped:0x22c55e,
 
-    generar(cx,cz){
+tierra:0x92400e,
 
-        let clave=`${cx},${cz}`;
+piedra:0x6b7280
 
-        if(this.chunks.has(clave))
-            return;
+};
 
 
-        let grupo=new THREE.Group();
 
-        grupo.recursos=[];
-        grupo.animales=[];
+let bloque=new THREE.Mesh(
 
+geo,
 
-        let b=new THREE.BoxGeometry();
+new THREE.MeshLambertMaterial({
 
+color:colores[tipo]
 
-        for(let x=0;x<this.tam;x++){
+})
 
-            for(let z=0;z<this.tam;z++){
+);
 
-                let wx=cx*this.tam+x;
-                let wz=cz*this.tam+z;
 
-                let h=Math.floor(this.altura(wx,wz));
 
-                let tipo=this.tipoBloque(wx,wz,h);
+bloque.position.set(
+wx,
+h/2,
+wz
+);
 
 
-                let colores={
-                    agua:0x1d4ed8,
-                    arena:0xfcd34d,
-                    cesped:0x22c55e,
-                    tierra:0x92400e,
-                    piedra:0x6b7280
-                };
+bloque.scale.y=Math.max(
+0.3,
+h
+);
 
 
-                let bloque=new THREE.Mesh(
-                    b,
-                    new THREE.MeshLambertMaterial({
-                        color:colores[tipo]
-                    })
-                );
+chunk.grupo.add(bloque);
 
 
-                bloque.position.set(wx,h/2,wz);
-                bloque.scale.y=Math.max(.3,h);
 
-                grupo.add(bloque);
 
+// RECURSOS
 
+if(tipo==="cesped" &&
+Math.random()<0.05){
 
-                // árboles
-                if(tipo==="cesped" && Math.random()<0.04)
-                    this.generarRecurso(wx,wz,h,"arbol",grupo);
+this.crearArbol(
+wx,
+wz,
+h,
+chunk
+);
 
+}
 
-                // rocas
-                if(tipo==="piedra" && Math.random()<0.05)
-                    this.generarRecurso(wx,wz,h,"roca",grupo);
 
 
+if(tipo==="piedra" &&
+Math.random()<0.04){
 
-                // animales
-                if(tipo==="cesped" && Math.random()<0.01)
-                    this.generarAnimal(wx,wz,"lobo",grupo);
+this.crearRoca(
+wx,
+wz,
+h,
+chunk
+);
 
-                if(tipo==="cesped" && Math.random()<0.01)
-                    this.generarAnimal(wx,wz,"ciervo",grupo);
+}
 
-            }
-        }
 
 
-        this.chunks.set(clave,grupo);
+// ANIMALES
 
-        this.m.escena.add(grupo);
-    }
 
+if(tipo==="cesped" &&
+Math.random()<0.008){
 
+this.crearAnimal(
+wx,
+wz,
+"lobo",
+chunk
+);
 
+}
 
 
-    eliminarLejanos(cx,cz){
+if(tipo==="cesped" &&
+Math.random()<0.008){
 
-        for(let [clave,chunk] of this.chunks){
+this.crearAnimal(
+wx,
+wz,
+"ciervo",
+chunk
+);
 
-            let partes=clave.split(",");
-            let x=parseInt(partes[0]);
-            let z=parseInt(partes[1]);
+}
 
 
-            let distancia=Math.max(
-                Math.abs(cx-x),
-                Math.abs(cz-z)
-            );
 
+}
 
-            if(distancia>this.distanciaCarga){
+}
 
 
-                chunk.recursos.forEach(r=>{
-                    this.m.escena.remove(r);
-                    let i=this.recursos.indexOf(r);
-                    if(i>=0)this.recursos.splice(i,1);
-                });
 
+this.chunks.set(
+clave,
+chunk
+);
 
-                chunk.animales.forEach(a=>{
-                    this.m.escena.remove(a);
-                    let i=this.animales.indexOf(a);
-                    if(i>=0)this.animales.splice(i,1);
-                });
 
 
-                this.m.escena.remove(chunk);
+this.m.escena.add(
+chunk.grupo
+);
 
-                this.chunks.delete(clave);
 
-                console.log("Chunk eliminado:",clave);
-            }
-        }
-    }
 
+console.log(
+"Chunk creado:",
+clave
+);
 
 
+}
 
 
-    recogerCerca(x,z){
 
-        for(let i=this.recursos.length-1;i>=0;i--){
 
-            let r=this.recursos[i];
 
-            if(Math.hypot(
-                r.position.x-x,
-                r.position.z-z
-            )<2){
 
+eliminarLejanos(cx,cz){
 
-                this.m.inv.agregar(
-                    r.dato.item,
-                    r.dato.cantidad
-                );
 
+for(let [clave,chunk] of this.chunks){
 
-                this.m.escena.remove(r);
 
-                this.recursos.splice(i,1);
+let p=clave.split(",");
 
 
-                return true;
-            }
-        }
+let x=parseInt(p[0]);
 
-        return false;
-    }
+let z=parseInt(p[1]);
 
 
+let distancia=Math.max(
 
+Math.abs(cx-x),
 
-    actualizar(jx,jz){
+Math.abs(cz-z)
 
-        let cx=Math.floor(jx/this.tam);
-        let cz=Math.floor(jz/this.tam);
+);
 
 
-        for(let dx=-this.distanciaCarga;dx<=this.distanciaCarga;dx++){
-            for(let dz=-this.distanciaCarga;dz<=this.distanciaCarga;dz++){
 
-                this.generar(
-                    cx+dx,
-                    cz+dz
-                );
-            }
-        }
+if(distancia>this.radioEliminar){
 
 
-        this.eliminarLejanos(cx,cz);
-    }
+
+chunk.objetos.forEach(o=>{
+
+this.m.escena.remove(o);
+
+});
+
+
+
+this.m.escena.remove(
+chunk.grupo
+);
+
+
+
+this.chunks.delete(
+clave
+);
+
+
+
+console.log(
+"Chunk eliminado:",
+clave
+);
+
+
+
+}
+
+
+}
+
+
+}
+
+
+
+
+
+
+
+actualizar(jx,jz){
+
+
+let cx=Math.floor(
+jx/this.tam
+);
+
+
+let cz=Math.floor(
+jz/this.tam
+);
+
+
+
+for(
+let x=-this.radioCarga;
+x<=this.radioCarga;
+x++
+){
+
+
+for(
+let z=-this.radioCarga;
+z<=this.radioCarga;
+z++
+){
+
+
+this.generar(
+cx+x,
+cz+z
+);
+
+
+}
+
+
+}
+
+
+
+this.eliminarLejanos(
+cx,
+cz
+);
+
+
+
+}
+
+
 }
