@@ -29,3 +29,12 @@ window.onkeyup = e => {
 };
 window.onmousemove = e => { if(!motor.ang)return; motor.ang.y+=e.movementX*0.002; motor.ang.x-=e.movementY*0.002; };
 document.body.onclick = ()=>document.body.requestPointerLock?.();
+
+document.body.onclick = ()=>{
+    document.body.requestPointerLock?.();
+    // Ataque si tienes espada
+    const tieneEspada = motor.inv.items.some(i=>i.tipo==="espada");
+    if(tieneEspada) motor.criaturas.recibirDaño(motor.datos["espada"].daño);
+    // Recoger recursos si no atacas
+    else motor.mundo.recogerCerca(motor.j.x,motor.j.z);
+};
