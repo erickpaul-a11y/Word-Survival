@@ -1,47 +1,155 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WORD SURVIVAL ∞</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <link rel="stylesheet" href="css/estilos/principal.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>WORD SURVIVAL ∞</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<link rel="stylesheet" href="css/estilos/principal.css">
+
 </head>
+
 <body>
-    <div id="pantalla-inicio">
-        <h1>WORD SURVIVAL ∞</h1>
-        <button id="btn-empezar" class="btn-principal">▶ EMPEZAR</button>
-    </div>
 
-    <div id="hud-juego" style="display:none;">
-        <div class="hud-caja">
-            <div>Nivel <span id="lvl">1</span> | Pos: <span id="pos">X:0 Z:0</span> | Hora: <span id="hora">8:00</span></div>
-            <div class="barra"><div id="b-hp" class="hp" style="width:100%"></div></div>
-            <div class="barra"><div id="b-mana" class="mana" style="width:100%"></div></div>
-            <div class="barra"><div id="b-exp" class="exp" style="width:0%"></div></div>
-            <div class="barra"><div id="b-hambre" class="hambre" style="width:100%"></div></div>
-        </div>
-    </div>
 
-    <div id="panel-palabras" style="display:none;">
-        <input id="dict-input" placeholder="Escribe una palabra..." autofocus>
-        <button class="btn" id="btn-crear">✨ Crear</button>
-    </div>
+<!-- PANTALLA INICIO -->
 
-    <script src="js/utilidades/ruido.js"></script>
-    <script src="js/lenguaje/lenguaje.js"></script>
-    <script src="js/jugador/jugador.js"></script>
-    <script src="js/mundo/mundo.js"></script>
-    <script src="js/clima/clima.js"></script>
-    <script src="js/criaturas/criaturas.js"></script>
-    <script src="js/combate/combate.js"></script>
-    <script src="js/inventario/inventario.js"></script>
-    <script src="js/crafteos/crafteos.js"></script>
-    <script src="js/construccion/construccion.js"></script>
-    <script src="js/ia/ia.js"></script>
-    <script src="js/sonido/sonido.js"></script>
-    <script src="js/interfaz/interfaz.js"></script>
-    <script src="js/motor/motor.js"></script>
-    <script src="js/main/main.js"></script>
+<div id="pantalla-inicio">
+
+<h1>WORD SURVIVAL ∞</h1>
+
+<button id="btn-empezar" class="btn-principal">
+▶ EMPEZAR
+</button>
+
+</div>
+
+
+
+
+<!-- HUD -->
+
+<div id="hud-juego" style="display:none;">
+
+<div class="hud-caja">
+
+<div>
+Nivel <span id="lvl">1</span> |
+Pos: <span id="pos">X:0 Z:0</span> |
+Hora: <span id="hora">8:00</span>
+</div>
+
+
+<div class="barra">
+<div id="b-hp" class="hp" style="width:100%"></div>
+</div>
+
+
+<div class="barra">
+<div id="b-mana" class="mana" style="width:100%"></div>
+</div>
+
+
+<div class="barra">
+<div id="b-exp" class="exp" style="width:0%"></div>
+</div>
+
+
+<div class="barra">
+<div id="b-hambre" class="hambre" style="width:100%"></div>
+</div>
+
+
+</div>
+
+</div>
+
+
+
+
+
+<!-- BOTON PALABRAS -->
+
+<button id="btn-palabras" class="btn-palabras">
+📖 PALABRAS
+</button>
+
+
+
+
+
+<!-- PANEL PALABRAS -->
+
+<div id="panel-palabras" style="display:none;">
+
+<input 
+id="dict-input"
+placeholder="Escribe una palabra..."
+>
+
+
+<button id="btn-crear" class="btn">
+✨ Crear
+</button>
+
+
+<button id="btn-cerrar-palabras" class="btn">
+❌ Cerrar
+</button>
+
+
+</div>
+
+
+
+
+
+<!-- FULLSCREEN -->
+
+<button id="btn-fullscreen" class="btn-fullscreen">
+⛶
+</button>
+
+
+
+
+
+
+<!-- SISTEMAS -->
+
+<script src="js/utilidades/ruido.js"></script>
+
+<script src="js/lenguaje/lenguaje.js"></script>
+
+<script src="js/jugador/jugador.js"></script>
+
+<script src="js/mundo/mundo.js"></script>
+
+<script src="js/clima/clima.js"></script>
+
+<script src="js/criaturas/criaturas.js"></script>
+
+<script src="js/combate/combate.js"></script>
+
+<script src="js/inventario/inventario.js"></script>
+
+<script src="js/crafteos/crafteos.js"></script>
+
+<script src="js/construccion/construccion.js"></script>
+
+<script src="js/ia/ia.js"></script>
+
+<script src="js/sonido/sonido.js"></script>
+
+<script src="js/interfaz/interfaz.js"></script>
+
+<script src="js/motor/motor.js"></script>
+
+<script src="js/main/main.js"></script>
+
+
 </body>
 </html>
