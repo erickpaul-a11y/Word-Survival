@@ -1,296 +1,192 @@
-class Motor {
-
-constructor(){
-
-this.escena = new THREE.Scene();
-
-this.escena.background =
-new THREE.Color(0x87ceeb);
+const motor = new Motor();
 
 
-this.escena.fog =
-new THREE.FogExp2(0x87ceeb,0.007);
+document.getElementById("btn-empezar").onclick = ()=>{
+
+    document.getElementById("pantalla-inicio").style.display="none";
+
+    document.getElementById("hud-juego").style.display="block";
+
+    document.getElementById("panel-palabras").style.display="none";
 
 
-
-this.cam =
-new THREE.PerspectiveCamera(
-70,
-innerWidth/innerHeight,
-0.1,
-1000
-);
+    motor.j.agregarAEscena(
+        motor.escena
+    );
 
 
+    motor.iniciar();
 
-this.ren =
-new THREE.WebGLRenderer({
-antialias:true
-});
-
-
-this.ren.setSize(
-innerWidth,
-innerHeight
-);
-
-
-document.body.appendChild(
-this.ren.domElement
-);
-
-
-
-this.j = new Jugador();
-
-
-this.len = new GestorLenguaje();
-
-
-this.tiempo = new Tiempo();
-
-
-this.clima = new Clima();
-
-
-this.mundo = new Mundo(this);
-
-
-this.criaturas=null;
-
-
-
-this.teclas={};
-
-
-this.ang={
-y:0,
-x:0
 };
 
 
 
-// movimiento
 
-this.grav=-0.022;
+// BOTON PALABRAS
 
-this.velY=0;
+document.getElementById("btn-palabras").onclick = ()=>{
 
-this.suelo=false;
+    const panel =
+    document.getElementById("panel-palabras");
 
-this.salto=0.38;
 
-this.andar=0.15;
+    if(panel.style.display==="none"){
 
-this.correr=0.28;
+        panel.style.display="flex";
 
+    }else{
 
+        panel.style.display="none";
 
-// distancia camara
+    }
 
-this.distCam=6;
+};
 
 
 
-const luz =
-new THREE.DirectionalLight(
-0xfffffa,
-1.2
-);
 
+// CERRAR PALABRAS
 
-this.escena.add(
-new THREE.AmbientLight(
-0xffffff,
-0.5
-)
-);
+document.getElementById("btn-cerrar-palabras").onclick = ()=>{
 
+    document.getElementById("panel-palabras")
+    .style.display="none";
 
-this.escena.add(luz);
+};
 
 
-}
 
 
+// CREAR PALABRA
 
+document.getElementById("btn-crear").onclick = ()=>{
 
 
-bucle(){
+    let palabra =
+    document.getElementById("dict-input").value;
 
 
-requestAnimationFrame(
-()=>this.bucle()
-);
+    palabra =
+    palabra.normalize("NFD")
+    .replace(/[\u0300-\u036f]/g,"")
+    .toLowerCase()
+    .trim();
 
 
 
-this.mundo.actualizar(
-this.j.x,
-this.j.z
-);
+    if(palabra==="") return;
 
 
 
-if(this.criaturas){
+    console.log(
+        "Palabra escrita:",
+        palabra
+    );
 
-this.criaturas.actualizar();
 
-}
 
+    if(motor.datos && motor.datos[palabra]){
 
+        console.log(
+            "Objeto encontrado:",
+            motor.datos[palabra]
+        );
 
 
+    }else{
 
-let dx=0;
-let dz=0;
+        console.log(
+            "Palabra no encontrada"
+        );
 
+    }
 
-let v =
-this.teclas.shift ?
-this.correr :
-this.andar;
 
 
+    document.getElementById("dict-input").value="";
 
-if(this.teclas.w)dz-=v;
 
-if(this.teclas.s)dz+=v;
+};
 
-if(this.teclas.a)dx-=v;
 
-if(this.teclas.d)dx+=v;
 
 
+// TECLADO
 
-if(dx||dz){
+window.onkeydown = e=>{
 
-let c=Math.cos(this.ang.y);
+    motor.teclas[
+        e.key.toLowerCase()
+    ] = true;
 
-let s=Math.sin(this.ang.y);
 
+    if(e.code==="Space"){
 
+        motor.teclas[" "] = true;
 
-this.j.x += dx*c-dz*s;
+    }
 
-this.j.z += dx*s+dz*c;
+};
 
 
-}
 
+window.onkeyup = e=>{
 
+    motor.teclas[
+        e.key.toLowerCase()
+    ] = false;
 
 
 
-// gravedad
+    if(e.code==="Space"){
 
-this.velY += this.grav;
+        motor.teclas[" "] = false;
 
-this.j.y += this.velY;
+    }
 
+};
 
 
-let suelo =
-this.mundo.altura(
-this.j.x,
-this.j.z
-)+2;
 
 
+// CAMARA CON RATON
 
-if(this.j.y<suelo){
+window.onmousemove = e=>{
 
-this.j.y=suelo;
 
-this.velY=0;
+    if(!motor.ang) return;
 
-this.suelo=true;
 
 
-}else{
+    motor.ang.y += 
+    e.movementX * 0.002;
 
-this.suelo=false;
 
-}
 
+    motor.ang.x -=
+    e.movementY * 0.002;
 
 
+};
 
 
-// limites de camara
 
-this.ang.x =
-Math.max(
--1.2,
-Math.min(
-1.2,
-this.ang.x
-)
-);
 
+// CLICK PARA ACTIVAR RATON
 
+document.body.onclick = ()=>{
 
+    document.body.requestPointerLock?.();
 
-// CAMARA TERCERA PERSONA
+};
 
-let camX =
-this.j.x -
-Math.sin(this.ang.y)
-*this.distCam;
 
 
 
-let camZ =
-this.j.z -
-Math.cos(this.ang.y)
-*this.distCam;
+// PANTALLA COMPLETA
 
+document.getElementById("btn-fullscreen").onclick = ()=>{
 
+    document.body.requestFullscreen?.();
 
-this.cam.position.set(
-
-camX,
-
-this.j.y+3,
-
-camZ
-
-);
-
-
-
-this.cam.lookAt(
-
-this.j.x,
-
-this.j.y+1,
-
-this.j.z
-
-);
-
-
-
-
-
-this.j.actualizarPosicion();
-
-this.j.actualizarHUD();
-
-
-
-
-this.ren.render(
-
-this.escena,
-
-this.cam
-
-);
-
-
-}
-
-
-
-}
+};
