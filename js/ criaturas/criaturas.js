@@ -1,36 +1,254 @@
 class GestorCriaturas {
-    constructor(m,d) { this.m=m; this.d=d; this.lista=[]; this.expGanar=15; }
-    crear(t,x,z) {
-        const c = this.d[t]; if(!c) return null;
-        const modelo = new THREE.Group();
-        modelo.add(new THREE.Mesh(new THREE.BoxGeometry(1.2,0.7,2), new THREE.MeshLambertMaterial({color:0x78716c})));
-        modelo.position.set(x,1,z); this.m.escena.add(modelo);
-        this.lista.push({tipo:t,x:x,z:z,y:1,vida:c.vida,vidaMax:c.vida,daño:c.daño,modelo,tiempoAtaque:false});
+
+    constructor(motor, datos) {
+        this.motor = motor;
+        this.datos = datos;
+        this.lista = [];
     }
-    generarIniciales() { this.crear("lobo",8,8); this.crear("lobo",-12,5); }
-    recibirDaño(cantidad) {
+
+
+    crear(tipo,x,z){
+
+        const config=this.datos[tipo];
+
+        if(!config) return null;
+
+
+        let color=0x78716c;
+
+        if(tipo==="ciervo")
+            color=0x92400e;
+
+        if(tipo==="lobo")
+            color=0x525252;
+
+
+        const modelo=new THREE.Mesh(
+            new THREE.BoxGeometry(1,1,1.8),
+            new THREE.MeshLambertMaterial({
+                color:color
+            })
+        );
+
+
+        modelo.position.set(x,1,z);
+
+
+        this.motor.escena.add(modelo);
+
+
+
+        let criatura={
+
+            tipo:tipo,
+
+            x:x,
+            z:z,
+            y:1,
+
+            vida:config.vida || 100,
+
+            daño:config.daño || 5,
+
+            velocidad:
+                tipo==="lobo" ? 0.07 : 0.04,
+
+
+            estado:"normal",
+
+            modelo:modelo,
+
+            ultimoAtaque:0
+        };
+
+
+        this.lista.push(criatura);
+
+        return criatura;
+    }
+
+
+
+
+
+    generarIniciales(){
+
+        this.crear("lobo",8,8);
+        this.crear("lobo",-10,5);
+
+        this.crear("ciervo",15,10);
+        this.crear("ciervo",-15,-8);
+
+    }
+
+
+
+
+
+    actualizar(){
+
+        let jugador=this.motor.jugador;
+
+
         this.lista.forEach(c=>{
-            if(c.vida<=0) return;
-            const dist = Math.hypot(this.m.j.x-c.x,this.m.j.z-c.z);
-            if(dist<2.5){
-                c.vida -= cantidad;
-                console.log(`💥 Lobo recibe ${cantidad} de daño. Vida: ${c.vida}`);
-                if(c.vida<=0){
-                    console.log("☠️ Lobo derrotado! +Experiencia");
-                    this.m.j.exp += this.expGanar;
-                    this.m.inv.agregar("madera",1);
-                    this.m.escena.remove(c.modelo);
+
+
+            let dx=jugador.x-c.x;
+            let dz=jugador.z-c.z;
+
+            let distancia=Math.hypot(dx,dz);
+
+
+
+            // IA LOBO
+
+            if(c.tipo==="lobo"){
+
+
+                if(distancia<12){
+
+                    c.estado="atacando";
+
+
+                    c.x+=dx/distancia*c.velocidad;
+                    c.z+=dz/distancia*c.velocidad;
+
+
+                    c.modelo.lookAt(
+                        jugador.x,
+                        c.y,
+                        jugador.z
+                    );
+
+
+                    if(distancia<2){
+
+                        this.atacar(c);
+
+                    }
+
                 }
+
             }
+
+
+
+            // IA CIERVO
+
+
+            if(c.tipo==="ciervo"){
+
+
+                if(distancia<8){
+
+                    c.estado="huyendo";
+
+
+                    c.x-=dx/distancia*c.velocidad;
+                    c.z-=dz/distancia*c.velocidad;
+
+
+                }else{
+
+                    c.estado="caminando";
+
+
+                    c.x+=
+                    Math.sin(Date.now()*0.001)
+                    *0.01;
+
+
+                }
+
+            }
+
+
+
+            c.modelo.position.set(
+                c.x,
+                c.y,
+                c.z
+            );
+
+
         });
+
     }
-    actualizar() {
-        this.lista = this.lista.filter(c=>c.vida>0);
-        this.lista.forEach(c=>{
-            const dx=this.m.j.x-c.x, dz=this.m.j.z-c.z, d=Math.hypot(dx,dz);
-            if(d<12 && d>2){ c.x+=dx/d*0.04; c.z+=dz/d*0.04; c.modelo.position.set(c.x,1,c.z); c.modelo.lookAt(this.m.j.x,1,c.z); }
-            if(d<2.2 && !c.tiempoAtaque){ this.m.j.hp -= c.daño; console.log("Vida jugador:",this.m.j.hp); c.tiempoAtaque=true; setTimeout(()=>c.tiempoAtaque=false,1200); }
-            if(this.m.j.hp<=0){ this.m.j.hp=100; this.m.j.x=this.m.j.z=0; this.m.j.exp=0; }
-        });
+
+
+
+
+
+    atacar(c){
+
+        let tiempo=Date.now();
+
+
+        if(tiempo-c.ultimoAtaque<1000)
+            return;
+
+
+        c.ultimoAtaque=tiempo;
+
+
+        this.motor.jugador.hp-=c.daño;
+
+
+        console.log(
+            "🐺 Ataque recibido:",
+            c.daño
+        );
+
+
+        if(this.motor.jugador.hp<=0){
+
+            this.motor.jugador.hp=0;
+
+            console.log(
+                "💀 Has muerto"
+            );
+
+        }
+
     }
+
+
+
+
+
+    recibirDaño(criatura,daño){
+
+        criatura.vida-=daño;
+
+
+        console.log(
+            criatura.tipo,
+            "vida:",
+            criatura.vida
+        );
+
+
+        if(criatura.vida<=0){
+
+            this.motor.escena.remove(
+                criatura.modelo
+            );
+
+
+            let i=this.lista.indexOf(criatura);
+
+            if(i>=0)
+                this.lista.splice(i,1);
+
+
+
+            console.log(
+                "Derrotaste:",
+                criatura.tipo
+            );
+
+        }
+
+    }
+
 }
