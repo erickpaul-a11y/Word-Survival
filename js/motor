@@ -1,1 +1,75 @@
+class MotorJuego {
+    constructor() {
+        this.escena = new THREE.Scene();
+        this.escena.background = new THREE.Color(0x87ceeb);
+        this.escena.fog = new THREE.FogExp2(0x87ceeb, 0.007);
+        this.camara = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.1, 1000);
+        this.render = new THREE.WebGLRenderer({antialias:true});
+        this.render.setSize(innerWidth, innerHeight);
+        document.body.appendChild(this.render.domElement);
 
+        this.jugador = new Jugador();
+        this.tiempoMundo = new TiempoMundo();
+        this.clima = new Clima();
+        this.mundo = new Mundo(this);
+        this.diccionario = null;
+        this.gestorCriaturas = null;
+        this.teclas = {};
+        this.angCam = { y:0, x:0 };
+        this.gravedad = -0.018;
+        this.velY = 0;
+        this.enSuelo = false;
+
+        this.sol = new THREE.DirectionalLight(0xfffffa, 1.2);
+        this.escena.add(new THREE.AmbientLight(0xffffff, 0.5));
+        this.escena.add(this.sol);
+    }
+
+    async cargarDatos() {
+        const res = await fetch("data/diccionario.json");
+        this.diccionario = await res.json();
+        this.gestorCriaturas = new GestorCriaturas(this, this.diccionario);
+    }
+
+    iniciar() {
+        this.cargarDatos().then(() => this.bucle());
+    }
+
+    bucle() {
+        requestAnimationFrame(() => this.bucle());
+        this.tiempoMundo.avanzar(0.016);
+        this.clima.actualizar(this);
+        this.mundo.actualizar(this.jugador.x, this.jugador.z);
+        this.gestorCriaturas.controlar(this.jugador.x, this.jugador.z, this.tiempoMundo.esNoche());
+
+        let dx=0, dz=0, v=0.15;
+        if (this.teclas.w) dz-=v; if (this.teclas.s) dz+=v;
+        if (this.teclas.a) dx-=v; if (this.teclas.d) dx+=v;
+        if (dx||dz) {
+            const c=Math.cos(this.angCam.y), s=Math.sin(this.angCam.y);
+            this.jugador.x += dx*c - dz*s;
+            this.jugador.z += dx*s + dz*c;
+        }
+
+        this.velY += this.gravedad;
+        this.jugador.y += this.velY;
+        const suelo = this.mundo.alturaEn(this.jugador.x, this.jugador.z) + 2;
+        if (this.jugador.y < suelo) {
+            this.jugador.y = suelo;
+            this.velY = 0;
+            this.enSuelo = true;
+        } else {
+            this.enSuelo = false;
+        }
+
+        this.angCam.x = Math.max(-1.4, Math.min(1.4, this.angCam.x));
+        this.jugador.actualizarPosicion();
+        this.jugador.actualizarHUD();
+
+        this.camara.position.set(this.jugador.x, this.jugador.y + 1.4, this.jugador.z);
+        this.camara.rotation.order = "YXZ";
+        this.camara.rotation.y = this.angCam.y;
+        this.camara.rotation.x = this.angCam.x;
+        this.render.render(this.escena, this.camara);
+    }
+}
