@@ -42,7 +42,7 @@ class Motor {
         this.tiempo.avanzar(0.016);
         this.mundo.actualizar(this.j.x,this.j.z);
         this.criaturas.actualizar();
-
+        this.gestorCriaturas.actualizar();
         let dx=0,dz=0;
         const v = this.teclas.shift ? this.correr : this.andar;
         if(this.teclas.w)dz-=v; if(this.teclas.s)dz+=v;
