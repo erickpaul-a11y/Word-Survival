@@ -1,1 +1,21 @@
+class TiempoMundo {
+    constructor() {
+        this.hora = 8;
+        this.duracionDia = 300;
+    }
 
+    avanzar(segundos) {
+        this.hora += segundos / this.duracionDia * 24;
+        if (this.hora >= 24) this.hora -= 24;
+    }
+
+    esNoche() { return this.hora < 6 || this.hora > 19; }
+}
+
+class Clima {
+    constructor() {
+        this.tipo = "soleado";
+    }
+
+    actualizar(motor) {}
+}
