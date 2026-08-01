@@ -1,1 +1,15 @@
+class GestorCriaturas {
+    constructor(motor, datos) {
+        this.motor = motor;
+        this.datos = datos;
+        this.lista = [];
+    }
 
+    crear(tipo, x, z) {
+        const config = this.datos[tipo];
+        if (!config) return null;
+        return { tipo, x, z, y: 2, vida: config.vida, daño: config.daño };
+    }
+
+    controlar(jx, jz, esNoche) {}
+}
