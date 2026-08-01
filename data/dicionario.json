@@ -1,1 +1,17 @@
-
+{
+  "sinonimos": {},
+  "categorias": {},
+  "elementos": {},
+  "biomas": {},
+  "rareza": {},
+  "eras": {},
+  "espada": { "tipo": "arma", "daño": 30, "rareza": "raro", "era": "medieval" },
+  "lobo": { "tipo": "criatura", "vida": 100, "daño": 12, "rareza": "común" },
+  "oso": { "tipo": "criatura", "vida": 180, "daño": 22, "rareza": "común" },
+  "ciervo": { "tipo": "criatura", "vida": 60, "daño": 0, "rareza": "común" },
+  "dragon": { "tipo": "criatura", "vida": 500, "daño": 80, "rareza": "legendario" },
+  "castillo": { "tipo": "construccion", "nivel": 5 },
+  "madera": { "tipo": "material" },
+  "piedra": { "tipo": "material" },
+  "hierro": { "tipo": "material" }
+}
