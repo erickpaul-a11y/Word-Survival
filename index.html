@@ -3,377 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WORD SURVIVAL ∞ — Engine 8.6</title>
+    <title>WORD SURVIVAL ∞</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <style>
-        * { margin:0; padding:0; box-sizing:border-box; font-family:system-ui; user-select:none; }
-        body { background:#020617; color:#e2e8f0; height:100vh; overflow:hidden; }
-
-        #pantalla-inicio, #pantalla-muerte {
-            position:fixed; inset:0; background:rgba(2,6,23,0.96);
-            display:flex; flex-direction:column; align-items:center; justify-content:center; gap:24px;
-            z-index:9999; transition:opacity 0.5s;
-        }
-        #pantalla-muerte { display:none; background:rgba(12,2,2,0.96); }
-        #pantalla-inicio h1, #pantalla-muerte h1 { font-size:4rem; }
-        #pantalla-inicio h1 { color:#38bdf8; text-shadow:0 0 30px #38bdf8; }
-        #pantalla-muerte h1 { color:#ef4444; text-shadow:0 0 30px #ef4444; }
-        #pantalla-inicio p, #pantalla-muerte p { color:#94a3b8; max-width:600px; text-align:center; line-height:1.7; font-size:1.05rem; }
-        .btn-principal { padding:16px 42px; font-size:1.25rem; border:none; border-radius:12px; cursor:pointer; font-weight:bold; transition:0.2s; }
-        #btn-empezar { background:#38bdf8; color:white; }
-        #btn-empezar:hover { background:#0ea5e9; transform:scale(1.07); box-shadow:0 0 25px #38bdf8; }
-        #btn-revivir { background:#ef4444; color:white; }
-        #btn-revivir:hover { background:#dc2626; transform:scale(1.07); box-shadow:0 0 25px #ef4444; }
-
-        .hud-top { position:fixed; top:16px; left:16px; right:16px; display:flex; justify-content:space-between; z-index:100; pointer-events:none; }
-        .hud-caja { background:rgba(8,12,24,0.95); border:1px solid #1e293b; padding:12px 16px; border-radius:12px; font-size:0.9rem; pointer-events:auto; backdrop-filter:blur(12px); }
-        .barra { height:10px; background:#0f172a; border-radius:6px; overflow:hidden; margin:5px 0; }
-        .barra>div { height:100%; transition:0.25s; }
-        .hp { background:#ef4444; } .mana { background:#a855f7; } .exp { background:#38bdf8; } .hambre { background:#f59e0b; }
-
-        .barra-vida-obj { position:fixed; transform:translate(-50%,-100%); pointer-events:none; z-index:50; text-align:center; font-size:0.75rem; }
-        .barra-vida-obj .nombre { font-weight:bold; margin-bottom:4px; }
-        .barra-vida-obj .barra { width:100px; height:7px; }
-
-        #panel-principal { position:fixed; bottom:110px; left:50%; transform:translateX(-50%); background:rgba(8,12,24,0.97); border:2px solid #38bdf8; border-radius:18px; padding:18px; display:none; gap:20px; z-index:200; backdrop-filter:blur(15px); min-width:600px; }
-        .panel-col { display:flex; flex-direction:column; gap:12px; flex:1; }
-        .panel-titulo { font-weight:bold; color:#38bdf8; text-align:center; font-size:1.05rem; border-bottom:1px solid #1e293b; padding-bottom:6px; }
-        .cuadricula { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
-        .casilla { width:62px; height:62px; background:#0f172a; border:1px solid #1e293b; border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:0.75rem; cursor:pointer; transition:0.15s; text-align:center; }
-        .casilla:hover { border-color:#38bdf8; transform:scale(1.08); }
-        .casilla.cant { font-size:0.7rem; color:#94a3b8; margin-top:2px; }
-        .receta { background:#0f172a; border:1px solid #1e293b; border-radius:10px; padding:10px; font-size:0.8rem; cursor:pointer; transition:0.15s; }
-        .receta:hover { border-color:#38bdf8; transform:scale(1.05); }
-        .receta.deshabilitada { opacity:0.35; cursor:not-allowed; }
-        .receta-nombre { font-weight:bold; margin-bottom:5px; }
-        .receta-ing { font-size:0.75rem; color:#94a3b8; }
-
-        #panel-palabras { position:fixed; bottom:24px; left:24px; right:24px; background:rgba(8,12,24,0.97); border:1px solid #1e293b; border-radius:16px; padding:16px; display:none; gap:14px; align-items:center; z-index:150; backdrop-filter:blur(12px); }
-        #dict-input { flex:1; background:#0f172a; border:1px solid #1e293b; color:white; padding:14px 18px; border-radius:12px; font-size:1.05rem; outline:none; }
-        .btn { padding:14px 20px; border-radius:12px; border:none; background:#38bdf8; color:white; cursor:pointer; font-weight:bold; font-size:0.95rem; }
-        .btn:hover { filter:brightness(1.2); }
-        .ayuda { font-size:0.85rem; color:#94a3b8; margin-left:auto; }
-    </style>
+    <link rel="stylesheet" href="css/estilos/principal.css">
 </head>
 <body>
-
-<div id="pantalla-inicio">
-    <h1>WORD SURVIVAL ∞</h1>
-    <p>Engine 8.6: Terreno continuo, regeneración de fauna, código preparado para expansión modular.</p>
-    <button id="btn-empezar" class="btn-principal">▶ EMPEZAR AVENTURA</button>
-</div>
-
-<div id="pantalla-muerte">
-    <h1>💀 HAS CAÍDO</h1>
-    <p>Tu mundo sigue intacto. Aprende y vuelve.</p>
-    <button id="btn-revivir" class="btn-principal">🔄 VOLVER A INTENTARLO</button>
-</div>
-
-<div class="hud-top" style="display:none" id="hud-juego">
-    <div class="hud-caja">
-        <div>Nivel <span id="lvl">1</span> | <span id="pos">X:0 Z:0</span> | Era: <span id="era">Primitiva</span> | Bioma: <span id="bioma">Bosque</span></div>
-        <div class="barra"><div id="b-hp" class="hp" style="width:100%"></div></div>
-        <div class="barra"><div id="b-mana" class="mana" style="width:100%"></div></div>
-        <div class="barra"><div id="b-exp" class="exp" style="width:0%"></div></div>
-        <div class="barra"><div id="b-hambre" class="hambre" style="width:100%"></div></div>
+    <div id="pantalla-inicio">
+        <h1>WORD SURVIVAL ∞</h1>
+        <button id="btn-empezar" class="btn-principal">▶ EMPEZAR</button>
     </div>
-    <div class="hud-caja">
-        <button class="btn" onclick="window.game.guardar()">💾 Guardar</button>
-        <button class="btn" onclick="location.reload()">🔄 Reiniciar</button>
+
+    <div id="hud-juego" style="display:none;">
+        <div class="hud-caja">
+            <div>Nivel <span id="lvl">1</span> | Pos: <span id="pos">X:0 Z:0</span> | Hora: <span id="hora">8:00</span> | Clima: <span id="clima">Soleado</span></div>
+            <div class="barra"><div id="b-hp" class="hp" style="width:100%"></div></div>
+            <div class="barra"><div id="b-mana" class="mana" style="width:100%"></div></div>
+            <div class="barra"><div id="b-exp" class="exp" style="width:0%"></div></div>
+            <div class="barra"><div id="b-hambre" class="hambre" style="width:100%"></div></div>
+        </div>
     </div>
-</div>
 
-<div id="panel-principal">
-    <div class="panel-col">
-        <div class="panel-titulo">🎒 MATERIALES</div>
-        <div class="cuadricula" id="cuadro-mat"></div>
-        <div class="panel-titulo" style="margin-top:12px;">⚔️ OBJETOS</div>
-        <div class="cuadricula" id="cuadro-obj"></div>
+    <div id="panel-palabras" style="display:none;">
+        <input id="dict-input" placeholder="Escribe una palabra..." autofocus>
+        <button class="btn" id="btn-crear">✨ Crear</button>
     </div>
-    <div class="panel-col">
-        <div class="panel-titulo">⚒️ CRAFTEO</div>
-        <div id="lista-recetas"></div>
-    </div>
-</div>
 
-<div id="panel-palabras">
-    <input id="dict-input" placeholder="Escribe: madera, espada, lobo, castillo..." autofocus>
-    <button class="btn" onclick="window.game.crear()">✨ Crear / Obtener</button>
-    <div class="ayuda">WASD • Clic: atacar • E: Inventario • Enter: Ejecutar</div>
-</div>
-
-<script>
-// Ruido simple para terreno continuo
-function ruido(x,z) {
-    const semilla = 12345;
-    const hash = (a,b) => {
-        let h = Math.sin(a*12.9898 + b*78.233 + semilla) * 43758.5453;
-        return h - Math.floor(h);
-    };
-    const interp = (a,b,t) => a + (b-a)*t*t*(3-2*t);
-    const x0 = Math.floor(x), x1 = x0+1;
-    const z0 = Math.floor(z), z1 = z0+1;
-    const tx = x - x0, tz = z - z0;
-    const n00 = hash(x0,z0), n10 = hash(x1,z0);
-    const n01 = hash(x0,z1), n11 = hash(x1,z1);
-    return interp(interp(n00,n10,tx), interp(n01,n11,tx), tz);
-}
-
-const CONFIG = {
-    tamChunk:120, resolucion:28, maxEntidades:12,
-    eras:{madera:"Primitiva", piedra:"Piedra", hierro:"Medieval", acero:"Industrial", cristal:"Mágica", obsidiana:"Moderna"},
-    biomas:{bosque:{col:0x166534,nom:"Bosque"}, desierto:{col:0xfbbf24,nom:"Desierto"}, nieve:{col:0xf0f9ff,nom:"Nieve"}, volcan:{col:0xdc2626,nom:"Volcán"}, pantano:{col:0x4d7c0f,nom:"Pantano"}, oceano:{col:0x2563eb,nom:"Océano"}},
-    recetas:[
-        {nombre:"Espada Madera", daño:14, ingredientes:{madera:3}},
-        {nombre:"Espada Piedra", daño:22, ingredientes:{piedra:3, madera:1}},
-        {nombre:"Espada Hierro", daño:34, ingredientes:{hierro:3, madera:1}},
-        {nombre:"Escudo Madera", defensa:6, ingredientes:{madera:4}},
-        {nombre:"Poción Vida", cura:45, ingredientes:{manzana:2, pan:1}}
-    ]
-};
-
-class MotorJuego {
-    constructor() {
-        this.escena = new THREE.Scene();
-        this.escena.background = new THREE.Color(0x87ceeb);
-        this.escena.fog = new THREE.FogExp2(0x87ceeb, 0.007);
-        this.camara = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.1, 1000);
-        this.render = new THREE.WebGLRenderer({antialias:true});
-        this.render.setSize(innerWidth, innerHeight);
-        this.render.shadowMap.enabled = true;
-        document.body.appendChild(this.render.domElement);
-
-        this.jugador = {x:0,z:0,y:2,hp:100,maxHp:100,mana:100,hambre:100,nivel:1,exp:0,expSig:120,fuerza:10,defensa:5,era:"Primitiva",materialMax:"madera",armaEquipada:null,vivo:true};
-        this.grupoJugador = this.crearJugador();
-        this.escena.add(this.grupoJugador);
-        this.materiales = {}; this.objetosCreados = []; this.entidades = []; this.chunks = new Map(); this.construcciones = [];
-        this.barrasVida = new Map(); this.teclas = {}; this.angCam={y:0,x:0.5}; this.rayo=new THREE.Raycaster(); this.tiempo=0; this.ultHambre=0; this.ultMana=0; this.ultRespawn=0;
-
-        this.luz(); this.controles(); this.actualizarPaneles();
-        for(let dx=-1;dx<=1;dx++) for(let dz=-1;dz<=1;dz++) this.crearChunk(dx,dz);
-        this.cargar(); this.bucle();
-    }
-
-    alturaMundo(x,z){
-        return ruido(x*0.07,z*0.07)*5 + ruido(x*0.025,z*0.018)*8;
-    }
-
-    obtenerBioma(x,z){
-        const v = Math.sin(x*0.01) + Math.cos(z*0.015);
-        if(v < -1.2) return "oceano"; if(v < -0.6) return "pantano"; if(v < 0) return "bosque"; if(v < 0.6) return "desierto"; if(v < 1.2) return "nieve"; return "volcan";
-    }
-
-    luz() {
-        this.escena.add(new THREE.AmbientLight(0xffffff,0.65));
-        const sol = new THREE.DirectionalLight(0xfffffa,1.3); sol.position.set(100,150,80); sol.castShadow=true; sol.shadow.mapSize.set(2048,2048);
-        this.escena.add(sol);
-    }
-
-    crearJugador() {
-        const g=new THREE.Group();
-        const matC=new THREE.MeshStandardMaterial({color:0x2563eb,roughness:0.8});
-        const matCa=new THREE.MeshStandardMaterial({color:0xfcd34d,roughness:0.7});
-        const tor=new THREE.Mesh(new THREE.BoxGeometry(0.7,1.1,0.4),matC); tor.position.y=1.3; g.add(tor);
-        const cab=new THREE.Mesh(new THREE.BoxGeometry(0.45,0.45,0.45),matCa); cab.position.y=2.1; g.add(cab);
-        const b1=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.9,0.18),matC),b2=b1.clone(); b1.position.set(-0.4,1.3,0); b2.position.set(0.4,1.3,0); g.add(b1,b2);
-        const p1=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.9,0.18),matC),p2=p1.clone(); p1.position.set(-0.22,0.35,0); p2.position.set(0.22,0.35,0); g.add(p1,p2);
-        g.userData={p1,p2,b1,b2,manoD:new THREE.Group()}; g.userData.manoD.position.set(0.5,1.4,0.2); g.add(g.userData.manoD);
-        return g;
-    }
-
-    crearChunk(cx,cz) {
-        const clave = `${cx},${cz}`; if(this.chunks.has(clave)) return;
-        const tam = CONFIG.tamChunk; const res = CONFIG.resolucion;
-        const geo=new THREE.PlaneGeometry(tam,tam,res,res);
-        const pos=geo.attributes.position;
-        for(let i=0;i<pos.count;i++){
-            const x=pos.getX(i)+cx*tam; const z=pos.getY(i)+cz*tam;
-            pos.setZ(i,this.alturaMundo(x,z));
-        }
-        geo.computeVertexNormals();
-        const bio = this.obtenerBioma(cx*tam, cz*tam);
-        const suelo=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:CONFIG.biomas[bio].col,roughness:0.9}));
-        suelo.rotation.x=-Math.PI/2; suelo.position.set(cx*tam,0,cz*tam); suelo.receiveShadow=true;
-        this.escena.add(suelo); this.chunks.set(clave,suelo);
-    }
-
-    actualizarChunks() {
-        const chX = Math.floor(this.jugador.x/CONFIG.tamChunk);
-        const chZ = Math.floor(this.jugador.z/CONFIG.tamChunk);
-        for(let dx=-1;dx<=1;dx++) for(let dz=-1;dz<=1;dz++) this.crearChunk(chX+dx,chZ+dz);
-        for(const [k,v] of this.chunks.entries()){
-            const [cx,cz] = k.split(",").map(Number);
-            if(Math.abs(cx-chX)>2 || Math.abs(cz-chZ)>2){ this.escena.remove(v); this.chunks.delete(k); }
-        }
-    }
-
-    crearBarraVida(entidad,nombre) {
-        const div = document.createElement("div"); div.className = "barra-vida-obj";
-        div.innerHTML = `<div class="nombre">${nombre}</div><div class="barra"><div class="hp" style="width:100%"></div></div>`;
-        document.body.appendChild(div); this.barrasVida.set(entidad,div);
-    }
-
-    respawnCriaturas(){
-        if(this.entidades.length < CONFIG.maxEntidades && this.tiempo - this.ultRespawn > 8){
-            this.ultRespawn = this.tiempo;
-            const tipos = ["lobo","oso","zorro"];
-            const t = tipos[Math.floor(Math.random()*tipos.length)];
-            const dx = (Math.random()-0.5)*120; const dz = (Math.random()-0.5)*120;
-            const m = this.crearModelo({tipo:"criatura",nombreCriatura:t,daño:12});
-            m.position.set(this.jugador.x+dx,0,this.jugador.z+dz);
-            m.position.y = this.alturaMundo(m.position.x,m.position.z);
-            this.escena.add(m); this.entidades.push(m);
-            this.crearBarraVida(m,t.toUpperCase());
-        }
-    }
-
-    analizar(texto) {
-        const t=texto.toLowerCase().trim().replace(/^(crea|obtener)\s*/,"");
-        const mat = ["madera","piedra","hierro","acero"].find(m=>t.includes(m))||"madera";
-        const tipo = /espada|hacha|lanza/.test(t) ? "arma" : /lobo|oso/.test(t) ? "criatura" : /casa|torre/.test(t) ? "construccion" : "material";
-        this.actualizarEra(mat);
-        return {nombre:t,tipo,material:mat,daño:15};
-    }
-
-    actualizarEra(mat){
-        const orden=["madera","piedra","hierro","acero"];
-        if(orden.indexOf(mat)>orden.indexOf(this.jugador.materialMax)){
-            this.jugador.materialMax=mat; this.jugador.era=CONFIG.eras[mat];
-        }
-        document.getElementById("era").textContent=this.jugador.era;
-    }
-
-    crear() {
-        if(!this.jugador.vivo) return;
-        const t=document.getElementById("dict-input").value; if(!t.trim())return;
-        const d=this.analizar(t);
-        if(d.tipo==="material"||d.tipo==="comida"){ this.materiales[d.material]=(this.materiales[d.material]||0)+1; }
-        else if(d.tipo==="criatura"){
-            const m=this.crearModelo(d); m.position.set(this.jugador.x+8,0,this.jugador.z);
-            m.position.y=this.alturaMundo(m.position.x,m.position.z); this.escena.add(m); this.entidades.push(m); this.crearBarraVida(m,d.nombre.toUpperCase());
-        }
-        this.actualizarPaneles(); document.getElementById("dict-input").value="";
-    }
-
-    crearModelo(obj) {
-        const g=new THREE.Group(); const mat=new THREE.MeshStandardMaterial({color:0x78350f});
-        if(obj.tipo==="arma") g.add(new THREE.Mesh(new THREE.BoxGeometry(0.3,1.8,0.15),mat));
-        if(obj.tipo==="criatura"){
-            g.add(new THREE.Mesh(new THREE.BoxGeometry(1,0.8,1.6),mat));
-            g.userData={vida:100,daño:obj.daño};
-        }
-        return g;
-    }
-
-    actualizarPaneles(){
-        const invMat=document.getElementById("cuadro-mat"); invMat.innerHTML="";
-        Object.entries(this.materiales).forEach(([m,c])=>{const d=document.createElement("div");d.className="casilla";d.innerHTML=`<div>${m}</div><div class="cant">x${c}</div>`;invMat.appendChild(d);});
-        const invObj=document.getElementById("cuadro-obj"); invObj.innerHTML="";
-        this.objetosCreados.forEach(o=>{const d=document.createElement("div");d.className="casilla";d.innerHTML=`<div>${o.nombre}</div>`;invObj.appendChild(d);});
-        const rec=document.getElementById("lista-recetas"); rec.innerHTML="";
-        CONFIG.recetas.forEach(r=>{
-            const ok=Object.entries(r.ingredientes).every(([m,c])=>(this.materiales[m]||0)>=c);
-            const d=document.createElement("div"); d.className=`receta ${ok?"":"deshabilitada"}`;
-            d.innerHTML=`<div class="receta-nombre">${r.nombre}</div><div class="receta-ing">${Object.entries(r.ingredientes).map(([m,c])=>`${m}:${this.materiales[m]||0}/${c}`).join(" + ")}</div>`;
-            if(ok) d.onclick=()=>this.craftear(r); rec.appendChild(d);
-        });
-    }
-
-    craftear(receta){
-        for(const [m,c] of Object.entries(receta.ingredientes)) this.materiales[m]-=c;
-        this.objetosCreados.push({nombre:receta.nombre,daño:receta.daño||0});
-        if(receta.daño){ this.jugador.armaEquipada=receta; }
-        if(receta.cura) this.jugador.hp=Math.min(100,this.jugador.hp+receta.cura);
-        this.actualizarPaneles();
-    }
-
-    controles(){
-        addEventListener("keydown",e=>{this.teclas[e.key.toLowerCase()]=true;if(e.key.toLowerCase()==="e"){const p=document.getElementById("panel-principal");p.style.display=p.style.display==="flex"?"none":"flex";}if(e.key==="Enter")this.crear();});
-        addEventListener("keyup",e=>this.teclas[e.key.toLowerCase()]=false);
-        addEventListener("mousedown",e=>{if(e.button===0)this.atacar(e);});
-        addEventListener("resize",()=>{this.camara.aspect=innerWidth/innerHeight;this.camara.updateProjectionMatrix();this.render.setSize(innerWidth,innerHeight);});
-        document.getElementById("btn-revivir").onclick=()=>location.reload();
-    }
-
-    atacar(e){
-        if(!this.jugador.vivo) return;
-        const r=this.render.domElement.getBoundingClientRect();
-        this.rayo.setFromCamera(new THREE.Vector2(((e.clientX-r.left)/r.width)*2-1,-((e.clientY-r.top)/r.height)*2+1),this.camara);
-        const g=this.rayo.intersectObjects(this.entidades,true);
-        if(g.length>0){
-            let o=g[0].object; while(o.parent&&!o.userData.vida)o=o.parent;
-            if(o.userData.vida){
-                const dmg = this.jugador.armaEquipada ? this.jugador.armaEquipada.daño+this.jugador.fuerza : 10;
-                o.userData.vida -= dmg;
-                if(o.userData.vida <= 0){
-                    this.escena.remove(o);
-                    const b=this.barrasVida.get(o); if(b){b.remove();this.barrasVida.delete(o);}
-                    this.entidades=this.entidades.filter(x=>x!==o);
-                    this.materiales.carne=(this.materiales.carne||0)+1; this.jugador.exp+=50;
-                    if(this.jugador.exp>=this.jugador.expSig){ this.jugador.nivel++; this.jugador.exp-=this.jugador.expSig; this.jugador.expSig=Math.round(this.jugador.expSig*1.4); this.jugador.fuerza+=2; }
-                    this.actualizarPaneles();
-                }
-            }
-        }
-    }
-
-    guardar(){localStorage.setItem("ws86",JSON.stringify({j:this.jugador,m:this.materiales,o:this.objetosCreados}));}
-    cargar(){const d=localStorage.getItem("ws86");if(d){const o=JSON.parse(d);this.jugador={...this.jugador,...o.j};this.materiales=o.m||{};this.objetosCreados=o.o||[];this.actualizarPaneles();}}
-
-    bucle(){
-        requestAnimationFrame(()=>this.bucle());
-        if(!this.jugador.vivo) return;
-        const dt=0.016; this.tiempo+=dt;
-        if(this.tiempo-this.ultHambre>2){this.ultHambre=this.tiempo;this.jugador.hambre=Math.max(0,this.jugador.hambre-0.5);if(this.jugador.hambre===0)this.jugador.hp-=0.45;}
-        if(this.jugador.hp<=0){ this.jugador.vivo=false; document.getElementById("pantalla-muerte").style.display="flex"; return; }
-
-        let dx=0,dz=0; const vel=3.6;
-        if(this.teclas.w)dz-=vel; if(this.teclas.s)dz+=vel; if(this.teclas.a)dx-=vel; if(this.teclas.d)dx+=vel;
-        if(this.teclas.q)this.angCam.y+=1.9*dt; if(this.teclas.e)this.angCam.y-=1.9*dt;
-
-        if(dx||dz){
-            const c=Math.cos(this.angCam.y),s=Math.sin(this.angCam.y);
-            const nx=this.jugador.x+dx*c-dz*s; const nz=this.jugador.z+dx*s+dz*c;
-            const colisiona = this.construcciones.some(b=>Math.abs(nx-b.position.x)<3 && Math.abs(nz-b.position.z)<3);
-            if(!colisiona){ this.jugador.x=nx; this.jugador.z=nz; this.grupoJugador.rotation.y=this.angCam.y; }
-        }
-        this.jugador.y = this.alturaMundo(this.jugador.x,this.jugador.z)+1.9;
-        this.grupoJugador.position.set(this.jugador.x,this.jugador.y,this.jugador.z);
-
-        this.camara.position.x=this.jugador.x+22*Math.sin(this.angCam.y);
-        this.camara.position.y=this.jugador.y+10;
-        this.camara.position.z=this.jugador.z+22*Math.cos(this.angCam.y);
-        this.camara.lookAt(this.jugador.x,this.jugador.y+1.2,this.jugador.z);
-
-        this.actualizarChunks(); this.respawnCriaturas();
-        document.getElementById("bioma").textContent=CONFIG.biomas[this.obtenerBioma(this.jugador.x,this.jugador.z)].nom;
-        document.getElementById("lvl").textContent=this.jugador.nivel;
-        document.getElementById("pos").textContent=`X:${Math.round(this.jugador.x)} Z:${Math.round(this.jugador.z)}`;
-        document.getElementById("b-hp").style.width=`${this.jugador.hp}%`;
-        document.getElementById("b-mana").style.width=`${this.jugador.mana}%`;
-        document.getElementById("b-exp").style.width=`${this.jugador.exp/this.jugador.expSig*100}%`;
-        document.getElementById("b-hambre").style.width=`${this.jugador.hambre}%`;
-
-        this.entidades.forEach(e=>{
-            const d=Math.hypot(e.position.x-this.jugador.x,e.position.z-this.jugador.z);
-            if(d<20&&d>1.8){
-                const a=Math.atan2(this.jugador.z-e.position.z,this.jugador.x-e.position.x);
-                e.position.x+=Math.cos(a)*1.6*dt; e.position.z+=Math.sin(a)*1.6*dt;
-                e.position.y=this.alturaMundo(e.position.x,e.position.z); e.rotation.y=a;
-            }
-            if(d<2)this.jugador.hp-=Math.max(0,(e.userData.daño-this.jugador.defensa)*0.08);
-            const b=this.barrasVida.get(e);
-            if(b){const p=e.position.clone().project(this.camara);b.style.left=`${(p.x+1)/2*innerWidth}px`;b.style.top=`${(-p.y+1)/2*innerHeight}px`;b.querySelector(".hp").style.width=`${Math.max(0,e.userData.vida/100*100)}%`;}
-        });
-
-        this.render.render(this.escena,this.camara);
-    }
-}
-
-document.getElementById("btn-empezar").onclick=()=>{
-    document.getElementById("pantalla-inicio").style.opacity="0";
-    setTimeout(()=>{document.getElementById("pantalla-inicio").style.display="none";document.getElementById("hud-juego").style.display="flex";document.getElementById("panel-palabras").style.display="flex";window.game=new MotorJuego();},500);
-};
-</script>
+    <script src="js/utilidades/ruido.js"></script>
+    <script src="js/jugador/jugador.js"></script>
+    <script src="js/mundo/mundo.js"></script>
+    <script src="js/clima/clima.js"></script>
+    <script src="js/criaturas/criaturas.js"></script>
+    <script src="js/combate/combate.js"></script>
+    <script src="js/inventario/inventario.js"></script>
+    <script src="js/crafteos/crafteos.js"></script>
+    <script src="js/ia/ia.js"></script>
+    <script src="js/motor/motor.js"></script>
+    <script src="js/main/main.js"></script>
 </body>
 </html>
