@@ -1,101 +1,296 @@
-const motor = new Motor();
+class Motor {
 
-// Asegurar que existen los ángulos usados para la cámara
-if(!motor.ang) motor.ang = { x: 0, y: 0 }; // x = pitch, y = yaw
+constructor(){
 
-// Punto visual que indica hacia dónde mira la cámara
-function actualizarPuntoMirada() {
-    if(!motor || !motor.cam || !motor.escena) return;
-    if(!motor._puntoMirada) {
-        const geo = new THREE.SphereGeometry(0.12, 8, 8);
-        const mat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-        motor._puntoMirada = new THREE.Mesh(geo, mat);
-        motor._puntoMirada.name = 'punto-mirada';
-        motor.escena.add(motor._puntoMirada);
-    }
-    const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(motor.cam.quaternion);
-    const distancia = 10; // distancia donde se coloca el marcador
-    const posicion = motor.cam.position.clone().add(dir.multiplyScalar(distancia));
-    motor._puntoMirada.position.copy(posicion);
-}
+this.escena = new THREE.Scene();
 
-document.getElementById("btn-empezar").onclick = () => {
-    document.getElementById("pantalla-inicio").style.display="none";
-    document.getElementById("hud-juego").style.display="block";
-    document.getElementById("panel-palabras").style.display="flex";
-    motor.j.agregarAEscena(motor.escena);
-    motor.inv = new Inventario();
-    motor.iniciar();
+this.escena.background =
+new THREE.Color(0x87ceeb);
 
-    // Si la cámara ya existe, configurar el orden de rotación y sincronizar ángulos
-    if(motor.cam) {
-        motor.cam.rotation.order = 'YXZ';
-        // Sincronizar los ángulos para evitar saltos al empezar
-        motor.ang.x = motor.cam.rotation.x;
-        motor.ang.y = motor.cam.rotation.y;
-        actualizarPuntoMirada();
-    }
-};
 
-document.getElementById("btn-crear").onclick = () => {
-    const e = document.getElementById("dict-input").value;
-    const p = normalizarPalabra(e);
-    if(!motor.len.puedeEscribir(p)){ console.log("❌ No conoces todas las letras"); document.getElementById("dict-input").value=""; return; }
-    if(!motor.datos[p]){ console.log("❌ Palabra no existe"); document.getElementById("dict-input").value=""; return; }
-    console.log("✅ Creado:",p);
-    if(motor.datos[p].tipo==="material") motor.inv.agregar(p,1);
-    document.getElementById("dict-input").value="";
-};
+this.escena.fog =
+new THREE.FogExp2(0x87ceeb,0.007);
 
-window.onkeydown = e => {
-    if(e.code==="Space") motor.teclas.space=true;
-    else motor.teclas[e.key.toLowerCase()]=true;
-};
-window.onkeyup = e => {
-    if(e.code==="Space") motor.teclas.space=false;
-    else motor.teclas[e.key.toLowerCase()]=false;
-};
 
-// Mouse: corregir inversión y limitar pitch; actualizar punto de mirada
-window.addEventListener('mousemove', e => {
-    if(!motor.ang) return;
-    // Asegurar pointer lock activo para evitar saltos cuando no está bloqueado
-    if(document.pointerLockElement !== document.body) return;
 
-    const sensitivity = 0.0025; // ajustar sensibilidad si es necesario
+this.cam =
+new THREE.PerspectiveCamera(
+70,
+innerWidth/innerHeight,
+0.1,
+1000
+);
 
-    // Yaw (giro horizontal). Cambia el signo si se siente invertido.
-    motor.ang.y -= e.movementX * sensitivity;
-    // Pitch (giro vertical). Mover el ratón hacia abajo debe mirar hacia abajo.
-    motor.ang.x -= e.movementY * sensitivity;
 
-    // Limitar pitch para que la cámara no se dé la vuelta (evita voltear 180°)
-    const maxPitch = Math.PI / 2 - 0.01;
-    motor.ang.x = Math.max(-maxPitch, Math.min(maxPitch, motor.ang.x));
 
-    // Aplicar rotaciones a la cámara si existe
-    if(motor.cam){
-        motor.cam.rotation.order = 'YXZ';
-        motor.cam.rotation.x = motor.ang.x;
-        motor.cam.rotation.y = motor.ang.y;
-        motor.cam.updateMatrixWorld();
-        actualizarPuntoMirada();
-    }
+this.ren =
+new THREE.WebGLRenderer({
+antialias:true
 });
 
-// Click en el cuerpo: solicitar pointer lock y realizar acción (atacar o recoger)
-document.body.onclick = ()=>{
-    document.body.requestPointerLock?.();
 
-    // Si no hay inventario o criaturas inicializadas aún, salir
-    if(!motor.inv) return;
+this.ren.setSize(
+innerWidth,
+innerHeight
+);
 
-    // Ataque si tienes espada
-    const tieneEspada = Array.isArray(motor.inv.items) && motor.inv.items.some(i=>i.tipo==="espada");
-    if(tieneEspada && motor.criaturas) {
-        motor.criaturas.recibirDaño?.(motor.datos["espada"]?.daño);
-    } else if(motor.mundo) {
-        // Recoger recursos si no atacas
-        motor.mundo.recogerCerca?.(motor.j.x,motor.j.z);
-    }
+
+document.body.appendChild(
+this.ren.domElement
+);
+
+
+
+this.j = new Jugador();
+
+
+this.len = new GestorLenguaje();
+
+
+this.tiempo = new Tiempo();
+
+
+this.clima = new Clima();
+
+
+this.mundo = new Mundo(this);
+
+
+this.criaturas=null;
+
+
+
+this.teclas={};
+
+
+this.ang={
+y:0,
+x:0
 };
+
+
+
+// movimiento
+
+this.grav=-0.022;
+
+this.velY=0;
+
+this.suelo=false;
+
+this.salto=0.38;
+
+this.andar=0.15;
+
+this.correr=0.28;
+
+
+
+// distancia camara
+
+this.distCam=6;
+
+
+
+const luz =
+new THREE.DirectionalLight(
+0xfffffa,
+1.2
+);
+
+
+this.escena.add(
+new THREE.AmbientLight(
+0xffffff,
+0.5
+)
+);
+
+
+this.escena.add(luz);
+
+
+}
+
+
+
+
+
+bucle(){
+
+
+requestAnimationFrame(
+()=>this.bucle()
+);
+
+
+
+this.mundo.actualizar(
+this.j.x,
+this.j.z
+);
+
+
+
+if(this.criaturas){
+
+this.criaturas.actualizar();
+
+}
+
+
+
+
+
+let dx=0;
+let dz=0;
+
+
+let v =
+this.teclas.shift ?
+this.correr :
+this.andar;
+
+
+
+if(this.teclas.w)dz-=v;
+
+if(this.teclas.s)dz+=v;
+
+if(this.teclas.a)dx-=v;
+
+if(this.teclas.d)dx+=v;
+
+
+
+if(dx||dz){
+
+let c=Math.cos(this.ang.y);
+
+let s=Math.sin(this.ang.y);
+
+
+
+this.j.x += dx*c-dz*s;
+
+this.j.z += dx*s+dz*c;
+
+
+}
+
+
+
+
+
+// gravedad
+
+this.velY += this.grav;
+
+this.j.y += this.velY;
+
+
+
+let suelo =
+this.mundo.altura(
+this.j.x,
+this.j.z
+)+2;
+
+
+
+if(this.j.y<suelo){
+
+this.j.y=suelo;
+
+this.velY=0;
+
+this.suelo=true;
+
+
+}else{
+
+this.suelo=false;
+
+}
+
+
+
+
+
+// limites de camara
+
+this.ang.x =
+Math.max(
+-1.2,
+Math.min(
+1.2,
+this.ang.x
+)
+);
+
+
+
+
+// CAMARA TERCERA PERSONA
+
+let camX =
+this.j.x -
+Math.sin(this.ang.y)
+*this.distCam;
+
+
+
+let camZ =
+this.j.z -
+Math.cos(this.ang.y)
+*this.distCam;
+
+
+
+this.cam.position.set(
+
+camX,
+
+this.j.y+3,
+
+camZ
+
+);
+
+
+
+this.cam.lookAt(
+
+this.j.x,
+
+this.j.y+1,
+
+this.j.z
+
+);
+
+
+
+
+
+this.j.actualizarPosicion();
+
+this.j.actualizarHUD();
+
+
+
+
+this.ren.render(
+
+this.escena,
+
+this.cam
+
+);
+
+
+}
+
+
+
+}
