@@ -1,1 +1,9 @@
+class Inteligencia {
+    constructor(entidad, motor) {
+        this.entidad = entidad;
+        this.motor = motor;
+        this.estado = "patrullar";
+    }
 
+    actualizar() {}
+}
