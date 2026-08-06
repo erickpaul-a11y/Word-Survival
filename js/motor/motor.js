@@ -51,11 +51,16 @@ class Motor {
             if (typeof Mundo !== 'undefined') this.mundo = new Mundo(this);
         } catch (e) { }
 
-        // criaturas manager
+        // criaturas manager - CORREGIDO: pasar datos de criaturas
         try {
-            if (typeof GestorCriaturas !== 'undefined') this.criaturas = new GestorCriaturas(this, {});
+            const criaturaData = {
+                'lobo': { vida: 30, daño: 8 },
+                'vaca': { vida: 20, daño: 5 },
+                'ciervo': { vida: 15, daño: 3 }
+            };
+            if (typeof GestorCriaturas !== 'undefined') this.criaturas = new GestorCriaturas(this, criaturaData);
             if (this.criaturas && typeof this.criaturas.generarIniciales === 'function') this.criaturas.generarIniciales();
-        } catch (e) { }
+        } catch (e) { console.warn('Criaturas error:', e); }
 
         // position camera initially
         this.cam.position.set(0, 1.6, 0);
@@ -65,6 +70,50 @@ class Motor {
             // movement
             try {
                 this._updateMovement();
+            } catch (e) { }
+
+            // update world chunks
+            try {
+                if (this.j && this.mundo) {
+                    this.mundo.actualizar(this.j.x, this.j.z);
+                }
+            } catch (e) { }
+
+            // update creatures
+            try {
+                if (this.criaturas && typeof this.criaturas.actualizar === 'function') {
+                    this.criaturas.actualizar();
+                }
+            } catch (e) { }
+
+            // update player HUD - CORREGIDO
+            try {
+                if (this.j && typeof this.j.actualizarHUD === 'function') {
+                    this.j.actualizarHUD();
+                }
+            } catch (e) { }
+
+            // update camera position based on mode - CORREGIDO
+            try {
+                if (this.j) {
+                    if (this.cameraMode === 'first') {
+                        // Primera persona: cámara en la cabeza del jugador
+                        this.cam.position.set(this.j.x, this.j.y + 0.8, this.j.z);
+                    } else {
+                        // Tercera persona: cámara detrás del jugador
+                        const distance = 5;
+                        const height = 2;
+                        const camX = this.j.x - Math.cos(this.ang.y) * distance;
+                        const camZ = this.j.z - Math.sin(this.ang.y) * distance;
+                        this.cam.position.set(camX, this.j.y + height, camZ);
+                        this.cam.lookAt(this.j.x, this.j.y + 0.5, this.j.z);
+                    }
+                    
+                    // aplicar rotación (pitch y yaw) - CORREGIDO
+                    this.cam.rotation.order = 'YXZ';
+                    this.cam.rotation.y = this.ang.y;
+                    this.cam.rotation.x = this.ang.x;
+                }
             } catch (e) { }
 
             // update raycaster from camera center
@@ -100,8 +149,14 @@ class Motor {
     toggleCamera() {
         this.cameraMode = this.cameraMode === 'first' ? 'third' : 'first';
     }
+
+    // CORREGIDO: agregar método para atacar
+    atacar() {
+        if (this.criaturas && typeof this.criaturas.recibirDaño === 'function') {
+            this.criaturas.recibirDaño(10); // 10 de daño
+        }
+    }
 }
 
 // expose Motor globally
 window.Motor = Motor;
-
