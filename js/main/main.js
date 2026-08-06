@@ -88,7 +88,13 @@ document.getElementById("btn-empezar").onclick = () => {
         if (typeof window.GAME_CONFIG.fpHeight === 'undefined') window.GAME_CONFIG.fpHeight = 1.6;
 
         const chkFP = document.getElementById('chk-fp');
-        if (chkFP) { chkFP.checked = !!window.GAME_CONFIG.fpEnabled; chkFP.onchange = () => { window.GAME_CONFIG.fpEnabled = !!chkFP.checked; sessionStorage.setItem('game_config', JSON.stringify(w[...]
+        if (chkFP) {
+            chkFP.checked = !!window.GAME_CONFIG.fpEnabled;
+            chkFP.onchange = () => {
+                window.GAME_CONFIG.fpEnabled = !!chkFP.checked;
+                try { sessionStorage.setItem('game_config', JSON.stringify(window.GAME_CONFIG)); } catch(e){}
+            };
+        }
 
         // RAF loop to position camera at player's head and hide body when fp enabled
         const updateFP = () => {
