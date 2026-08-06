@@ -17,23 +17,36 @@ class Jugador {
         this.expSig = 120;
 
 
-        // Modelo del jugador
-        this.modelo = new THREE.Mesh(
+        // Modelo del jugador: ahora es un Group con cuerpo y brazos
+        this.modelo = new THREE.Group();
 
-            new THREE.BoxGeometry(
-                0.5,
-                1.2,
-                0.5
-            ),
-
-            new THREE.MeshLambertMaterial({
-                color:0x22c55e
-            })
-
+        const body = new THREE.Mesh(
+            new THREE.BoxGeometry(0.5, 1.2, 0.5),
+            new THREE.MeshLambertMaterial({ color: 0x22c55e })
         );
+        body.position.y = 0.6; // centrar el cuerpo
+        this.modelo.add(body);
 
+        // Brazos
+        const armGeo = new THREE.BoxGeometry(0.18, 0.9, 0.18);
+        const armMat = new THREE.MeshLambertMaterial({ color: 0xffcc99 });
 
-        this.modelo.position.y = 0.6;
+        const leftArm = new THREE.Mesh(armGeo, armMat);
+        leftArm.position.set(-0.45, 1.0, 0);
+        leftArm.rotation.z = 0.08;
+        this.modelo.add(leftArm);
+
+        const rightArm = new THREE.Mesh(armGeo, armMat);
+        rightArm.position.set(0.45, 1.0, 0);
+        rightArm.rotation.z = -0.08;
+        this.modelo.add(rightArm);
+
+        // Guardar referencias por si queremos animar brazos luego
+        this.leftArm = leftArm;
+        this.rightArm = rightArm;
+
+        // Posición inicial del modelo (el motor usa this.x, this.y, this.z)
+        this.modelo.position.y = 0;
 
     }
 
