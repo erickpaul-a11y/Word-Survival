@@ -36,13 +36,28 @@ class Motor {
         });
     }
 
+    // helper: get ground height at (x,z) — raycast against groundPlane (fallback y=0)
+    getGroundHeightAt(x, z) {
+        try {
+            const origin = new THREE.Vector3(x, 50, z); // from above
+            const dir = new THREE.Vector3(0, -1, 0);
+            const ray = new THREE.Raycaster(origin, dir);
+            const intersectPoint = new THREE.Vector3();
+            const hit = ray.ray.intersectPlane(this.groundPlane, intersectPoint);
+            if (hit) return intersectPoint.y;
+        } catch (e) { /* fallback */ }
+        return 0;
+    }
+
     iniciar() {
         // create player
         try {
             if (typeof Jugador !== 'undefined') {
                 this.j = new Jugador();
-                this.j.x = 0; this.j.z = 0; this.j.y = 2;
+                this.j.x = 0; this.j.z = 0;
+                this.j.y = (typeof this.getGroundHeightAt === 'function' ? this.getGroundHeightAt(this.j.x, this.j.z) : 0) + 0.6;
                 this.j.agregarAEscena(this.escena);
+                this.j.actualizarPosicion && this.j.actualizarPosicion();
             }
         } catch (e) { console.warn('Jugador not available', e); }
 
