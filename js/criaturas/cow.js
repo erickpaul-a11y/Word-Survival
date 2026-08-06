@@ -5,7 +5,14 @@ function _randRange(a,b){ return a + Math.random()*(b-a); }
 function _choose(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 
 function createCow(escena, x=0, z=0, options={}){
-    const opts = Object.assign({ colorVariant: _choose(['black','brown']), spots: Math.floor(_randRange(1,4)), name: 'Vaca' }, options);
+    // por defecto no agresiva
+    const defaultOpts = {
+        colorVariant: _choose(['black','brown']),
+        spots: Math.floor(_randRange(1,4)),
+        name: 'Vaca',
+        aggressive: false
+    };
+    const opts = Object.assign({}, defaultOpts, options || {});
     const group = new THREE.Group();
 
     // Body
@@ -66,10 +73,21 @@ function createCow(escena, x=0, z=0, options={}){
         head.material.color.setHex(0x7B3F00);
     }
 
-    group.position.set(x, 0, z);
+    // position on ground: use motor helper if available, fallback y=0
+    let y = 0;
+    try {
+        if (window.motor && typeof window.motor.getGroundHeightAt === 'function') {
+            y = window.motor.getGroundHeightAt(x, z);
+        }
+    } catch (e) { /* ignore */ }
+
+    group.position.set(x, y, z);
     group.userData = group.userData || {};
     group.userData.tipo = 'vaca';
     group.userData.interactable = false;
+    // marca explícita para evitar ataques salvo que opts.aggressive sea true
+    group.userData.aggressive = !!opts.aggressive;
+    group.userData.canAttack = !!opts.aggressive;
 
     if(escena) escena.add(group);
     return group;
@@ -81,6 +99,7 @@ window.createCow = function(pos){
         const escena = window.motor && window.motor.escena ? window.motor.escena : null;
         if(!escena){ console.warn('No escena disponible para crear vaca'); return null; }
         if(pos && typeof pos.x === 'number' && typeof pos.z === 'number'){
+            // allow passing options via pos.options
             return createCow(escena, pos.x, pos.z, pos.options||{});
         }
         // random near player
