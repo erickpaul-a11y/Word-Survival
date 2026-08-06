@@ -4,7 +4,8 @@ class Jugador {
 
         this.x = 0;
         this.z = 0;
-        this.y = 2;
+        // altura por defecto: 0.6 para que los pies del modelo queden en y=0
+        this.y = 0.6;
 
         this.hp = 100;
         this.maxHp = 100;
@@ -180,6 +181,7 @@ class Jugador {
         this.mana + "%";
 
 
+
         // CORREGIDO: Agregar actualización de barra de experiencia
         let exp =
         document.getElementById("b-exp");
@@ -196,6 +198,7 @@ class Jugador {
         if(hambre)
         hambre.style.width =
         this.hambre + "%";
+
 
 
     }
