@@ -15,6 +15,33 @@
 
 <link rel="stylesheet" href="css/estilos/principal.css">
 
+<!-- Crosshair styles -->
+<style>
+  /* Punto central de la cámara (crosshair) */
+  #crosshair {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 10px;
+    height: 10px;
+    background: rgba(255,255,255,0.95);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    box-shadow: 0 0 6px rgba(0,0,0,0.6);
+  }
+  /* versión alternativa: líneas finas en cruz (comentadas)
+  #crosshair:before, #crosshair:after{
+    content: '';
+    position: absolute;
+    background: rgba(255,255,255,0.95);
+  }
+  #crosshair:before{ width: 2px; height: 18px; left: 50%; top: -4px; transform: translateX(-50%); }
+  #crosshair:after{ height: 2px; width: 18px; top: 50%; left: -4px; transform: translateY(-50%); }
+  */
+</style>
+
 
 </head>
 
@@ -76,6 +103,8 @@ X:0 Z:0
 
 </div>
 
+<!-- Crosshair: punto fijo en el centro de la pantalla para apuntar -->
+<div id="crosshair"></div>
 
 
 
