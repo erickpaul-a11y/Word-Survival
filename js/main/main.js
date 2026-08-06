@@ -90,15 +90,30 @@ if (btnToggle) {
     };
 }
 
-// Crosshair toggle wiring
+// GAME config with persistence (sessionStorage) for inspector-style toggles
+window.GAME_CONFIG = window.GAME_CONFIG || {};
+try{
+    const stored = sessionStorage.getItem('game_config');
+    if(stored) Object.assign(window.GAME_CONFIG, JSON.parse(stored));
+}catch(e){ }
+if (typeof window.GAME_CONFIG.crosshairEnabled === 'undefined') window.GAME_CONFIG.crosshairEnabled = true;
+
+// Crosshair toggle wiring (sync with GAME_CONFIG)
 const chkCross = document.getElementById('chk-crosshair');
 const crossEl = document.getElementById('crosshair');
-if (crossEl) crossEl.style.display = (chkCross && chkCross.checked) ? 'block' : 'none';
-if (chkCross) chkCross.onchange = () => { if (crossEl) crossEl.style.display = chkCross.checked ? 'block' : 'none'; };
+if (crossEl) crossEl.style.display = window.GAME_CONFIG.crosshairEnabled ? 'block' : 'none';
+if (chkCross) {
+    chkCross.checked = !!window.GAME_CONFIG.crosshairEnabled;
+    chkCross.onchange = () => {
+        window.GAME_CONFIG.crosshairEnabled = !!chkCross.checked;
+        try{ sessionStorage.setItem('game_config', JSON.stringify(window.GAME_CONFIG)); }catch(e){}
+        if (crossEl) crossEl.style.display = window.GAME_CONFIG.crosshairEnabled ? 'block' : 'none';
+    };
+}
 
-// Inventory key (I) shortcut
+// Inventory key (E) shortcut (user preference)
 window.addEventListener('keydown', (e) => {
-    if (e.key && e.key.toLowerCase() === 'i') {
+    if (e.key && e.key.toLowerCase() === 'e') {
         if (motor.inv && typeof motor.inv.toggle === 'function') motor.inv.toggle();
     }
 });
