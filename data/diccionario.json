@@ -4,5 +4,6 @@
   "lobo": {"tipo":"criatura","vida":50,"daño":8,"letras":["L","O","B","O"]},
   "hacha": {"tipo":"herramienta","accion":"cortar","letras":["H","A","C","H","A"]},
   "pico": {"tipo":"herramienta","accion":"minar","letras":["P","I","C","O"]},
+  "uevo": {"tipo":"comida","hambre": "comer","letras":["U","E","V","O"]},
   "espada": {"tipo":"arma","daño":25,"letras":["E","S","P","A","D","A"]}
 }
