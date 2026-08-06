@@ -1,14 +1,17 @@
 class GestorCriaturas {
     constructor(m,d) {
         this.m = m; // referencia al motor
-        this.d = d; // datos de criaturas
+        this.d = d || {}; // datos de criaturas
         this.lista = [];
         this.expGanar = 15; // experiencia por criatura
     }
 
     crear(t,x,z) {
         const c = this.d[t];
-        if(!c) return null;
+        if(!c) {
+            console.warn(`Tipo de criatura '${t}' no existe en datos`);
+            return null;
+        }
         const modelo = new THREE.Group();
         modelo.add(new THREE.Mesh(new THREE.BoxGeometry(1.2,0.7,2), new THREE.MeshLambertMaterial({color:0x78716c})));
         modelo.position.set(x,1,z);
@@ -24,12 +27,15 @@ class GestorCriaturas {
             modelo: modelo,
             tiempoAtaque: false
         });
+        return this.lista[this.lista.length - 1];
     }
 
     generarIniciales() {
-        // Crear algunos lobos iniciales
-        this.crear("lobo", 8, 8);
-        this.crear("lobo", -12, 5);
+        // Crear algunos lobos iniciales si existen en datos
+        if(this.d['lobo']) {
+            this.crear("lobo", 8, 8);
+            this.crear("lobo", -12, 5);
+        }
     }
 
     recibirDaño(cantidad) {
@@ -42,11 +48,12 @@ class GestorCriaturas {
                 console.log(`💥 ${cri.tipo} recibe ${cantidad} de daño. Vida: ${cri.vida}`);
                 if(cri.vida <= 0) {
                     console.log(`☠️ ${cri.tipo} derrotado! +${this.expGanar} XP`);
-                    if(this.m.j) this.m.j.exp += this.expGanar;
+                    if(this.m.j) {
+                        this.m.j.ganarExperiencia(this.expGanar);
+                    }
                     // Dar loot si hay inventario
                     if(this.m.inv && typeof this.m.inv.agregar === 'function') {
-                        // Por ahora, lobos dan "madera" en el código original; dejar como estaba
-                        this.m.inv.agregar("madera", 1);
+                        this.m.inv.agregar("madera", 1, "Madera");
                     }
                     // Remover modelo de la escena
                     if(cri.modelo && cri.modelo.parent) cri.modelo.parent.remove(cri.modelo);
@@ -58,8 +65,12 @@ class GestorCriaturas {
     }
 
     actualizar() {
+        if (!this.m.j) return;
+        
         // Actualizar comportamiento de cada criatura
         this.lista.forEach(c => {
+            if (c.vida <= 0) return;
+            
             const dx = this.m.j.x - c.x;
             const dz = this.m.j.z - c.z;
             const d = Math.hypot(dx, dz);
@@ -77,7 +88,7 @@ class GestorCriaturas {
             // Ataque al jugador
             if(d < 2.2 && !c.tiempoAtaque) {
                 if(this.m.j) {
-                    this.m.j.hp -= c.daño;
+                    this.m.j.recibirDaño(c.daño);
                     console.log("Vida jugador:", this.m.j.hp);
                     if(this.m.j.hp <= 0) {
                         // Reiniciar jugador si muere
@@ -85,6 +96,8 @@ class GestorCriaturas {
                         this.m.j.x = 0;
                         this.m.j.z = 0;
                         this.m.j.exp = 0;
+                        this.m.j.nivel = 1;
+                        console.log("Jugador derrotado. Reiniciando...");
                     }
                 }
                 c.tiempoAtaque = true;
