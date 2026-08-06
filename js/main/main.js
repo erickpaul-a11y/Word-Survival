@@ -10,6 +10,23 @@ document.getElementById("btn-empezar").onclick = () => {
 
     motor.iniciar();
 
+    // Respawn button handler: reposiciona jugador en superficie y restaura vida
+    const btnRespawn = document.getElementById('btn-respawn');
+    if (btnRespawn) {
+      btnRespawn.onclick = () => {
+        const deathScreen = document.getElementById('pantalla-muerte');
+        if (deathScreen) deathScreen.style.display = 'none';
+        if (motor && motor.j) {
+          motor.j.hp = motor.j.maxHp;
+          motor.j.x = 0;
+          motor.j.z = 0;
+          motor.j.y = (motor.getGroundHeightAt ? motor.getGroundHeightAt(motor.j.x, motor.j.z) : 0) + 0.6;
+          motor.j.actualizarPosicion && motor.j.actualizarPosicion();
+          motor.j.actualizarHUD && motor.j.actualizarHUD();
+        }
+      };
+    }
+
     // Inicializar inventario (simple manager) y botón
     if (typeof Inventario !== 'undefined') {
         try {
@@ -71,7 +88,7 @@ document.getElementById("btn-empezar").onclick = () => {
         if (typeof window.GAME_CONFIG.fpHeight === 'undefined') window.GAME_CONFIG.fpHeight = 1.6;
 
         const chkFP = document.getElementById('chk-fp');
-        if (chkFP) { chkFP.checked = !!window.GAME_CONFIG.fpEnabled; chkFP.onchange = () => { window.GAME_CONFIG.fpEnabled = !!chkFP.checked; sessionStorage.setItem('game_config', JSON.stringify(window.GAME_CONFIG)); }}
+        if (chkFP) { chkFP.checked = !!window.GAME_CONFIG.fpEnabled; chkFP.onchange = () => { window.GAME_CONFIG.fpEnabled = !!chkFP.checked; sessionStorage.setItem('game_config', JSON.stringify(w[...]
 
         // RAF loop to position camera at player's head and hide body when fp enabled
         const updateFP = () => {
@@ -97,104 +114,3 @@ document.getElementById("btn-empezar").onclick = () => {
     } catch(e){ console.warn('FP setup failed', e); }
 
 };
-
-
-
-window.onkeydown = e => {
-
-    motor.teclas[e.key.toLowerCase()] = true;
-
-    if(e.code === "Space"){
-
-        motor.teclas.space = true;
-
-    }
-
-};
-
-
-
-window.onkeyup = e => {
-
-    motor.teclas[e.key.toLowerCase()] = false;
-
-
-    if(e.code === "Space"){
-
-        motor.teclas.space = false;
-
-    }
-
-};
-
-
-
-window.onmousemove = e => {
-
-
-    if(document.pointerLockElement){
-
-        // yaw
-        motor.ang.y -= e.movementX * 0.002;
-        // pitch
-        motor.ang.x -= e.movementY * 0.002;
-        // clamp pitch to avoid flip
-        const limit = Math.PI/2 - 0.05;
-        motor.ang.x = Math.max(-limit, Math.min(limit, motor.ang.x));
-
-    }
-
-};
-
-
-
-document.body.onclick = () => {
-
-    document.body.requestPointerLock?.();
-
-};
-
-// CORREGIDO: Agregar evento de ataque con click izquierdo
-document.addEventListener('click', (e) => {
-    // Solo atacar si el puntero está bloqueado (en juego)
-    if (document.pointerLockElement && motor) {
-        motor.atacar();
-    }
-});
-
-// boton para alternar cámara
-const btnToggle = document.getElementById("btn-toggle-camera");
-if (btnToggle) {
-    btnToggle.onclick = () => {
-        motor.toggleCamera();
-        btnToggle.textContent = motor.cameraMode === "first" ? "Cámara: 1ª" : "Cámara: 3ª";
-    };
-}
-
-// GAME config with persistence (sessionStorage) for inspector-style toggles
-window.GAME_CONFIG = window.GAME_CONFIG || {};
-try{
-    const stored = sessionStorage.getItem('game_config');
-    if(stored) Object.assign(window.GAME_CONFIG, JSON.parse(stored));
-}catch(e){ }
-if (typeof window.GAME_CONFIG.crosshairEnabled === 'undefined') window.GAME_CONFIG.crosshairEnabled = true;
-
-// Crosshair toggle wiring (sync with GAME_CONFIG)
-const chkCross = document.getElementById('chk-crosshair');
-const crossEl = document.getElementById('crosshair');
-if (crossEl) crossEl.style.display = window.GAME_CONFIG.crosshairEnabled ? 'block' : 'none';
-if (chkCross) {
-    chkCross.checked = !!window.GAME_CONFIG.crosshairEnabled;
-    chkCross.onchange = () => {
-        window.GAME_CONFIG.crosshairEnabled = !!chkCross.checked;
-        try{ sessionStorage.setItem('game_config', JSON.stringify(window.GAME_CONFIG)); }catch(e){}
-        if (crossEl) crossEl.style.display = window.GAME_CONFIG.crosshairEnabled ? 'block' : 'none';
-    };
-}
-
-// Inventory key (E) shortcut (user preference)
-window.addEventListener('keydown', (e) => {
-    if (e.key && e.key.toLowerCase() === 'e') {
-        if (motor.inv && typeof motor.inv.toggle === 'function') motor.inv.toggle();
-    }
-});
