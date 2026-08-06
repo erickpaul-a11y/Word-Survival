@@ -10,6 +10,15 @@ document.getElementById("btn-empezar").onclick = () => {
 
     motor.iniciar();
 
+    // Inicializar inventario (simple manager) y botón
+    if (typeof Inventario !== 'undefined') {
+        try {
+            motor.inv = new Inventario(motor);
+            const btnInv = document.getElementById('btn-open-inv');
+            if (btnInv) btnInv.onclick = () => motor.inv.toggle();
+        } catch(e) { console.warn('No se pudo inicializar Inventario:', e); }
+    }
+
     // Inicializar texto del botón de cámara según modo actual
     const camBtn = document.getElementById("btn-toggle-camera");
     if (camBtn) camBtn.textContent = motor.cameraMode === "first" ? "Cámara: 1ª" : "Cámara: 3ª";
@@ -80,3 +89,16 @@ if (btnToggle) {
         btnToggle.textContent = motor.cameraMode === "first" ? "Cámara: 1ª" : "Cámara: 3ª";
     };
 }
+
+// Crosshair toggle wiring
+const chkCross = document.getElementById('chk-crosshair');
+const crossEl = document.getElementById('crosshair');
+if (crossEl) crossEl.style.display = (chkCross && chkCross.checked) ? 'block' : 'none';
+if (chkCross) chkCross.onchange = () => { if (crossEl) crossEl.style.display = chkCross.checked ? 'block' : 'none'; };
+
+// Inventory key (I) shortcut
+window.addEventListener('keydown', (e) => {
+    if (e.key && e.key.toLowerCase() === 'i') {
+        if (motor.inv && typeof motor.inv.toggle === 'function') motor.inv.toggle();
+    }
+});
