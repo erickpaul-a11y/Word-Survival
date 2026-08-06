@@ -8,7 +8,7 @@ Cómo probar (manual):
 1. Ejecutar la página/index.html en un servidor local.
 2. Pulsar ▶ EMPEZAR. HUD se muestra.
 3. Asegurarse que el crosshair aparece en el centro. Usar el checkbox "Crosshair" para activarlo/desactivarlo.
-4. Pulsar I para abrir/cerrar el inventario o clicar el botón "Inventario (I)".
+4. Pulsar E para abrir/cerrar el inventario o clicar el botón "Inventario (E)".
 5. Para probar pickups manualmente (desde consola):
    - crearPickup('madera','Madera',1, motor.j.x+2, motor.j.z, motor.escena);
    - Acercarse al objeto en el mundo; al acercar (< ~2 unidades) el item se añadirá al inventario.
