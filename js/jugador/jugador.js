@@ -15,6 +15,7 @@ class Jugador {
         this.nivel = 1;
         this.exp = 0;
         this.expSig = 120;
+        this.vivo = true;
 
 
         // Modelo del jugador: ahora es un Group con cuerpo y brazos
@@ -177,6 +178,15 @@ class Jugador {
         if(mana)
         mana.style.width =
         this.mana + "%";
+
+
+        // CORREGIDO: Agregar actualización de barra de experiencia
+        let exp =
+        document.getElementById("b-exp");
+
+        if(exp)
+        exp.style.width =
+        (this.exp / this.expSig * 100) + "%";
 
 
 
