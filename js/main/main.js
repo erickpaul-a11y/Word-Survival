@@ -19,6 +19,48 @@ document.getElementById("btn-empezar").onclick = () => {
         } catch(e) { console.warn('No se pudo inicializar Inventario:', e); }
     }
 
+    // Spawn cows according to config
+    try {
+        window.GAME_CONFIG = window.GAME_CONFIG || {};
+        if(typeof window.GAME_CONFIG.spawnCowsEnabled === 'undefined') window.GAME_CONFIG.spawnCowsEnabled = true;
+        if(typeof window.GAME_CONFIG.spawnCowCount === 'undefined') window.GAME_CONFIG.spawnCowCount = 5;
+        // simple spawn: avoid player's spawn (around 0,0) and avoid overlap
+        if(window.GAME_CONFIG.spawnCowsEnabled){
+            const count = Math.max(0, Math.min(50, parseInt(window.GAME_CONFIG.spawnCowCount||5)));
+            const positions = [];
+            const minDistFromPlayer = 4;
+            const minGap = 3;
+            const maxAttempts = 200;
+            for(let i=0;i<count;i++){
+                let attempts=0; let placed=false;
+                while(!placed && attempts++ < maxAttempts){
+                    const angle = Math.random()*Math.PI*2;
+                    const dist = 6 + Math.random()*20; // spawn radius
+                    const x = (motor.j ? motor.j.x : 0) + Math.cos(angle)*dist;
+                    const z = (motor.j ? motor.j.z : 0) + Math.sin(angle)*dist;
+                    // check distance from player
+                    const dx = (motor.j ? motor.j.x : 0) - x;
+                    const dz = (motor.j ? motor.j.z : 0) - z;
+                    const dp = Math.hypot(dx,dz);
+                    if(dp < minDistFromPlayer) continue;
+                    // check against other cows
+                    let ok=true;
+                    for(const p of positions){ if(Math.hypot(p.x-x,p.z-z) < minGap){ ok=false; break; } }
+                    if(!ok) continue;
+                    // place
+                    if(typeof window.createCow === 'function'){
+                        window.createCow({x,x,z});
+                    } else if (typeof createCow === 'function'){
+                        createCow(motor.escena, x, z);
+                    }
+                    positions.push({x,z});
+                    placed=true;
+                }
+            }
+            console.log(`Spawned ${positions.length} cows`);
+        }
+    } catch(e){ console.warn('Error spawning cows', e); }
+
     // Inicializar texto del botón de cámara según modo actual
     const camBtn = document.getElementById("btn-toggle-camera");
     if (camBtn) camBtn.textContent = motor.cameraMode === "first" ? "Cámara: 1ª" : "Cámara: 3ª";
