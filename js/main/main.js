@@ -49,7 +49,7 @@ document.getElementById("btn-empezar").onclick = () => {
                     if(!ok) continue;
                     // place
                     if(typeof window.createCow === 'function'){
-                        window.createCow({x,x,z});
+                        window.createCow({x,z});
                     } else if (typeof createCow === 'function'){
                         createCow(motor.escena, x, z);
                     }
@@ -153,6 +153,14 @@ document.body.onclick = () => {
     document.body.requestPointerLock?.();
 
 };
+
+// CORREGIDO: Agregar evento de ataque con click izquierdo
+document.addEventListener('click', (e) => {
+    // Solo atacar si el puntero está bloqueado (en juego)
+    if (document.pointerLockElement && motor) {
+        motor.atacar();
+    }
+});
 
 // boton para alternar cámara
 const btnToggle = document.getElementById("btn-toggle-camera");
