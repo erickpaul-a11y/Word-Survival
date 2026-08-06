@@ -24,6 +24,7 @@ class Jugador {
             new THREE.BoxGeometry(0.5, 1.2, 0.5),
             new THREE.MeshLambertMaterial({ color: 0x22c55e })
         );
+        body.name = 'torso';
         body.position.y = 0.6; // centrar el cuerpo
         this.modelo.add(body);
 
@@ -32,11 +33,13 @@ class Jugador {
         const armMat = new THREE.MeshLambertMaterial({ color: 0xffcc99 });
 
         const leftArm = new THREE.Mesh(armGeo, armMat);
+        leftArm.name = 'leftArm';
         leftArm.position.set(-0.45, 1.0, 0);
         leftArm.rotation.z = 0.08;
         this.modelo.add(leftArm);
 
         const rightArm = new THREE.Mesh(armGeo, armMat);
+        rightArm.name = 'rightArm';
         rightArm.position.set(0.45, 1.0, 0);
         rightArm.rotation.z = -0.08;
         this.modelo.add(rightArm);
@@ -44,6 +47,18 @@ class Jugador {
         // Guardar referencias por si queremos animar brazos luego
         this.leftArm = leftArm;
         this.rightArm = rightArm;
+
+        // Helper para habilitar/deshabilitar visibilidad del cuerpo (first person)
+        this.setFirstPerson = function(fp){
+            // ocultar torso y piernas, mantener brazos opcionalmente visibles
+            this.leftArm.visible = !!fp; // show arms in FP
+            this.rightArm.visible = !!fp;
+            // hide other meshes except arms
+            this.modelo.children.forEach(ch => {
+                if(ch.name === 'leftArm' || ch.name === 'rightArm') return;
+                ch.visible = !fp;
+            });
+        }.bind(this);
 
         // Posición inicial del modelo (el motor usa this.x, this.y, this.z)
         this.modelo.position.y = 0;

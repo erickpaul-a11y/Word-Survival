@@ -5,12 +5,27 @@ class Inventario {
         this.items = {}; // { id: {name, qty} }
         this.open = false;
         this.panel = this._createPanel();
+        // cargar desde sessionStorage (persistencia por escena)
+        this._load();
         // Start update loop to check for pickups
         const loop = () => {
             this._checkPickups();
             requestAnimationFrame(loop);
         };
         requestAnimationFrame(loop);
+    }
+
+    _save(){
+        try{
+            sessionStorage.setItem('inventory_state', JSON.stringify(this.items));
+        }catch(e){ }
+    }
+
+    _load(){
+        try{
+            const s = sessionStorage.getItem('inventory_state');
+            if(s) this.items = JSON.parse(s) || {};
+        }catch(e){ this.items = {}; }
     }
 
     _createPanel(){
@@ -67,6 +82,7 @@ class Inventario {
         }
         this.items[id].qty += qty;
         this._render();
+        this._save();
         return true;
     }
 
