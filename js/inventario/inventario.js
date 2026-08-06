@@ -44,7 +44,7 @@ class Inventario {
         panel.style.boxShadow = '0 8px 24px rgba(0,0,0,0.6)';
         panel.style.zIndex = 9998;
         panel.style.display = 'none';
-        panel.innerHTML = `<div style="font-weight:700;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">Inventario <button id="inv-close" style="font-size:0.8em;padding:4px 6px;">Cerrar</button></div><div id="inv-list"></div>`;
+        panel.innerHTML = `<div style="font-weight:700;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">Inventario <button id="inv-close" style="font-size:0.8em;padding:2px 6px;cursor:pointer;">✕</button></div><div id="inv-list"></div>`;
         document.body.appendChild(panel);
         const btnClose = panel.querySelector('#inv-close');
         if(btnClose) btnClose.onclick = () => this.close();
@@ -66,13 +66,14 @@ class Inventario {
             row.style.display = 'flex';
             row.style.justifyContent = 'space-between';
             row.style.marginBottom = '6px';
-            row.innerHTML = `<div>${it.name}</div><div>x${it.qty}</div>`;
+            row.style.fontSize = '0.9em';
+            row.innerHTML = `<div>${it.name}</div><div style="font-weight:bold;">x${it.qty}</div>`;
             list.appendChild(row);
         });
     }
 
     agregar(id, qty = 1, name = null){
-        if(!id) return;
+        if(!id) return false;
         if(!this.items[id]){
             if(Object.keys(this.items).length >= this.capacity) {
                 console.warn('Inventario lleno');
