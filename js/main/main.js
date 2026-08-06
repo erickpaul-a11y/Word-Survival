@@ -65,6 +65,37 @@ document.getElementById("btn-empezar").onclick = () => {
     const camBtn = document.getElementById("btn-toggle-camera");
     if (camBtn) camBtn.textContent = motor.cameraMode === "first" ? "Cámara: 1ª" : "Cámara: 3ª";
 
+    // First-person camera placement and controls enforcement
+    try {
+        if (typeof window.GAME_CONFIG.fpEnabled === 'undefined') window.GAME_CONFIG.fpEnabled = true;
+        if (typeof window.GAME_CONFIG.fpHeight === 'undefined') window.GAME_CONFIG.fpHeight = 1.6;
+
+        const chkFP = document.getElementById('chk-fp');
+        if (chkFP) { chkFP.checked = !!window.GAME_CONFIG.fpEnabled; chkFP.onchange = () => { window.GAME_CONFIG.fpEnabled = !!chkFP.checked; sessionStorage.setItem('game_config', JSON.stringify(window.GAME_CONFIG)); }}
+
+        // RAF loop to position camera at player's head and hide body when fp enabled
+        const updateFP = () => {
+            try{
+                if(motor && motor.cam && motor.j){
+                    const fp = !!window.GAME_CONFIG.fpEnabled;
+                    // hide/show player model parts
+                    if(motor.j.setFirstPerson && typeof motor.j.setFirstPerson === 'function'){
+                        motor.j.setFirstPerson(fp);
+                    } else if(motor.j.modelo){
+                        motor.j.modelo.children.forEach(ch => { ch.visible = !fp; });
+                    }
+                    // position camera at player's head
+                    const headY = parseFloat(window.GAME_CONFIG.fpHeight) || 1.6;
+                    motor.cam.position.set(motor.j.x, headY, motor.j.z);
+                    // apply rotation from motor.ang (if available)
+                    if(motor.ang){ motor.cam.rotation.x = motor.ang.x; motor.cam.rotation.y = motor.ang.y; }
+                }
+            }catch(e){ }
+            requestAnimationFrame(updateFP);
+        };
+        requestAnimationFrame(updateFP);
+    } catch(e){ console.warn('FP setup failed', e); }
+
 };
 
 
