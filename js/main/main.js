@@ -1,116 +1,372 @@
 const motor = new Motor();
 
+// Exponer el motor para otros scripts
+window.motor = motor;
 
-document.getElementById("btn-empezar").onclick = () => {
+const btnEmpezar = document.getElementById("btn-empezar");
 
-    document.getElementById("pantalla-inicio").style.display = "none";
+if (btnEmpezar) {
+    btnEmpezar.onclick = () => {
 
-    document.getElementById("hud-juego").style.display = "block";
+        const pantallaInicio = document.getElementById("pantalla-inicio");
+        const hudJuego = document.getElementById("hud-juego");
 
-
-    motor.iniciar();
-
-    // Respawn button handler: reposiciona jugador en superficie y restaura vida
-    const btnRespawn = document.getElementById('btn-respawn');
-    if (btnRespawn) {
-      btnRespawn.onclick = () => {
-        const deathScreen = document.getElementById('pantalla-muerte');
-        if (deathScreen) deathScreen.style.display = 'none';
-        if (motor && motor.j) {
-          motor.j.hp = motor.j.maxHp;
-          motor.j.x = 0;
-          motor.j.z = 0;
-          motor.j.y = (motor.getGroundHeightAt ? motor.getGroundHeightAt(motor.j.x, motor.j.z) : 0) + 0.6;
-          motor.j.actualizarPosicion && motor.j.actualizarPosicion();
-          motor.j.actualizarHUD && motor.j.actualizarHUD();
+        if (pantallaInicio) {
+            pantallaInicio.style.display = "none";
         }
-      };
-    }
 
-    // Inicializar inventario (simple manager) y botón
-    if (typeof Inventario !== 'undefined') {
-        try {
-            motor.inv = new Inventario(motor);
-            const btnInv = document.getElementById('btn-open-inv');
-            if (btnInv) btnInv.onclick = () => motor.inv.toggle();
-        } catch(e) { console.warn('No se pudo inicializar Inventario:', e); }
-    }
+        if (hudJuego) {
+            hudJuego.style.display = "block";
+        }
 
-    // Spawn cows according to config
-    try {
-        window.GAME_CONFIG = window.GAME_CONFIG || {};
-        if(typeof window.GAME_CONFIG.spawnCowsEnabled === 'undefined') window.GAME_CONFIG.spawnCowsEnabled = true;
-        if(typeof window.GAME_CONFIG.spawnCowCount === 'undefined') window.GAME_CONFIG.spawnCowCount = 5;
-        // simple spawn: avoid player's spawn (around 0,0) and avoid overlap
-        if(window.GAME_CONFIG.spawnCowsEnabled){
-            const count = Math.max(0, Math.min(50, parseInt(window.GAME_CONFIG.spawnCowCount||5)));
-            const positions = [];
-            const minDistFromPlayer = 4;
-            const minGap = 3;
-            const maxAttempts = 200;
-            for(let i=0;i<count;i++){
-                let attempts=0; let placed=false;
-                while(!placed && attempts++ < maxAttempts){
-                    const angle = Math.random()*Math.PI*2;
-                    const dist = 6 + Math.random()*20; // spawn radius
-                    const x = (motor.j ? motor.j.x : 0) + Math.cos(angle)*dist;
-                    const z = (motor.j ? motor.j.z : 0) + Math.sin(angle)*dist;
-                    // check distance from player
-                    const dx = (motor.j ? motor.j.x : 0) - x;
-                    const dz = (motor.j ? motor.j.z : 0) - z;
-                    const dp = Math.hypot(dx,dz);
-                    if(dp < minDistFromPlayer) continue;
-                    // check against other cows
-                    let ok=true;
-                    for(const p of positions){ if(Math.hypot(p.x-x,p.z-z) < minGap){ ok=false; break; } }
-                    if(!ok) continue;
-                    // place
-                    if(typeof window.createCow === 'function'){
-                        window.createCow({x,z});
-                    } else if (typeof createCow === 'function'){
-                        createCow(motor.escena, x, z);
-                    }
-                    positions.push({x,z});
-                    placed=true;
+        motor.iniciar();
+
+        // ==============================
+        // INVENTARIO
+        // ==============================
+
+        if (typeof Inventario !== "undefined") {
+            try {
+                motor.inv = new Inventario(motor);
+
+                const btnInv = document.getElementById("btn-open-inv");
+
+                if (btnInv) {
+                    btnInv.onclick = () => {
+                        if (motor.inv && typeof motor.inv.toggle === "function") {
+                            motor.inv.toggle();
+                        }
+                    };
                 }
+
+            } catch (error) {
+                console.warn("No se pudo inicializar Inventario:", error);
             }
-            console.log(`Spawned ${positions.length} cows`);
         }
-    } catch(e){ console.warn('Error spawning cows', e); }
 
-    // Inicializar texto del botón de cámara según modo actual
-    const camBtn = document.getElementById("btn-toggle-camera");
-    if (camBtn) camBtn.textContent = motor.cameraMode === "first" ? "Cámara: 1ª" : "Cámara: 3ª";
+        // ==============================
+        // RESPAWN
+        // ==============================
 
-    // First-person camera placement and controls enforcement
-    try {
-        if (typeof window.GAME_CONFIG.fpEnabled === 'undefined') window.GAME_CONFIG.fpEnabled = true;
-        if (typeof window.GAME_CONFIG.fpHeight === 'undefined') window.GAME_CONFIG.fpHeight = 1.6;
+        const btnRespawn = document.getElementById("btn-respawn");
 
-        const chkFP = document.getElementById('chk-fp');
-        if (chkFP) { chkFP.checked = !!window.GAME_CONFIG.fpEnabled; chkFP.onchange = () => { window.GAME_CONFIG.fpEnabled = !!chkFP.checked; sessionStorage.setItem('game_config', JSON.stringify(w[...]
+        if (btnRespawn) {
 
-        // RAF loop to position camera at player's head and hide body when fp enabled
-        const updateFP = () => {
-            try{
-                if(motor && motor.cam && motor.j){
-                    const fp = !!window.GAME_CONFIG.fpEnabled;
-                    // hide/show player model parts
-                    if(motor.j.setFirstPerson && typeof motor.j.setFirstPerson === 'function'){
-                        motor.j.setFirstPerson(fp);
-                    } else if(motor.j.modelo){
-                        motor.j.modelo.children.forEach(ch => { ch.visible = !fp; });
-                    }
-                    // position camera at player's head
-                    const headY = parseFloat(window.GAME_CONFIG.fpHeight) || 1.6;
-                    motor.cam.position.set(motor.j.x, headY, motor.j.z);
-                    // apply rotation from motor.ang (if available)
-                    if(motor.ang){ motor.cam.rotation.x = motor.ang.x; motor.cam.rotation.y = motor.ang.y; }
+            btnRespawn.onclick = () => {
+
+                const pantallaMuerte =
+                    document.getElementById("pantalla-muerte");
+
+                if (pantallaMuerte) {
+                    pantallaMuerte.style.display = "none";
                 }
-            }catch(e){ }
-            requestAnimationFrame(updateFP);
-        };
-        requestAnimationFrame(updateFP);
-    } catch(e){ console.warn('FP setup failed', e); }
 
-};
+                if (motor.j) {
+
+                    motor.j.hp = motor.j.maxHp;
+                    motor.j.vivo = true;
+
+                    motor.j.x = 0;
+                    motor.j.z = 0;
+
+                    const altura =
+                        typeof motor.getGroundHeightAt === "function"
+                            ? motor.getGroundHeightAt(0, 0)
+                            : 0;
+
+                    motor.j.y = altura + 0.6;
+
+                    if (typeof motor.j.actualizarPosicion === "function") {
+                        motor.j.actualizarPosicion();
+                    }
+
+                    if (typeof motor.j.actualizarHUD === "function") {
+                        motor.j.actualizarHUD();
+                    }
+                }
+            };
+        }
+
+        // ==============================
+        // CONFIGURACIÓN
+        // ==============================
+
+        window.GAME_CONFIG = window.GAME_CONFIG || {};
+
+        if (typeof window.GAME_CONFIG.spawnCowsEnabled === "undefined") {
+            window.GAME_CONFIG.spawnCowsEnabled = true;
+        }
+
+        if (typeof window.GAME_CONFIG.spawnCowCount === "undefined") {
+            window.GAME_CONFIG.spawnCowCount = 5;
+        }
+
+        if (typeof window.GAME_CONFIG.fpEnabled === "undefined") {
+            window.GAME_CONFIG.fpEnabled = true;
+        }
+
+        if (typeof window.GAME_CONFIG.fpHeight === "undefined") {
+            window.GAME_CONFIG.fpHeight = 1.6;
+        }
+
+        // ==============================
+        // VACAS
+        // ==============================
+
+        try {
+
+            if (window.GAME_CONFIG.spawnCowsEnabled) {
+
+                const count = Math.max(
+                    0,
+                    Math.min(
+                        50,
+                        parseInt(window.GAME_CONFIG.spawnCowCount, 10) || 5
+                    )
+                );
+
+                const posiciones = [];
+
+                const distanciaJugador = 4;
+                const distanciaMinima = 3;
+                const intentosMaximos = 200;
+
+                for (let i = 0; i < count; i++) {
+
+                    let colocado = false;
+                    let intentos = 0;
+
+                    while (
+                        !colocado &&
+                        intentos < intentosMaximos
+                    ) {
+
+                        intentos++;
+
+                        const jugadorX = motor.j ? motor.j.x : 0;
+                        const jugadorZ = motor.j ? motor.j.z : 0;
+
+                        const angulo = Math.random() * Math.PI * 2;
+                        const distancia = 6 + Math.random() * 20;
+
+                        const x =
+                            jugadorX + Math.cos(angulo) * distancia;
+
+                        const z =
+                            jugadorZ + Math.sin(angulo) * distancia;
+
+                        const distanciaJugadorActual =
+                            Math.hypot(
+                                jugadorX - x,
+                                jugadorZ - z
+                            );
+
+                        if (distanciaJugadorActual < distanciaJugador) {
+                            continue;
+                        }
+
+                        let valido = true;
+
+                        for (const posicion of posiciones) {
+
+                            if (
+                                Math.hypot(
+                                    posicion.x - x,
+                                    posicion.z - z
+                                ) < distanciaMinima
+                            ) {
+                                valido = false;
+                                break;
+                            }
+                        }
+
+                        if (!valido) {
+                            continue;
+                        }
+
+                        if (typeof window.createCow === "function") {
+
+                            window.createCow({
+                                x: x,
+                                z: z
+                            });
+
+                            posiciones.push({
+                                x: x,
+                                z: z
+                            });
+
+                            colocado = true;
+                        }
+                    }
+                }
+
+                console.log(
+                    `Vacas creadas: ${posiciones.length}`
+                );
+            }
+
+        } catch (error) {
+
+            console.warn(
+                "Error creando vacas:",
+                error
+            );
+        }
+
+        // ==============================
+        // BOTÓN DE CÁMARA
+        // ==============================
+
+        const btnCamera =
+            document.getElementById("btn-toggle-camera");
+
+        if (btnCamera) {
+
+            btnCamera.textContent =
+                motor.cameraMode === "first"
+                    ? "Cámara: 1ª"
+                    : "Cámara: 3ª";
+
+            btnCamera.onclick = () => {
+
+                if (typeof motor.toggleCamera === "function") {
+                    motor.toggleCamera();
+                }
+
+                btnCamera.textContent =
+                    motor.cameraMode === "first"
+                        ? "Cámara: 1ª"
+                        : "Cámara: 3ª";
+            };
+        }
+
+        // ==============================
+        // CROSSHAIR
+        // ==============================
+
+        const chkCrosshair =
+            document.getElementById("chk-crosshair");
+
+        const crosshair =
+            document.getElementById("crosshair");
+
+        if (chkCrosshair && crosshair) {
+
+            crosshair.style.display =
+                chkCrosshair.checked
+                    ? "block"
+                    : "none";
+
+            chkCrosshair.onchange = () => {
+
+                crosshair.style.display =
+                    chkCrosshair.checked
+                        ? "block"
+                        : "none";
+            };
+        }
+
+        // ==============================
+        // FIRST PERSON
+        // ==============================
+
+        const chkFP =
+            document.getElementById("chk-fp");
+
+        if (chkFP) {
+
+            chkFP.checked =
+                !!window.GAME_CONFIG.fpEnabled;
+
+            chkFP.onchange = () => {
+
+                window.GAME_CONFIG.fpEnabled =
+                    !!chkFP.checked;
+
+                try {
+                    sessionStorage.setItem(
+                        "game_config",
+                        JSON.stringify(window.GAME_CONFIG)
+                    );
+                } catch (error) {
+                    console.warn(
+                        "No se pudo guardar configuración:",
+                        error
+                    );
+                }
+            };
+        }
+
+        // ==============================
+        // ACTUALIZACIÓN FIRST PERSON
+        // ==============================
+
+        const actualizarFirstPerson = () => {
+
+            try {
+
+                if (
+                    !motor ||
+                    !motor.cam ||
+                    !motor.j
+                ) {
+                    requestAnimationFrame(
+                        actualizarFirstPerson
+                    );
+                    return;
+                }
+
+                const primeraPersona =
+                    !!window.GAME_CONFIG.fpEnabled;
+
+                if (
+                    typeof motor.j.setFirstPerson === "function"
+                ) {
+
+                    motor.j.setFirstPerson(
+                        primeraPersona
+                    );
+                }
+
+                if (primeraPersona) {
+
+                    const altura =
+                        parseFloat(
+                            window.GAME_CONFIG.fpHeight
+                        ) || 1.6;
+
+                    motor.cam.position.set(
+                        motor.j.x,
+                        motor.j.y + altura - 0.6,
+                        motor.j.z
+                    );
+
+                    motor.cam.rotation.order = "YXZ";
+
+                    motor.cam.rotation.x =
+                        motor.ang.x;
+
+                    motor.cam.rotation.y =
+                        motor.ang.y;
+
+                }
+
+            } catch (error) {
+
+                console.warn(
+                    "Error actualizando primera persona:",
+                    error
+                );
+            }
+
+            requestAnimationFrame(
+                actualizarFirstPerson
+            );
+        };
+
+        requestAnimationFrame(
+            actualizarFirstPerson
+        );
+    };
+}
