@@ -1,111 +1,323 @@
 class GestorCriaturas {
-    constructor(m,d) {
-        this.m = m; // referencia al motor
-        this.d = d || {}; // datos de criaturas
+
+    constructor(motor, datos) {
+
+        this.m = motor;
+        this.d = datos || {};
         this.lista = [];
-        this.expGanar = 15; // experiencia por criatura
+
+        this.expGanar = 15;
+
     }
 
-    crear(t,x,z) {
-        const c = this.d[t];
-        if(!c) {
-            console.warn(`Tipo de criatura '${t}' no existe en datos`);
+    crear(tipo, x, z) {
+
+        const datos =
+            this.d[tipo];
+
+        if (!datos) {
+
+            console.warn(
+                `Tipo de criatura '${tipo}' no existe`
+            );
+
             return null;
         }
-        const modelo = new THREE.Group();
-        modelo.add(new THREE.Mesh(new THREE.BoxGeometry(1.2,0.7,2), new THREE.MeshLambertMaterial({color:0x78716c})));
-        modelo.position.set(x,1,z);
-        this.m.escena.add(modelo);
-        this.lista.push({
-            tipo: t,
+
+        let y = 0;
+
+        if (
+            this.m &&
+            typeof this.m.getGroundHeightAt ===
+            "function"
+        ) {
+
+            y =
+                this.m.getGroundHeightAt(
+                    x,
+                    z
+                );
+
+        }
+
+        const modelo =
+            new THREE.Group();
+
+        const cuerpo =
+            new THREE.Mesh(
+                new THREE.BoxGeometry(
+                    1.2,
+                    0.7,
+                    2
+                ),
+                new THREE.MeshLambertMaterial({
+                    color: 0x78716c
+                })
+            );
+
+        cuerpo.position.y =
+            0.35;
+
+        modelo.add(cuerpo);
+
+        modelo.position.set(
+            x,
+            y,
+            z
+        );
+
+        this.m.escena.add(
+            modelo
+        );
+
+        const criatura = {
+
+            tipo: tipo,
+
             x: x,
             z: z,
-            y: 1,
-            vida: c.vida,
-            vidaMax: c.vida,
-            daño: c.daño,
+
+            y: y,
+
+            vida: datos.vida,
+            vidaMax: datos.vida,
+
+            daño: datos.daño,
+
             modelo: modelo,
+
             tiempoAtaque: false
-        });
-        return this.lista[this.lista.length - 1];
+
+        };
+
+        this.lista.push(
+            criatura
+        );
+
+        return criatura;
     }
 
     generarIniciales() {
-        // Crear algunos lobos iniciales si existen en datos
-        if(this.d['lobo']) {
-            this.crear("lobo", 8, 8);
-            this.crear("lobo", -12, 5);
+
+        if (this.d.lobo) {
+
+            this.crear(
+                "lobo",
+                8,
+                8
+            );
+
+            this.crear(
+                "lobo",
+                -12,
+                5
+            );
+
         }
+
     }
 
     recibirDaño(cantidad) {
-        // Aplica daño a las criaturas cercanas al jugador (por ejemplo al hacer click)
-        this.lista.forEach((cri) => {
-            if(cri.vida <= 0) return;
-            const dist = Math.hypot(this.m.j.x - cri.x, this.m.j.z - cri.z);
-            if(dist < 2.5) {
-                cri.vida -= cantidad;
-                console.log(`💥 ${cri.tipo} recibe ${cantidad} de daño. Vida: ${cri.vida}`);
-                if(cri.vida <= 0) {
-                    console.log(`☠️ ${cri.tipo} derrotado! +${this.expGanar} XP`);
-                    if(this.m.j) {
-                        this.m.j.ganarExperiencia(this.expGanar);
-                    }
-                    // Dar loot si hay inventario
-                    if(this.m.inv && typeof this.m.inv.agregar === 'function') {
-                        this.m.inv.agregar("madera", 1, "Madera");
-                    }
-                    // Remover modelo de la escena
-                    if(cri.modelo && cri.modelo.parent) cri.modelo.parent.remove(cri.modelo);
-                }
+
+        if (!this.m || !this.m.j) {
+            return;
+        }
+
+        for (
+            const criatura of this.lista
+        ) {
+
+            if (
+                criatura.vida <= 0
+            ) {
+                continue;
             }
-        });
-        // Filtrar lista para eliminar los muertos
-        this.lista = this.lista.filter(c => c.vida > 0);
+
+            const distancia =
+                Math.hypot(
+                    this.m.j.x -
+                    criatura.x,
+
+                    this.m.j.z -
+                    criatura.z
+                );
+
+            if (
+                distancia < 2.5
+            ) {
+
+                criatura.vida -=
+                    cantidad;
+
+                console.log(
+                    `${criatura.tipo} recibe ${cantidad} de daño. Vida: ${criatura.vida}`
+                );
+
+                if (
+                    criatura.vida <= 0
+                ) {
+
+                    this.m.j.ganarExperiencia(
+                        this.expGanar
+                    );
+
+                    if (
+                        this.m.inv &&
+                        typeof this.m.inv.agregar ===
+                        "function"
+                    ) {
+
+                        this.m.inv.agregar(
+                            "madera",
+                            1,
+                            "Madera"
+                        );
+
+                    }
+
+                    if (
+                        criatura.modelo &&
+                        criatura.modelo.parent
+                    ) {
+
+                        criatura.modelo.parent.remove(
+                            criatura.modelo
+                        );
+
+                    }
+
+                }
+
+            }
+
+        }
+
+        this.lista =
+            this.lista.filter(
+                criatura =>
+                    criatura.vida > 0
+            );
+
     }
 
     actualizar() {
-        if (!this.m.j) return;
-        
-        // Actualizar comportamiento de cada criatura
-        this.lista.forEach(c => {
-            if (c.vida <= 0) return;
-            
-            const dx = this.m.j.x - c.x;
-            const dz = this.m.j.z - c.z;
-            const d = Math.hypot(dx, dz);
 
-            // Moverse hacia el jugador si está dentro de rango
-            if(d < 12 && d > 2) {
-                const nx = dx / d;
-                const nz = dz / d;
-                c.x += nx * 0.04;
-                c.z += nz * 0.04;
-                if(c.modelo) c.modelo.position.set(c.x, c.y, c.z);
-                if(c.modelo) c.modelo.lookAt(new THREE.Vector3(this.m.j.x, 1, this.m.j.z));
+        if (
+            !this.m ||
+            !this.m.j
+        ) {
+            return;
+        }
+
+        for (
+            const criatura of this.lista
+        ) {
+
+            if (
+                criatura.vida <= 0
+            ) {
+                continue;
             }
 
-            // Ataque al jugador
-            if(d < 2.2 && !c.tiempoAtaque) {
-                if(this.m.j) {
-                    this.m.j.recibirDaño(c.daño);
-                    console.log("Vida jugador:", this.m.j.hp);
-                    if(this.m.j.hp <= 0) {
-                        // Reiniciar jugador si muere
-                        this.m.j.hp = this.m.j.maxHp || 100;
-                        this.m.j.x = 0;
-                        this.m.j.z = 0;
-                        this.m.j.exp = 0;
-                        this.m.j.nivel = 1;
-                        console.log("Jugador derrotado. Reiniciando...");
-                    }
+            const dx =
+                this.m.j.x -
+                criatura.x;
+
+            const dz =
+                this.m.j.z -
+                criatura.z;
+
+            const distancia =
+                Math.hypot(
+                    dx,
+                    dz
+                );
+
+            // Seguir al jugador
+            if (
+                distancia < 12 &&
+                distancia > 2
+            ) {
+
+                const nx =
+                    dx / distancia;
+
+                const nz =
+                    dz / distancia;
+
+                criatura.x +=
+                    nx * 0.04;
+
+                criatura.z +=
+                    nz * 0.04;
+
+                criatura.y =
+                    this.m.getGroundHeightAt(
+                        criatura.x,
+                        criatura.z
+                    );
+
+                if (
+                    criatura.modelo
+                ) {
+
+                    criatura.modelo.position.set(
+                        criatura.x,
+                        criatura.y,
+                        criatura.z
+                    );
+
+                    criatura.modelo.lookAt(
+                        this.m.j.x,
+                        criatura.y + 0.5,
+                        this.m.j.z
+                    );
+
                 }
-                c.tiempoAtaque = true;
-                setTimeout(() => c.tiempoAtaque = false, 1200);
-            }
-        });
 
-        // Limpiar criaturas muertas por seguridad
-        this.lista = this.lista.filter(c => c.vida > 0);
+            }
+
+            // Ataque
+            if (
+                distancia < 2.2 &&
+                !criatura.tiempoAtaque
+            ) {
+
+                this.m.j.recibirDaño(
+                    criatura.daño
+                );
+
+                if (
+                    this.m.j.hp <= 0
+                ) {
+
+                    this.m.j.hp = 0;
+                    this.m.j.vivo = false;
+
+                    console.log(
+                        "Jugador derrotado"
+                    );
+
+                }
+
+                criatura.tiempoAtaque =
+                    true;
+
+                setTimeout(
+                    () => {
+                        criatura.tiempoAtaque =
+                            false;
+                    },
+                    1200
+                );
+
+            }
+
+        }
+
     }
+
 }
+
+window.GestorCriaturas =
+    GestorCriaturas;
