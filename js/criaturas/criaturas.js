@@ -3,12 +3,18 @@ class GestorCriaturas {
     constructor(motor, datos) {
 
         this.m = motor;
+
         this.d = datos || {};
+
         this.lista = [];
 
         this.expGanar = 15;
 
     }
+
+    // ==========================================
+    // CREAR CRIATURA
+    // ==========================================
 
     crear(tipo, x, z) {
 
@@ -22,6 +28,7 @@ class GestorCriaturas {
             );
 
             return null;
+
         }
 
         let y = 0;
@@ -39,6 +46,10 @@ class GestorCriaturas {
                 );
 
         }
+
+        // ========================================
+        // MODELO
+        // ========================================
 
         const modelo =
             new THREE.Group();
@@ -58,7 +69,9 @@ class GestorCriaturas {
         cuerpo.position.y =
             0.35;
 
-        modelo.add(cuerpo);
+        modelo.add(
+            cuerpo
+        );
 
         modelo.position.set(
             x,
@@ -70,14 +83,17 @@ class GestorCriaturas {
             modelo
         );
 
+        // ========================================
+        // CRIATURA
+        // ========================================
+
         const criatura = {
 
             tipo: tipo,
 
             x: x,
-            z: z,
-
             y: y,
+            z: z,
 
             vida: datos.vida,
             vidaMax: datos.vida,
@@ -86,6 +102,24 @@ class GestorCriaturas {
 
             modelo: modelo,
 
+            // Movimiento
+            direccion: Math.random() * Math.PI * 2,
+
+            velocidad:
+                0.01 +
+                Math.random() * 0.025,
+
+            caminando:
+                Math.random() > 0.3,
+
+            tiempoMovimiento:
+                60 +
+                Math.random() * 180,
+
+            tiempoQuieto: 0,
+
+            // Ataque eliminado:
+            // las criaturas no persiguen ni atacan
             tiempoAtaque: false
 
         };
@@ -95,10 +129,16 @@ class GestorCriaturas {
         );
 
         return criatura;
+
     }
+
+    // ==========================================
+    // GENERAR CRIATURAS
+    // ==========================================
 
     generarIniciales() {
 
+        // Lobos
         if (this.d.lobo) {
 
             this.crear(
@@ -113,15 +153,74 @@ class GestorCriaturas {
                 5
             );
 
+            this.crear(
+                "lobo",
+                15,
+                -10
+            );
+
+        }
+
+        // Vacas
+        if (this.d.vaca) {
+
+            this.crear(
+                "vaca",
+                10,
+                -15
+            );
+
+            this.crear(
+                "vaca",
+                -18,
+                -8
+            );
+
+            this.crear(
+                "vaca",
+                20,
+                12
+            );
+
+        }
+
+        // Ciervos
+        if (this.d.ciervo) {
+
+            this.crear(
+                "ciervo",
+                -20,
+                15
+            );
+
+            this.crear(
+                "ciervo",
+                25,
+                5
+            );
+
         }
 
     }
 
+    // ==========================================
+    // DAÑO
+    // ==========================================
+
     recibirDaño(cantidad) {
 
-        if (!this.m || !this.m.j) {
+        if (
+            !this.m ||
+            !this.m.j
+        ) {
+
             return;
+
         }
+
+        let objetivo = null;
+
+        let distanciaMenor = Infinity;
 
         for (
             const criatura of this.lista
@@ -130,7 +229,9 @@ class GestorCriaturas {
             if (
                 criatura.vida <= 0
             ) {
+
                 continue;
+
             }
 
             const distancia =
@@ -143,50 +244,63 @@ class GestorCriaturas {
                 );
 
             if (
-                distancia < 2.5
+                distancia < 2.5 &&
+                distancia < distanciaMenor
             ) {
 
-                criatura.vida -=
-                    cantidad;
+                objetivo =
+                    criatura;
 
-                console.log(
-                    `${criatura.tipo} recibe ${cantidad} de daño. Vida: ${criatura.vida}`
+                distanciaMenor =
+                    distancia;
+
+            }
+
+        }
+
+        if (!objetivo) {
+
+            return;
+
+        }
+
+        objetivo.vida -=
+            cantidad;
+
+        console.log(
+            `${objetivo.tipo} recibe ${cantidad} de daño. Vida: ${objetivo.vida}`
+        );
+
+        if (
+            objetivo.vida <= 0
+        ) {
+
+            this.m.j.ganarExperiencia(
+                this.expGanar
+            );
+
+            if (
+                this.m.inv &&
+                typeof this.m.inv.agregar ===
+                "function"
+            ) {
+
+                this.m.inv.agregar(
+                    "madera",
+                    1,
+                    "Madera"
                 );
 
-                if (
-                    criatura.vida <= 0
-                ) {
+            }
 
-                    this.m.j.ganarExperiencia(
-                        this.expGanar
-                    );
+            if (
+                objetivo.modelo &&
+                objetivo.modelo.parent
+            ) {
 
-                    if (
-                        this.m.inv &&
-                        typeof this.m.inv.agregar ===
-                        "function"
-                    ) {
-
-                        this.m.inv.agregar(
-                            "madera",
-                            1,
-                            "Madera"
-                        );
-
-                    }
-
-                    if (
-                        criatura.modelo &&
-                        criatura.modelo.parent
-                    ) {
-
-                        criatura.modelo.parent.remove(
-                            criatura.modelo
-                        );
-
-                    }
-
-                }
+                objetivo.modelo.parent.remove(
+                    objetivo.modelo
+                );
 
             }
 
@@ -200,14 +314,29 @@ class GestorCriaturas {
 
     }
 
-    actualizar() {
+    // ==========================================
+    // CAMBIO DE DIRECCIÓN
+    // ==========================================
 
-        if (
-            !this.m ||
-            !this.m.j
-        ) {
-            return;
-        }
+    cambiarDireccion(criatura) {
+
+        criatura.direccion =
+            Math.random() *
+            Math.PI *
+            2;
+
+        criatura.velocidad =
+            0.008 +
+            Math.random() *
+            0.025;
+
+    }
+
+    // ==========================================
+    // ACTUALIZAR
+    // ==========================================
+
+    actualizar() {
 
         for (
             const criatura of this.lista
@@ -216,46 +345,99 @@ class GestorCriaturas {
             if (
                 criatura.vida <= 0
             ) {
+
                 continue;
+
             }
 
-            const dx =
-                this.m.j.x -
-                criatura.x;
+            // ====================================
+            // CONTADOR
+            // ====================================
 
-            const dz =
-                this.m.j.z -
-                criatura.z;
-
-            const distancia =
-                Math.hypot(
-                    dx,
-                    dz
-                );
-
-            // Seguir al jugador
             if (
-                distancia < 12 &&
-                distancia > 2
+                criatura.tiempoMovimiento > 0
             ) {
 
-                const nx =
-                    dx / distancia;
+                criatura.tiempoMovimiento--;
 
-                const nz =
-                    dz / distancia;
+            }
+
+            // ====================================
+            // CAMBIAR ENTRE CAMINAR Y PARAR
+            // ====================================
+
+            if (
+                criatura.tiempoMovimiento <= 0
+            ) {
+
+                criatura.caminando =
+                    !criatura.caminando;
+
+                if (
+                    criatura.caminando
+                ) {
+
+                    criatura.tiempoMovimiento =
+                        80 +
+                        Math.random() *
+                        200;
+
+                    this.cambiarDireccion(
+                        criatura
+                    );
+
+                } else {
+
+                    criatura.tiempoMovimiento =
+                        60 +
+                        Math.random() *
+                        150;
+
+                }
+
+            }
+
+            // ====================================
+            // CAMINAR
+            // ====================================
+
+            if (
+                criatura.caminando
+            ) {
 
                 criatura.x +=
-                    nx * 0.04;
+                    Math.sin(
+                        criatura.direccion
+                    ) *
+                    criatura.velocidad;
 
                 criatura.z +=
-                    nz * 0.04;
+                    Math.cos(
+                        criatura.direccion
+                    ) *
+                    criatura.velocidad;
 
-                criatura.y =
-                    this.m.getGroundHeightAt(
-                        criatura.x,
-                        criatura.z
-                    );
+                // --------------------------------
+                // ALTURA DEL TERRENO
+                // --------------------------------
+
+                if (
+                    this.m &&
+                    typeof this.m.getGroundHeightAt ===
+                    "function"
+                ) {
+
+                    criatura.y =
+                        this.m.getGroundHeightAt(
+                            criatura.x,
+                            criatura.z
+                        );
+
+                }
+
+                // --------------------------------
+                // GIRAR EL MODELO
+                // --------------------------------
 
                 if (
                     criatura.modelo
@@ -267,49 +449,10 @@ class GestorCriaturas {
                         criatura.z
                     );
 
-                    criatura.modelo.lookAt(
-                        this.m.j.x,
-                        criatura.y + 0.5,
-                        this.m.j.z
-                    );
+                    criatura.modelo.rotation.y =
+                        criatura.direccion;
 
                 }
-
-            }
-
-            // Ataque
-            if (
-                distancia < 2.2 &&
-                !criatura.tiempoAtaque
-            ) {
-
-                this.m.j.recibirDaño(
-                    criatura.daño
-                );
-
-                if (
-                    this.m.j.hp <= 0
-                ) {
-
-                    this.m.j.hp = 0;
-                    this.m.j.vivo = false;
-
-                    console.log(
-                        "Jugador derrotado"
-                    );
-
-                }
-
-                criatura.tiempoAtaque =
-                    true;
-
-                setTimeout(
-                    () => {
-                        criatura.tiempoAtaque =
-                            false;
-                    },
-                    1200
-                );
 
             }
 
