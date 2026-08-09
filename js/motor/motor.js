@@ -26,17 +26,6 @@ class Motor {
             this.renderer.domElement
         );
 
-        this.raycaster = new THREE.Raycaster();
-
-        this.groundPlane = new THREE.Plane(
-            new THREE.Vector3(0, 1, 0),
-            0
-        );
-
-        this.mouse = new THREE.Vector2(0, 0);
-
-        this.targetPoint = new THREE.Vector3();
-
         this.ang = {
             x: 0,
             y: 0
@@ -50,6 +39,23 @@ class Motor {
         this.mundo = null;
         this.criaturas = null;
         this.inv = null;
+
+        // ==========================================
+        // FÍSICA DEL JUGADOR
+        // ==========================================
+
+        this.velocidadCaminar = 0.10;
+        this.velocidadCorrer = 0.20;
+
+        this.velocidadY = 0;
+
+        this.gravedad = 0.018;
+
+        this.fuerzaSalto = 0.32;
+
+        this.enSuelo = true;
+
+        this.alturaJugador = 0.6;
 
         // ==========================================
         // LUCES
@@ -79,57 +85,76 @@ class Motor {
         this.escena.add(luzDireccional);
 
         // ==========================================
-        // CONTROLES DE TECLADO
+        // TECLADO
         // ==========================================
 
-        window.addEventListener("keydown", (evento) => {
+        window.addEventListener(
+            "keydown",
+            (evento) => {
 
-            const tecla =
-                evento.key.toLowerCase();
+                const tecla =
+                    evento.key.toLowerCase();
 
-            this.teclas[tecla] = true;
+                this.teclas[tecla] = true;
 
-            if (
-                [
-                    "w",
-                    "a",
-                    "s",
-                    "d",
-                    " ",
-                    "arrowup",
-                    "arrowdown",
-                    "arrowleft",
-                    "arrowright"
-                ].includes(tecla)
-            ) {
-                evento.preventDefault();
+                if (
+                    [
+                        "w",
+                        "a",
+                        "s",
+                        "d",
+                        " ",
+                        "shift",
+                        "arrowup",
+                        "arrowdown",
+                        "arrowleft",
+                        "arrowright"
+                    ].includes(tecla)
+                ) {
+
+                    evento.preventDefault();
+
+                }
+
+                // SALTO
+                if (
+                    tecla === " " &&
+                    !evento.repeat
+                ) {
+
+                    this.saltar();
+
+                }
+
+                // INVENTARIO
+                if (
+                    tecla === "e" &&
+                    this.inv &&
+                    typeof this.inv.toggle === "function"
+                ) {
+
+                    this.inv.toggle();
+
+                }
+
             }
+        );
 
-            // Inventario con E
-            if (
-                tecla === "e" &&
-                this.inv &&
-                typeof this.inv.toggle === "function"
-            ) {
-                this.inv.toggle();
+        window.addEventListener(
+            "keyup",
+            (evento) => {
+
+                const tecla =
+                    evento.key.toLowerCase();
+
+                this.teclas[tecla] = false;
+
             }
-
-        });
-
-        window.addEventListener("keyup", (evento) => {
-
-            const tecla =
-                evento.key.toLowerCase();
-
-            this.teclas[tecla] = false;
-
-        });
+        );
 
         // ==========================================
-        // CONTROLES DE RATÓN
+        // RATÓN
         // ==========================================
-
-        this.mouseControlActivo = false;
 
         this.renderer.domElement.addEventListener(
             "click",
@@ -139,7 +164,9 @@ class Motor {
                     document.pointerLockElement !==
                     this.renderer.domElement
                 ) {
+
                     this.renderer.domElement.requestPointerLock();
+
                 }
 
             }
@@ -153,7 +180,9 @@ class Motor {
                     document.pointerLockElement !==
                     this.renderer.domElement
                 ) {
+
                     return;
+
                 }
 
                 const sensibilidad = 0.0025;
@@ -217,7 +246,10 @@ class Motor {
                 typeof this.mundo.altura === "function"
             ) {
 
-                return this.mundo.altura(x, z);
+                return this.mundo.altura(
+                    x,
+                    z
+                );
 
             }
 
@@ -256,9 +288,9 @@ class Motor {
 
                 this.j.y =
                     this.getGroundHeightAt(
-                        this.j.x,
-                        this.j.z
-                    ) + 0.6;
+                        0,
+                        0
+                    ) + this.alturaJugador;
 
                 this.j.agregarAEscena(
                     this.escena
@@ -361,18 +393,10 @@ class Motor {
         // CÁMARA
         // ========================================
 
-        if (this.j) {
-
-            this.cam.position.set(
-                this.j.x,
-                this.j.y + 1.0,
-                this.j.z
-            );
-
-        }
+        this._actualizarCamara();
 
         // ========================================
-        // LOOP PRINCIPAL
+        // LOOP
         // ========================================
 
         const loop = () => {
@@ -384,7 +408,8 @@ class Motor {
 
                 if (
                     this.j &&
-                    this.mundo
+                    this.mundo &&
+                    typeof this.mundo.actualizar === "function"
                 ) {
 
                     this.mundo.actualizar(
@@ -408,8 +433,7 @@ class Motor {
 
                 if (
                     this.criaturas &&
-                    typeof this.criaturas.actualizar ===
-                    "function"
+                    typeof this.criaturas.actualizar === "function"
                 ) {
 
                     this.criaturas.actualizar();
@@ -426,33 +450,50 @@ class Motor {
             }
 
             // HUD
-            try {
+            if (
+                this.j &&
+                typeof this.j.actualizarHUD === "function"
+            ) {
 
-                if (
-                    this.j &&
-                    typeof this.j.actualizarHUD ===
-                    "function"
-                ) {
+                this.j.actualizarHUD();
 
-                    this.j.actualizarHUD();
+            }
 
-                }
-
-            } catch (error) {}
-
-            // Cámara
             this._actualizarCamara();
 
-            // Render
             this.renderer.render(
                 this.escena,
                 this.cam
             );
 
             requestAnimationFrame(loop);
+
         };
 
         requestAnimationFrame(loop);
+
+    }
+
+    // ==========================================
+    // SALTO
+    // ==========================================
+
+    saltar() {
+
+        if (
+            !this.j ||
+            !this.enSuelo
+        ) {
+
+            return;
+
+        }
+
+        this.velocidadY =
+            this.fuerzaSalto;
+
+        this.enSuelo = false;
+
     }
 
     // ==========================================
@@ -462,10 +503,14 @@ class Motor {
     _updateMovement() {
 
         if (!this.j) {
+
             return;
+
         }
 
-        const velocidad = 0.10;
+        // ----------------------------------------
+        // DIRECCIÓN
+        // ----------------------------------------
 
         const forward =
             (this.teclas["w"] ? 1 : 0) -
@@ -475,45 +520,97 @@ class Motor {
             (this.teclas["d"] ? 1 : 0) -
             (this.teclas["a"] ? 1 : 0);
 
+        let dx = 0;
+        let dz = 0;
+
         if (
-            forward === 0 &&
-            right === 0
+            forward !== 0 ||
+            right !== 0
         ) {
-            return;
+
+            const yaw =
+                this.ang.y;
+
+            dx =
+                Math.cos(yaw) * forward -
+                Math.sin(yaw) * right;
+
+            dz =
+                Math.sin(yaw) * forward +
+                Math.cos(yaw) * right;
+
+            const longitud =
+                Math.hypot(
+                    dx,
+                    dz
+                );
+
+            if (longitud > 0) {
+
+                dx /= longitud;
+                dz /= longitud;
+
+            }
+
+            // ------------------------------------
+            // CORRER CON SHIFT
+            // ------------------------------------
+
+            const corriendo =
+                !!this.teclas["shift"];
+
+            const velocidad =
+                corriendo
+                    ? this.velocidadCorrer
+                    : this.velocidadCaminar;
+
+            this.j.x +=
+                dx * velocidad;
+
+            this.j.z +=
+                dz * velocidad;
+
         }
 
-        const yaw = this.ang.y;
+        // ----------------------------------------
+        // GRAVEDAD
+        // ----------------------------------------
 
-        let dx =
-            Math.cos(yaw) * forward -
-            Math.sin(yaw) * right;
+        this.velocidadY -=
+            this.gravedad;
 
-        let dz =
-            Math.sin(yaw) * forward +
-            Math.cos(yaw) * right;
+        this.j.y +=
+            this.velocidadY;
 
-        const longitud =
-            Math.hypot(dx, dz);
+        // ----------------------------------------
+        // SUELO
+        // ----------------------------------------
 
-        if (longitud > 0) {
-
-            dx /= longitud;
-            dz /= longitud;
-
-        }
-
-        this.j.x +=
-            dx * velocidad;
-
-        this.j.z +=
-            dz * velocidad;
-
-        // Mantener jugador sobre el terreno
-        this.j.y =
+        const suelo =
             this.getGroundHeightAt(
                 this.j.x,
                 this.j.z
-            ) + 0.6;
+            ) + this.alturaJugador;
+
+        if (
+            this.j.y <= suelo
+        ) {
+
+            this.j.y = suelo;
+
+            this.velocidadY = 0;
+
+            this.enSuelo = true;
+
+        } else {
+
+            this.enSuelo = false;
+
+        }
+
+        // ----------------------------------------
+        // ACTUALIZAR MODELO
+        // ----------------------------------------
 
         if (
             typeof this.j.actualizarPosicion ===
@@ -533,11 +630,17 @@ class Motor {
     _actualizarCamara() {
 
         if (!this.j) {
+
             return;
+
         }
 
         this.cam.rotation.order =
             "YXZ";
+
+        // ----------------------------------------
+        // PRIMERA PERSONA
+        // ----------------------------------------
 
         if (
             this.cameraMode === "first"
@@ -545,7 +648,7 @@ class Motor {
 
             this.cam.position.set(
                 this.j.x,
-                this.j.y + 1.0,
+                this.j.y + 0.4,
                 this.j.z
             );
 
@@ -555,34 +658,38 @@ class Motor {
             this.cam.rotation.x =
                 this.ang.x;
 
-        } else {
-
-            const distancia = 5;
-            const altura = 2;
-
-            const camX =
-                this.j.x -
-                Math.sin(this.ang.y) *
-                distancia;
-
-            const camZ =
-                this.j.z -
-                Math.cos(this.ang.y) *
-                distancia;
-
-            this.cam.position.set(
-                camX,
-                this.j.y + altura,
-                camZ
-            );
-
-            this.cam.lookAt(
-                this.j.x,
-                this.j.y + 0.8,
-                this.j.z
-            );
+            return;
 
         }
+
+        // ----------------------------------------
+        // TERCERA PERSONA
+        // ----------------------------------------
+
+        const distancia = 5;
+        const altura = 2.5;
+
+        const camX =
+            this.j.x -
+            Math.sin(this.ang.y) *
+            distancia;
+
+        const camZ =
+            this.j.z -
+            Math.cos(this.ang.y) *
+            distancia;
+
+        this.cam.position.set(
+            camX,
+            this.j.y + altura,
+            camZ
+        );
+
+        this.cam.lookAt(
+            this.j.x,
+            this.j.y + 0.7,
+            this.j.z
+        );
 
     }
 
@@ -611,7 +718,9 @@ class Motor {
             "function"
         ) {
 
-            this.criaturas.recibirDaño(10);
+            this.criaturas.recibirDaño(
+                10
+            );
 
         }
 
@@ -619,5 +728,4 @@ class Motor {
 
 }
 
-// Exponer globalmente
 window.Motor = Motor;
