@@ -1,11 +1,10 @@
 class Jugador {
 
-    constructor(){
+    constructor() {
 
         this.x = 0;
-        this.z = 0;
-        // altura por defecto: 0.6 para que los pies del modelo queden en y=0
         this.y = 0.6;
+        this.z = 0;
 
         this.hp = 100;
         this.maxHp = 100;
@@ -16,123 +15,192 @@ class Jugador {
         this.nivel = 1;
         this.exp = 0;
         this.expSig = 120;
+
         this.vivo = true;
 
+        // Estados de movimiento
+        this.corriendo = false;
+        this.saltando = false;
 
-        // Modelo del jugador: ahora es un Group con cuerpo y brazos
-        this.modelo = new THREE.Group();
+        // ========================================
+        // MODELO
+        // ========================================
 
-        const body = new THREE.Mesh(
-            new THREE.BoxGeometry(0.5, 1.2, 0.5),
-            new THREE.MeshLambertMaterial({ color: 0x22c55e })
+        this.modelo =
+            new THREE.Group();
+
+        const body =
+            new THREE.Mesh(
+                new THREE.BoxGeometry(
+                    0.5,
+                    1.2,
+                    0.5
+                ),
+                new THREE.MeshLambertMaterial({
+                    color: 0x22c55e
+                })
+            );
+
+        body.name =
+            "torso";
+
+        body.position.y =
+            0.6;
+
+        this.modelo.add(
+            body
         );
-        body.name = 'torso';
-        body.position.y = 0.6; // centrar el cuerpo
-        this.modelo.add(body);
 
-        // Brazos
-        const armGeo = new THREE.BoxGeometry(0.18, 0.9, 0.18);
-        const armMat = new THREE.MeshLambertMaterial({ color: 0xffcc99 });
+        // ========================================
+        // BRAZOS
+        // ========================================
 
-        const leftArm = new THREE.Mesh(armGeo, armMat);
-        leftArm.name = 'leftArm';
-        leftArm.position.set(-0.45, 1.0, 0);
-        leftArm.rotation.z = 0.08;
-        this.modelo.add(leftArm);
+        const armGeo =
+            new THREE.BoxGeometry(
+                0.18,
+                0.9,
+                0.18
+            );
 
-        const rightArm = new THREE.Mesh(armGeo, armMat);
-        rightArm.name = 'rightArm';
-        rightArm.position.set(0.45, 1.0, 0);
-        rightArm.rotation.z = -0.08;
-        this.modelo.add(rightArm);
-
-        // Guardar referencias por si queremos animar brazos luego
-        this.leftArm = leftArm;
-        this.rightArm = rightArm;
-
-        // Helper para habilitar/deshabilitar visibilidad del cuerpo (first person)
-        this.setFirstPerson = function(fp){
-            // ocultar torso y piernas, mantener brazos opcionalmente visibles
-            this.leftArm.visible = !!fp; // show arms in FP
-            this.rightArm.visible = !!fp;
-            // hide other meshes except arms
-            this.modelo.children.forEach(ch => {
-                if(ch.name === 'leftArm' || ch.name === 'rightArm') return;
-                ch.visible = !fp;
+        const armMat =
+            new THREE.MeshLambertMaterial({
+                color: 0xffcc99
             });
-        }.bind(this);
 
-        // Posición inicial del modelo (el motor usa this.x, this.y, this.z)
-        this.modelo.position.y = 0;
+        const leftArm =
+            new THREE.Mesh(
+                armGeo,
+                armMat
+            );
+
+        leftArm.name =
+            "leftArm";
+
+        leftArm.position.set(
+            -0.45,
+            1.0,
+            0
+        );
+
+        leftArm.rotation.z =
+            0.08;
+
+        this.modelo.add(
+            leftArm
+        );
+
+        const rightArm =
+            new THREE.Mesh(
+                armGeo,
+                armMat
+            );
+
+        rightArm.name =
+            "rightArm";
+
+        rightArm.position.set(
+            0.45,
+            1.0,
+            0
+        );
+
+        rightArm.rotation.z =
+            -0.08;
+
+        this.modelo.add(
+            rightArm
+        );
+
+        this.leftArm =
+            leftArm;
+
+        this.rightArm =
+            rightArm;
 
     }
 
+    agregarAEscena(escena) {
 
-
-    agregarAEscena(escena){
-
-        escena.add(this.modelo);
+        escena.add(
+            this.modelo
+        );
 
     }
 
-
-
-    actualizarPosicion(){
+    actualizarPosicion() {
 
         this.modelo.position.set(
-
             this.x,
-
             this.y - 0.6,
-
             this.z
-
         );
 
     }
 
+    recibirDaño(cantidad) {
 
+        if (
+            !this.vivo
+        ) {
 
-    recibirDaño(cantidad){
+            return;
 
-        this.hp -= cantidad;
+        }
 
-        if(this.hp < 0){
+        this.hp -=
+            cantidad;
+
+        if (
+            this.hp < 0
+        ) {
 
             this.hp = 0;
 
         }
 
-    }
+        if (
+            this.hp <= 0
+        ) {
 
-
-
-    curar(cantidad){
-
-        this.hp += cantidad;
-
-        if(this.hp > this.maxHp){
-
-            this.hp = this.maxHp;
+            this.vivo = false;
 
         }
 
     }
 
+    curar(cantidad) {
 
+        this.hp +=
+            cantidad;
 
-    ganarExperiencia(cantidad){
+        if (
+            this.hp >
+            this.maxHp
+        ) {
 
-        this.exp += cantidad;
+            this.hp =
+                this.maxHp;
 
+        }
 
-        if(this.exp >= this.expSig){
+    }
+
+    ganarExperiencia(cantidad) {
+
+        this.exp +=
+            cantidad;
+
+        if (
+            this.exp >=
+            this.expSig
+        ) {
 
             this.nivel++;
 
             this.exp = 0;
 
-            this.expSig *= 1.2;
+            this.expSig *=
+                1.2;
 
             console.log(
                 "Nivel nuevo:",
@@ -143,64 +211,115 @@ class Jugador {
 
     }
 
+    setFirstPerson(fp) {
 
+        this.leftArm.visible =
+            !!fp;
 
-    actualizarHUD(){
+        this.rightArm.visible =
+            !!fp;
 
-        let lvl =
-        document.getElementById("lvl");
+        this.modelo.children.forEach(
+            (child) => {
 
-        if(lvl)
-        lvl.textContent = this.nivel;
+                if (
+                    child.name === "leftArm" ||
+                    child.name === "rightArm"
+                ) {
 
+                    return;
 
+                }
 
-        let pos =
-        document.getElementById("pos");
+                child.visible =
+                    !fp;
 
-        if(pos)
-        pos.textContent =
-        `X:${Math.round(this.x)} Z:${Math.round(this.z)}`;
+            }
+        );
 
+    }
 
+    actualizarHUD() {
 
-        let hp =
-        document.getElementById("b-hp");
+        const lvl =
+            document.getElementById(
+                "lvl"
+            );
 
-        if(hp)
-        hp.style.width =
-        this.hp + "%";
+        if (lvl) {
 
+            lvl.textContent =
+                this.nivel;
 
+        }
 
-        let mana =
-        document.getElementById("b-mana");
+        const pos =
+            document.getElementById(
+                "pos"
+            );
 
-        if(mana)
-        mana.style.width =
-        this.mana + "%";
+        if (pos) {
 
+            pos.textContent =
+                `X:${Math.round(this.x)} Z:${Math.round(this.z)}`;
 
+        }
 
-        // CORREGIDO: Agregar actualización de barra de experiencia
-        let exp =
-        document.getElementById("b-exp");
+        const hp =
+            document.getElementById(
+                "b-hp"
+            );
 
-        if(exp)
-        exp.style.width =
-        (this.exp / this.expSig * 100) + "%";
+        if (hp) {
 
+            hp.style.width =
+                this.hp + "%";
 
+        }
 
-        let hambre =
-        document.getElementById("b-hambre");
+        const mana =
+            document.getElementById(
+                "b-mana"
+            );
 
-        if(hambre)
-        hambre.style.width =
-        this.hambre + "%";
+        if (mana) {
 
+            mana.style.width =
+                this.mana + "%";
 
+        }
+
+        const exp =
+            document.getElementById(
+                "b-exp"
+            );
+
+        if (exp) {
+
+            exp.style.width =
+                (
+                    this.exp /
+                    this.expSig *
+                    100
+                ) + "%";
+
+        }
+
+        const hambre =
+            document.getElementById(
+                "b-hambre"
+            );
+
+        if (hambre) {
+
+            hambre.style.width =
+                this.hambre + "%";
+
+        }
 
     }
 
 }
+
+window.Jugador =
+    Jugador;
