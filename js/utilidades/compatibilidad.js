@@ -1,4 +1,4 @@
-// Carga y normaliza los datos JSON antes de iniciar los sistemas que dependen de ellos.
+// Carga y normaliza los datos JSON sin bloquear el arranque del juego.
 (function () {
     const archivos = {
         letras: "data/letras.json",
@@ -52,7 +52,7 @@
         };
     }
 
-    // GestorCriaturas usa criaturas.json como fuente de estadísticas.
+    // GestorCriaturas usa criaturas.json cuando ya fue cargado y conserva fallback.
     if (window.GestorCriaturas) {
         const crearOriginal = window.GestorCriaturas.prototype.crear;
         window.GestorCriaturas.prototype.crear = function (tipo, x, z) {
@@ -66,15 +66,5 @@
             }
             return crearOriginal.call(this, tipo, x, z);
         };
-    }
-
-    // Se instala inmediatamente para que main.js no pueda iniciar el motor antes de cargar los JSON.
-    if (window.Motor && !window.Motor.__datosCompatibles) {
-        const iniciarOriginal = window.Motor.prototype.iniciar;
-        window.Motor.prototype.iniciar = async function () {
-            await window.GAME_DATA_READY;
-            return iniciarOriginal.call(this);
-        };
-        window.Motor.__datosCompatibles = true;
     }
 })();
