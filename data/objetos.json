@@ -1,1 +1,10 @@
-[]
+[
+  {"id":"madera","nombre":"Madera","tipo":"material","cantidadMax":64},
+  {"id":"piedra","nombre":"Piedra","tipo":"material","cantidadMax":64},
+  {"id":"hierro","nombre":"Hierro","tipo":"material","cantidadMax":64},
+  {"id":"hacha","nombre":"Hacha","tipo":"herramienta","durabilidad":100,"daño":5},
+  {"id":"pico","nombre":"Pico","tipo":"herramienta","durabilidad":100,"daño":5},
+  {"id":"espada","nombre":"Espada","tipo":"arma","durabilidad":100,"daño":25},
+  {"id":"huevo","nombre":"Huevo","tipo":"comida","cantidadMax":16},
+  {"id":"carne","nombre":"Carne","tipo":"comida","cantidadMax":16}
+]
