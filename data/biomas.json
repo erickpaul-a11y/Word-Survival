@@ -1,1 +1,34 @@
-[]
+[
+  {
+    "nombre": "pradera",
+    "color": "#5fa34a",
+    "alturaMin": 0,
+    "alturaMax": 8,
+    "recursos": ["madera", "piedra"],
+    "criaturas": ["lobo", "ciervo"]
+  },
+  {
+    "nombre": "bosque",
+    "color": "#2f6b3c",
+    "alturaMin": 2,
+    "alturaMax": 10,
+    "recursos": ["madera", "piedra"],
+    "criaturas": ["lobo", "oso"]
+  },
+  {
+    "nombre": "montaña",
+    "color": "#777777",
+    "alturaMin": 6,
+    "alturaMax": 20,
+    "recursos": ["piedra", "hierro"],
+    "criaturas": ["lobo", "oso"]
+  },
+  {
+    "nombre": "nieve",
+    "color": "#eeeeee",
+    "alturaMin": 10,
+    "alturaMax": 24,
+    "recursos": ["piedra", "hielo"],
+    "criaturas": ["lobo"]
+  }
+]
