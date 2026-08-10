@@ -1,1 +1,17 @@
-[]
+[
+  {
+    "id":"hacha",
+    "resultado":{"objeto":"hacha","cantidad":1},
+    "ingredientes":[{"objeto":"madera","cantidad":2},{"objeto":"piedra","cantidad":3}]
+  },
+  {
+    "id":"pico",
+    "resultado":{"objeto":"pico","cantidad":1},
+    "ingredientes":[{"objeto":"madera","cantidad":2},{"objeto":"piedra","cantidad":3}]
+  },
+  {
+    "id":"espada",
+    "resultado":{"objeto":"espada","cantidad":1},
+    "ingredientes":[{"objeto":"madera","cantidad":1},{"objeto":"hierro","cantidad":2}]
+  }
+]
