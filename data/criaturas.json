@@ -1,3 +1,6 @@
 [
-  {"tipo":"lobo","vida":20,"daño":8}
+  {"tipo":"lobo","nombre":"Lobo","vida":50,"daño":8,"velocidad":2.2,"agresivo":true},
+  {"tipo":"oso","nombre":"Oso","vida":100,"daño":15,"velocidad":1.5,"agresivo":true},
+  {"tipo":"ciervo","nombre":"Ciervo","vida":30,"daño":0,"velocidad":2.8,"agresivo":false},
+  {"tipo":"dragon","nombre":"Dragón","vida":250,"daño":30,"velocidad":1.8,"agresivo":true}
 ]
