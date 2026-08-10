@@ -1,6 +1,5 @@
-[
-  {"tipo":"lobo","nombre":"Lobo","vida":50,"daño":8,"velocidad":2.2,"agresivo":true},
-  {"tipo":"oso","nombre":"Oso","vida":100,"daño":15,"velocidad":1.5,"agresivo":true},
-  {"tipo":"ciervo","nombre":"Ciervo","vida":30,"daño":0,"velocidad":2.8,"agresivo":false},
-  {"tipo":"dragon","nombre":"Dragón","vida":250,"daño":30,"velocidad":1.8,"agresivo":true}
-]
+{
+  "vaca": {"nombre":"Vaca","vida":20,"velocidad":0.014,"agresivo":false},
+  "oveja": {"nombre":"Oveja","vida":15,"velocidad":0.012,"agresivo":false},
+  "pollo": {"nombre":"Pollo","vida":8,"velocidad":0.018,"agresivo":false}
+}
