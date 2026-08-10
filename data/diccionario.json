@@ -1,9 +1,16 @@
 {
-  "madera": {"tipo":"material","letras":["M","A","D","E","R"]},
+  "madera": {"tipo":"material","letras":["M","A","D","E","R","A"]},
   "piedra": {"tipo":"material","letras":["P","I","E","D","R","A"]},
+  "hierro": {"tipo":"material","letras":["H","I","E","R","R","O"]},
+  "hielo": {"tipo":"material","letras":["H","I","E","L","O"]},
+  "fuego": {"tipo":"elemento","letras":["F","U","E","G","O"]},
+  "rayo": {"tipo":"elemento","letras":["R","A","Y","O"]},
   "lobo": {"tipo":"criatura","vida":50,"daño":8,"letras":["L","O","B","O"]},
+  "oso": {"tipo":"criatura","vida":100,"daño":15,"letras":["O","S","O"]},
+  "ciervo": {"tipo":"criatura","vida":30,"daño":0,"letras":["C","I","E","R","V","O"]},
+  "dragon": {"tipo":"criatura","vida":250,"daño":30,"letras":["D","R","A","G","O","N"]},
   "hacha": {"tipo":"herramienta","accion":"cortar","letras":["H","A","C","H","A"]},
   "pico": {"tipo":"herramienta","accion":"minar","letras":["P","I","C","O"]},
-  "uevo": {"tipo":"comida","hambre": "comer","letras":["U","E","V","O"]},
+  "huevo": {"tipo":"comida","hambre":20,"letras":["H","U","E","V","O"]},
   "espada": {"tipo":"arma","daño":25,"letras":["E","S","P","A","D","A"]}
 }
