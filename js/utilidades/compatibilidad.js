@@ -1,4 +1,4 @@
-// Carga los datos JSON antes de iniciar los sistemas que dependen de ellos.
+// Carga y normaliza los datos JSON antes de iniciar los sistemas que dependen de ellos.
 (function () {
     const archivos = {
         letras: "data/letras.json",
@@ -37,7 +37,7 @@
         return datos || fallback;
     };
 
-    // Evita que Mundo cree criaturas con propiedades de movimiento incompletas.
+    // Mundo no debe insertar criaturas incompletas en GestorCriaturas.lista.
     if (window.Mundo && window.GestorCriaturas) {
         const crearAnimalOriginal = window.Mundo.prototype.crearAnimal;
         window.Mundo.prototype.crearAnimal = function (x, z, tipo, chunk) {
@@ -52,7 +52,7 @@
         };
     }
 
-    // Hace que GestorCriaturas use los datos de criaturas.json en lugar de copias antiguas.
+    // GestorCriaturas usa criaturas.json como fuente de estadísticas.
     if (window.GestorCriaturas) {
         const crearOriginal = window.GestorCriaturas.prototype.crear;
         window.GestorCriaturas.prototype.crear = function (tipo, x, z) {
@@ -68,16 +68,13 @@
         };
     }
 
-    // El inicio espera a que los JSON estén disponibles.
-    window.GAME_DATA_READY.then(() => {
-        if (!window.Motor || window.Motor.__datosCompatibles) return;
-
+    // Se instala inmediatamente para que main.js no pueda iniciar el motor antes de cargar los JSON.
+    if (window.Motor && !window.Motor.__datosCompatibles) {
         const iniciarOriginal = window.Motor.prototype.iniciar;
         window.Motor.prototype.iniciar = async function () {
             await window.GAME_DATA_READY;
             return iniciarOriginal.call(this);
         };
-
         window.Motor.__datosCompatibles = true;
-    });
+    }
 })();
