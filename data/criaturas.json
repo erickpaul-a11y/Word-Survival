@@ -1,5 +1,6 @@
 {
-  "vaca": {"nombre":"Vaca","vida":20,"velocidad":0.014,"agresivo":false},
-  "oveja": {"nombre":"Oveja","vida":15,"velocidad":0.012,"agresivo":false},
-  "pollo": {"nombre":"Pollo","vida":8,"velocidad":0.018,"agresivo":false}
+  "vaca": {"nombre":"Vaca","vida":20,"velocidad":0.014,"agresivo":false,"habitat":"tierra"},
+  "oveja": {"nombre":"Oveja","vida":15,"velocidad":0.012,"agresivo":false,"habitat":"tierra"},
+  "pollo": {"nombre":"Pollo","vida":8,"velocidad":0.018,"agresivo":false,"habitat":"tierra"},
+  "pez": {"nombre":"Pez","vida":5,"velocidad":0.025,"agresivo":false,"habitat":"agua"}
 }
