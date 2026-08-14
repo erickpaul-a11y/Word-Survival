@@ -6,3 +6,4 @@ Supervivencia 3D procedural donde desbloqueas el idioma explorando.
 - Datos siempre en carpeta `data/`
 - Sistema de letras totalmente independiente
 - No borrar código funcional
+- modo de control con la mano con clik 
