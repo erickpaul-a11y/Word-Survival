@@ -12,6 +12,7 @@ if(btnEmpezar)btnEmpezar.onclick=()=>{
     window.WORLD_SEED=Math.floor(Math.random()*2147483647);motor.iniciar();
     if(typeof Inventario!=='undefined'){motor.inv=new Inventario(motor);const b=document.getElementById('btn-open-inv');if(b)b.onclick=()=>motor.inv.toggle();}
     if(typeof Crafteos!=='undefined'&&motor.inv)motor.crafteos=new Crafteos(motor.inv);
+    if(typeof GestorLenguaje!=='undefined'){motor.lenguaje=new GestorLenguaje(motor);motor.lenguaje.cargarDatos();}
     window.GAME_CONFIG=window.GAME_CONFIG||{};window.GAME_CONFIG.fpEnabled=true;window.GAME_CONFIG.fpHeight=.72;
     const btnCamera=document.getElementById('btn-toggle-camera');if(btnCamera){btnCamera.textContent='Cámara: 1ª';btnCamera.onclick=()=>{motor.toggleCamera();btnCamera.textContent=motor.cameraMode==='first'?'Cámara: 1ª':'Cámara: 3ª';};}
     const chk=document.getElementById('chk-crosshair'),cross=document.getElementById('crosshair');

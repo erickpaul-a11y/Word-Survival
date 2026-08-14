@@ -1,10 +1,11 @@
 class Inventario {
     constructor(motor,capacity=24){this.m=motor;this.capacity=capacity;this.items={};this.open=false;this.panel=this._createPanel();this._load();}
-    _save(){try{sessionStorage.setItem('inventory_state',JSON.stringify(this.items));}catch(e){}}
-    _load(){try{const s=sessionStorage.getItem('inventory_state');if(s)this.items=JSON.parse(s)||{};}catch(e){this.items={};}}
+    _save(){try{localStorage.setItem('word_survival_inventory',JSON.stringify(this.items));}catch(e){}}
+    _load(){try{const s=localStorage.getItem('word_survival_inventory');if(s)this.items=JSON.parse(s)||{};}catch(e){this.items={};}}
     _createPanel(){const p=document.createElement('div');p.id='inventory-panel';p.style.cssText='position:absolute;right:20px;top:60px;width:260px;max-height:60vh;overflow-y:auto;background:rgba(20,20,20,.9);color:#fff;padding:12px;border-radius:8px;z-index:9998;display:none';p.innerHTML='<div style="font-weight:700;margin-bottom:8px">Inventario <button id="inv-close">✕</button></div><div id="inv-list"></div>';document.body.appendChild(p);const b=p.querySelector('#inv-close');if(b)b.onclick=()=>this.close();return p;}
     _render(){const list=this.panel.querySelector('#inv-list');if(!list)return;list.innerHTML='';const keys=Object.keys(this.items);if(!keys.length){list.innerHTML='<div>(Vacío)</div>';return;}keys.forEach(id=>{const it=this.items[id];const row=document.createElement('div');row.style.cssText='display:flex;justify-content:space-between;margin-bottom:6px';row.innerHTML=`<div>${it.name}</div><div>x${it.qty}</div>`;list.appendChild(row);});}
     agregar(id,qty=1,name=null){if(!id)return false;if(!this.items[id]){if(Object.keys(this.items).length>=this.capacity)return false;this.items[id]={name:name||id,qty:0};}this.items[id].qty+=qty;this._render();this._save();return true;}
+    consumir(id,qty=1){if(!this.items[id]||this.items[id].qty<qty)return false;this.items[id].qty-=qty;if(this.items[id].qty<=0)delete this.items[id];this._render();this._save();return true;}
     toggle(){this.open?this.close():this.openPanel();}openPanel(){this.open=true;this.panel.style.display='block';this._render();}close(){this.open=false;this.panel.style.display='none';}
     recogerCercano(player){if(!player||!this.m||!this.m.escena)return false;let objetivo=null,distancia=3;this.m.escena.traverse(o=>{if(objetivo||!o.userData||!o.userData.pickup)return;const d=Math.hypot((o.position.x||0)-player.x,(o.position.z||0)-player.z);if(d<=distancia){objetivo=o;distancia=d;}});if(!objetivo)return false;const p=objetivo.userData.pickup;if(this.agregar(p.id,p.qty||1,p.name||p.id)){if(objetivo.parent)objetivo.parent.remove(objetivo);return true;}return false;}
 }
