@@ -13,8 +13,8 @@ if(btnEmpezar)btnEmpezar.onclick=()=>{
     if(typeof Inventario!=='undefined'){motor.inv=new Inventario(motor);const b=document.getElementById('btn-open-inv');if(b)b.onclick=()=>motor.inv.toggle();}
     if(typeof Crafteos!=='undefined'&&motor.inv)motor.crafteos=new Crafteos(motor.inv);
     window.GAME_CONFIG=window.GAME_CONFIG||{};window.GAME_CONFIG.fpEnabled=true;window.GAME_CONFIG.fpHeight=.72;
-    const btnCamera=document.getElementById('btn-toggle-camera');if(btnCamera){btnCamera.textContent='Cámara: 1ª';btnCamera.onclick=()=>motor.toggleCamera();}
+    const btnCamera=document.getElementById('btn-toggle-camera');if(btnCamera){btnCamera.textContent='Cámara: 1ª';btnCamera.onclick=()=>{motor.toggleCamera();btnCamera.textContent=motor.cameraMode==='first'?'Cámara: 1ª':'Cámara: 3ª';};}
     const chk=document.getElementById('chk-crosshair'),cross=document.getElementById('crosshair');
     if(chk&&cross){cross.style.display=chk.checked?'block':'none';chk.onchange=()=>cross.style.display=chk.checked?'block':'none';}
-    const fp=document.getElementById('chk-fp');if(fp){fp.checked=true;fp.disabled=true;fp.title='El jugador usa primera persona sin modelo ni manos.';}
+    const fp=document.getElementById('chk-fp');if(fp){fp.checked=true;fp.disabled=false;fp.title='Primera persona muestra las manos; tercera persona muestra el modelo completo.';}
 };
