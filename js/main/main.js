@@ -10,8 +10,8 @@ if(btnEmpezar)btnEmpezar.onclick=()=>{
     const pantallaInicio=document.getElementById('pantalla-inicio'),hudJuego=document.getElementById('hud-juego');
     if(pantallaInicio)pantallaInicio.style.display='none';if(hudJuego)hudJuego.style.display='block';
     window.WORLD_SEED=Math.floor(Math.random()*2147483647);motor.iniciar();
-    if(typeof Inventario!=='undefined'){motor.inv=new Inventario(motor);const b=document.getElementById('btn-open-inv');if(b)b.onclick=()=>motor.inv.toggle();}
-    if(typeof Crafteos!=='undefined'&&motor.inv)motor.crafteos=new Crafteos(motor.inv);
+    // Los recursos se mantienen físicamente en el suelo; no se abre inventario tradicional.
+    if(typeof Crafteos!=='undefined')motor.crafteos=new Crafteos(motor);
     if(typeof GestorLenguaje!=='undefined'){motor.lenguaje=new GestorLenguaje(motor);motor.lenguaje.cargarDatos();}
     window.GAME_CONFIG=window.GAME_CONFIG||{};window.GAME_CONFIG.fpEnabled=true;window.GAME_CONFIG.fpHeight=.72;
     const btnCamera=document.getElementById('btn-toggle-camera');if(btnCamera){btnCamera.textContent='Cámara: 1ª';btnCamera.onclick=()=>{motor.toggleCamera();btnCamera.textContent=motor.cameraMode==='first'?'Cámara: 1ª':'Cámara: 3ª';};}
