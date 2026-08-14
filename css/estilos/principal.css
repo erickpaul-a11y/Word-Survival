@@ -18,7 +18,16 @@ body {
     display: block;
     width: 100vw;
     height: 100vh;
+    position: fixed;
+    inset: 0;
+    z-index: 0;
 }
+
+/* Interfaz de juego limpia: los controles se usan con teclado, no como botones de navegador. */
+#hud-juego { position: fixed; top: 16px; left: 16px; z-index: 10; pointer-events: none; }
+#hud-juego .hud-caja { background: rgba(5,12,20,.48); padding: 8px; border-radius: 8px; font-size: .82rem; }
+#hud-juego button, #hud-juego label { display: none; }
+#pantalla-inicio { z-index: 10000; }
 
 /* Pantalla de Carga */
 #pantalla-carga {
