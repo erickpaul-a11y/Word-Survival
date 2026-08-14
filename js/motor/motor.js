@@ -38,7 +38,12 @@ class Motor {
     _updateMovement(dt){
         if(!this.j||!this.j.vivo)return;
         const f=(this.teclas.w?1:0)-(this.teclas.s?1:0),r=(this.teclas.d?1:0)-(this.teclas.a?1:0);let tx=0,tz=0;
-        if(f||r){const l=Math.hypot(f,r),nf=f/l,nr=r/l,y=this.ang.y;tx=Math.sin(y)*nf+Math.cos(y)*nr;tz=-Math.cos(y)*nf+Math.sin(y)*nr;}
+        if(f||r){const l=Math.hypot(f,r),nf=f/l,nr=r/l,y=this.ang.y;
+            // La cámara y el movimiento usan exactamente el mismo sistema de ejes.
+            // W avanza hacia donde mira la cámara y A/D se mantienen a izquierda/derecha.
+            tx=-Math.sin(y)*nf+Math.cos(y)*nr;
+            tz=-Math.cos(y)*nf-Math.sin(y)*nr;
+        }
         this.enAgua=this.esAgua(this.j.x,this.j.z);const agua=this.enAgua?this.getWaterHeightAt(this.j.x,this.j.z):null;this.profundidadAgua=agua===null?0:Math.max(0,agua-this.j.y);
         const corriendo=!!this.teclas.shift&&!!(f||r)&&!this.enAgua;this.j.corriendo=corriendo;const objetivo=(corriendo?this.velocidadCorrer:this.velocidadCaminar)*(this.enAgua?.55:1);
         const targetX=tx*objetivo,targetZ=tz*objetivo,cambio=Math.min(1,(f||r)?this.aceleracion*60*dt:this.frenado*60*dt);this.velocidadX+=(targetX-this.velocidadX)*cambio;this.velocidadZ+=(targetZ-this.velocidadZ)*cambio;
@@ -48,7 +53,7 @@ class Motor {
         else{this.profundidadAgua=0;this.velocidadY-=this.gravedad*dt;this.j.y+=this.velocidadY*dt;const suelo=this.getGroundHeightAt(this.j.x,this.j.z)+this.alturaJugador;if(this.j.y<=suelo){this.j.y=suelo;this.velocidadY=0;this.enSuelo=true;this.j.saltando=false;}else this.enSuelo=false;}
         if(water!==null&&this.enAgua)this.profundidadAgua=Math.max(0,water-this.j.y);this.j.velocidadMovimiento=Math.hypot(this.velocidadX,this.velocidadZ);this.j.actualizarPosicion();
     }
-    _actualizarCamara(){if(!this.j)return;this.cam.rotation.order='YXZ';if(this.cameraMode==='first'){this.cam.position.set(this.j.x,this.j.y+this.alturaCamara,this.j.z);this.cam.rotation.y=this.ang.y;this.cam.rotation.x=this.ang.x;}else{const distancia=3.2,alto=1.7;this.cam.position.set(this.j.x-Math.sin(this.ang.y)*distancia,this.j.y+alto-Math.sin(this.ang.x)*.5,this.j.z+Math.cos(this.ang.y)*distancia);this.cam.lookAt(this.j.x,this.j.y+1.0,this.j.z);}}
+    _actualizarCamara(){if(!this.j)return;this.cam.rotation.order='YXZ';if(this.cameraMode==='first'){this.cam.position.set(this.j.x,this.j.y+this.alturaCamara,this.j.z);this.cam.rotation.y=this.ang.y;this.cam.rotation.x=this.ang.x;}else{const distancia=3.2,alto=1.7;this.cam.position.set(this.j.x+Math.sin(this.ang.y)*distancia,this.j.y+alto-Math.sin(this.ang.x)*.5,this.j.z+Math.cos(this.ang.y)*distancia);this.cam.lookAt(this.j.x,this.j.y+1.0,this.j.z);}}
     toggleCamera(){this.cameraMode=this.cameraMode==='first'?'third':'first';if(this.j&&this.j.setFirstPerson)this.j.setFirstPerson(this.cameraMode==='first');}
     encontrarObjetivo(){const ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2(0,0),this.cam);const hits=ray.intersectObjects(this.escena.children,true);for(const h of hits){if(h.distance>4)break;let o=h.object;while(o){if(o.userData&&o.userData.recurso)return o;o=o.parent;}}return null;}
     golpearRecurso(){const ahora=performance.now();if(ahora-this.ultimoGolpe<350)return;this.ultimoGolpe=ahora;const o=this.encontrarObjetivo();if(!o||!o.userData.recurso)return;const r=o.userData.recurso;if(this.inv)Object.entries(r).forEach(([id,qty])=>this.inv.agregar(id,qty,id));if(o.parent)o.parent.remove(o);}
