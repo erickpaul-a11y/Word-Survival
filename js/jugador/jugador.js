@@ -40,16 +40,17 @@ class Jugador {
     actualizarManos(dt){
         const s=Math.min(1,dt*18); this._golpeL=Math.max(0,this._golpeL-dt*5); this._golpeR=Math.max(0,this._golpeR-dt*5);
         const l=this._golpeL,r=this._golpeR;
-        const pl=new THREE.Vector3(this._baseL.x-.16*l,this._baseL.y-.10*l,this._baseL.z+.30*l);
-        const pr=new THREE.Vector3(this._baseR.x+.16*r,this._baseR.y-.10*r,this._baseR.z+.30*r);
-        this.leftHand.position.lerp(pl,s); this.rightHand.position.lerp(pr,s);
+        this.leftHand.position.lerp(new THREE.Vector3(this._baseL.x-.16*l,this._baseL.y-.10*l,this._baseL.z+.30*l),s);
+        this.rightHand.position.lerp(new THREE.Vector3(this._baseR.x+.16*r,this._baseR.y-.10*r,this._baseR.z+.30*r),s);
         this.leftHand.rotation.z=this._baseRL-.9*l; this.rightHand.rotation.z=this._baseRR+.9*r;
     }
-    actualizarPosicion(){this.modelo.position.set(this.x,this.y-1.8,this.z);this.modelo.visible=true;}
+    actualizarPosicion(){
+        // j.y representa la base/pies del jugador; el modelo de 1.8 unidades nace desde ahí.
+        this.modelo.position.set(this.x,this.y,this.z);
+        this.modelo.visible=true;
+    }
     animarMovimiento(){}
     setFirstPerson(primera){
-        // El cuerpo permanece en la escena para que exista un jugador físico visible.
-        // En primera persona las manos siguen unidas a la cámara y son siempre visibles.
         this.modelo.visible=true;
         this.leftHand.visible=true; this.rightHand.visible=true;
     }
