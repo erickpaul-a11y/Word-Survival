@@ -1,0 +1,191 @@
+/* Sistema de interacción física de manos.
+ * Izquierda = botón izquierdo. Derecha = botón derecho.
+ * El movimiento del ratón durante el golpe determina la fuerza.
+ */
+(function(){
+  'use strict';
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const V=()=>THREE.Vector3;
+
+  function texturaProcedural(tipo){
+    const c=document.createElement('canvas'); c.width=64; c.height=64;
+    const g=c.getContext('2d');
+    const base={tierra:'#704020',piedra:'#777d83',madera:'#8a5528',palo:'#b9793c',arena:'#c5a15b',cesped:'#3f7f35',hojas:'#2f7d35',agua:'#2d82c7'}[tipo]||'#b58a55';
+    g.fillStyle=base; g.fillRect(0,0,64,64);
+    for(let y=0;y<64;y+=4) for(let x=0;x<64;x+=4){
+      const n=Math.sin((x*12.7+y*31.1+tipo.length*17)*2.17)*43758.5;
+      const r=n-Math.floor(n);
+      g.fillStyle=`rgba(255,255,255,${.04+r*.13})`;
+      g.fillRect(x,y,3,3);
+    }
+    const t=new THREE.CanvasTexture(c); t.magFilter=THREE.NearestFilter; t.minFilter=THREE.NearestFilter; t.generateMipmaps=false;
+    return t;
+  }
+
+  function aplicarTexturas(motor){
+    if(!motor||motor.__texturasAplicadas)return;
+    motor.__texturasAplicadas=true;
+    motor.texturasObjetos={};
+    ['tierra','piedra','madera','palo','arena','cesped','hojas','agua'].forEach(k=>motor.texturasObjetos[k]=texturaProcedural(k));
+    const aplicar=o=>{
+      if(!o||!o.material)return;
+      const id=o.userData&&o.userData.pickup&&o.userData.pickup.id;
+      const tipo=id||o.userData.tipo;
+      const map=motor.texturasObjetos[tipo];
+      if(map && o.material.map!==map){o.material.map=map;o.material.color.set(0xffffff);o.material.needsUpdate=true;}
+    };
+    motor.escena.traverse(aplicar);
+    motor.__aplicarTexturas=()=>motor.escena.traverse(aplicar);
+  }
+
+  function encontrarObjeto(motor){
+    const r=new THREE.Raycaster(); r.setFromCamera(new THREE.Vector2(0,0),motor.cam);
+    return r.intersectObjects(motor.escena.children,true).find(h=>h.distance<=4)||null;
+  }
+
+  function raizCon(o,pred){ while(o){if(pred(o))return o;o=o.parent;} return null; }
+
+  function crearGrieta(obj,nivel){
+    if(!obj)return;
+    obj.userData.grieta=clamp(nivel,0,1);
+    obj.traverse?.(m=>{
+      if(m.isMesh&&m.material&&m.material.color){
+        const f=1-obj.userData.grieta*.28; m.material.color.multiplyScalar(f);
+      }
+    });
+    if(obj.userData.grieta<1)return;
+    obj.userData.grieta=0;
+  }
+
+  function objetoMano(motor,lado){return lado==='izquierda'?motor.manoIzquierdaObjeto:motor.manoDerechaObjeto;}
+  function setObjetoMano(motor,lado,obj){
+    const mano=lado==='izquierda'?motor.j.leftHand:motor.j.rightHand;
+    const viejo=objetoMano(motor,lado);
+    if(viejo&&viejo.parent)viejo.parent.remove(viejo);
+    if(!obj){if(lado==='izquierda')motor.manoIzquierdaObjeto=null;else motor.manoDerechaObjeto=null;return;}
+    if(obj.parent)obj.parent.remove(obj);
+    mano.add(obj);
+    obj.position.set(0,-.22,-.18);
+    obj.rotation.set(0,0,0);
+    obj.scale.setScalar(obj.userData.pickup&&obj.userData.pickup.id==='pala_madera'?1.35:1.15);
+    obj.userData.enMano=true;
+    if(lado==='izquierda')motor.manoIzquierdaObjeto=obj;else motor.manoDerechaObjeto=obj;
+  }
+
+  function iniciar(motor){
+    if(!motor||!motor.j||motor.__interaccionFisica)return;
+    motor.__interaccionFisica=true;
+    aplicarTexturas(motor);
+    motor.manoIzquierdaObjeto=null; motor.manoDerechaObjeto=null; motor.ultimaMano='izquierda';
+    motor.golpe={izquierda:{presion:0,mx:0,my:0,activa:false},derecha:{presion:0,mx:0,my:0,activa:false}};
+
+    motor.recogerEnMano=function(lado){
+      const hit=encontrarObjeto(motor);
+      let o=hit&&raizCon(hit.object,x=>x.userData&&x.userData.pickup);
+      if(!o){o=motor.objetosCercanos(2.2)[0];}
+      if(!o)return false;
+      motor.retirarObjeto(o);
+      setObjetoMano(motor,lado,o);
+      motor.ultimaMano=lado;
+      return true;
+    };
+
+    motor.agarrar=function(){motor.recogerEnMano(motor.ultimaMano);};
+
+    motor.dejarMano=function(lado){
+      const o=objetoMano(motor,lado); if(!o)return false;
+      const dir=new THREE.Vector3(); motor.cam.getWorldDirection(dir);
+      const p=motor.j[lado==='izquierda'?'x':'x'];
+      const wp=o.getWorldPosition(new THREE.Vector3()).addScaledVector(dir,.8);
+      const id=o.userData.pickup.id,name=o.userData.pickup.name,qty=o.userData.pickup.qty||1;
+      if(o.parent)o.parent.remove(o);
+      if(lado==='izquierda')motor.manoIzquierdaObjeto=null;else motor.manoDerechaObjeto=null;
+      motor.crearObjeto(id,name,wp.x,wp.z,qty);
+      return true;
+    };
+
+    motor.impactar=function(lado,fuerza){
+      const hit=encontrarObjeto(motor); if(!hit)return;
+      const objeto=hit.object;
+      const arbol=raizCon(objeto,x=>x.userData&&x.userData.arbol);
+      if(arbol){
+        const herramienta=objetoMano(motor,lado);
+        const id=herramienta&&herramienta.userData.pickup&&herramienta.userData.pickup.id;
+        const dano=(id==='pala_madera'?.8:1)*(.35+fuerza*2.8);
+        arbol.userData.vida=(arbol.userData.vida||3)-dano;
+        arbol.userData.golpeFuerza=fuerza;
+        crearGrieta(arbol,clamp(1-arbol.userData.vida/3,0,1));
+        if(arbol.userData.vida<=0)motor.mundo.derribarArbol(arbol);
+        return;
+      }
+      const recurso=raizCon(objeto,x=>x.userData&&x.userData.recurso&&!x.userData.arbol);
+      if(recurso&&fuerza>.05){
+        const dano=.25+fuerza*1.5;
+        recurso.userData.vida=(recurso.userData.vida==null?2:recurso.userData.vida)-dano;
+        if(recurso.userData.vida<=0){
+          const pos=recurso.getWorldPosition(new V()); motor.soltarRecursos(recurso.userData.recurso,pos); if(recurso.parent)recurso.parent.remove(recurso);
+        } else crearGrieta(recurso,1-recurso.userData.vida/2);
+        return;
+      }
+
+      const suelo=raizCon(objeto,x=>x.userData&&x.userData.interactivo&&x.userData.pixeles);
+      const herramienta=objetoMano(motor,lado);
+      const herramientaId=herramienta&&herramienta.userData.pickup&&herramienta.userData.pickup.id;
+      if(suelo&&herramientaId==='pala_madera'){
+        const pixel=motor.mundo.destruirBloque(hit);
+        if(pixel){
+          const pos=hit.point;
+          const tierra=motor.crearObjeto('tierra','tierra',pos.x,pos.z,1);
+          motor.retirarObjeto(tierra);
+          setObjetoMano(motor,lado==='izquierda'?'derecha':'izquierda',tierra);
+        }
+      }
+    };
+
+    const comenzar=(lado,e)=>{
+      if(!motor.j)return;
+      motor.ultimaMano=lado;
+      const g=motor.golpe[lado];g.activa=true;g.presion=0;g.mx=0;g.my=0;
+      motor.j.animarMano(lado);
+      e.preventDefault();
+    };
+    const mover=(e)=>{
+      if(!document.pointerLockElement)return;
+      const L=motor.golpe.izquierda,R=motor.golpe.derecha;
+      const dx=Math.abs(e.movementX||0),dy=Math.abs(e.movementY||0),f=clamp((dx+dy)/55,0,1);
+      if(L.activa)L.presion=clamp(L.presion+f,0,1);
+      if(R.activa)R.presion=clamp(R.presion+f,0,1);
+      if(L.activa)motor.j.animarMano('izquierda');
+      if(R.activa)motor.j.animarMano('derecha');
+      if(L.activa||R.activa)e.preventDefault();
+    };
+    const terminar=(lado,e)=>{
+      const g=motor.golpe[lado]; if(!g.activa)return;
+      g.activa=false;
+      const fuerza=clamp(g.presion,.03,1);
+      motor.j.animarMano(lado);
+      motor.impactar(lado,fuerza);
+      e.preventDefault();
+    };
+
+    motor.renderer.domElement.addEventListener('mousedown',e=>{if(e.button===0)comenzar('izquierda',e);if(e.button===2)comenzar('derecha',e);},true);
+    motor.renderer.domElement.addEventListener('mouseup',e=>{if(e.button===0)terminar('izquierda',e);if(e.button===2)terminar('derecha',e);},true);
+    document.addEventListener('mousemove',mover,true);
+    motor.renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();}, {capture:true,passive:false});
+    motor.renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault(),true);
+
+    window.addEventListener('keydown',e=>{
+      if(e.key.toLowerCase()==='q')motor.dejarMano(motor.ultimaMano);
+      if(e.key.toLowerCase()==='e')motor.recogerEnMano(motor.ultimaMano);
+    });
+
+    const viejoActualizar=motor._actualizarCamara.bind(motor);
+    motor._actualizarCamara=function(){viejoActualizar();};
+  }
+
+  const esperar=()=>{
+    if(window.motor&&window.motor.j){iniciar(window.motor);return;}
+    requestAnimationFrame(esperar);
+  };
+  esperar();
+})();
