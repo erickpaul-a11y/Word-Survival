@@ -7,7 +7,7 @@ class Motor {
         this.renderer.setSize(window.innerWidth,window.innerHeight);
         this.renderer.domElement.id='canvas-3d'; document.body.appendChild(this.renderer.domElement);
         this.ang={x:0,y:0}; this.teclas={}; this.cameraMode='first';
-        this.j=null; this.mundo=null; this.criaturas=null; this.inv=null; this.crafteos=null; this.ultimoGolpe=0;
+        this.j=null; this.mundo=null; this.criaturas=null; this.inv=null; this.crafteos=null; this.lenguaje=null; this.ultimoGolpe=0;
         this.velocidadX=0; this.velocidadZ=0; this.velocidadY=0;
         this.aceleracion=.045; this.frenado=.16; this.velocidadCaminar=3.8; this.velocidadCorrer=6.5;
         this.gravedad=18; this.fuerzaSalto=7.2; this.alturaJugador=.82; this.alturaCamara=.72;
@@ -49,14 +49,15 @@ class Motor {
         const targetX=tx*objetivo,targetZ=tz*objetivo,cambio=Math.min(1,(f||r)?this.aceleracion*60*dt:this.frenado*60*dt);this.velocidadX+=(targetX-this.velocidadX)*cambio;this.velocidadZ+=(targetZ-this.velocidadZ)*cambio;
         if(!f&&!r&&Math.hypot(this.velocidadX,this.velocidadZ)<.03){this.velocidadX=0;this.velocidadZ=0;}
         this.j.x+=this.velocidadX*dt;this.j.z+=this.velocidadZ*dt;this.enAgua=this.esAgua(this.j.x,this.j.z);const water=this.enAgua?this.getWaterHeightAt(this.j.x,this.j.z):null;
-        if(this.enAgua&&water!==null){const superficie=water+this.alturaJugador*.35;this.velocidadY+=(superficie-this.j.y)*10*dt;this.velocidadY*=Math.pow(.08,dt);this.j.y+=this.velocidadY*dt;this.enSuelo=false;this.j.saltando=false;}
+        if(this.enAgua&&water!==null){const superficie=water+this.alturaJugador*.35;const controlVertical=(this.teclas[' ']?1:0)-(this.teclas.control?1:0);this.velocidadY+=(superficie-this.j.y)*7*dt+controlVertical*9*dt;this.velocidadY*=Math.pow(.16,dt);this.j.y+=this.velocidadY*dt;this.j.y=Math.max(this.getGroundHeightAt(this.j.x,this.j.z)+.18,Math.min(water+.25,this.j.y));this.enSuelo=false;this.j.saltando=false;}
         else{this.profundidadAgua=0;this.velocidadY-=this.gravedad*dt;this.j.y+=this.velocidadY*dt;const suelo=this.getGroundHeightAt(this.j.x,this.j.z)+this.alturaJugador;if(this.j.y<=suelo){this.j.y=suelo;this.velocidadY=0;this.enSuelo=true;this.j.saltando=false;}else this.enSuelo=false;}
         if(water!==null&&this.enAgua)this.profundidadAgua=Math.max(0,water-this.j.y);this.j.velocidadMovimiento=Math.hypot(this.velocidadX,this.velocidadZ);this.j.actualizarPosicion();
     }
     _actualizarCamara(){if(!this.j)return;this.cam.rotation.order='YXZ';if(this.cameraMode==='first'){this.cam.position.set(this.j.x,this.j.y+this.alturaCamara,this.j.z);this.cam.rotation.y=this.ang.y;this.cam.rotation.x=this.ang.x;}else{const distancia=3.2,alto=1.7;this.cam.position.set(this.j.x+Math.sin(this.ang.y)*distancia,this.j.y+alto-Math.sin(this.ang.x)*.5,this.j.z+Math.cos(this.ang.y)*distancia);this.cam.lookAt(this.j.x,this.j.y+1.0,this.j.z);}}
     toggleCamera(){this.cameraMode=this.cameraMode==='first'?'third':'first';if(this.j&&this.j.setFirstPerson)this.j.setFirstPerson(this.cameraMode==='first');}
-    encontrarObjetivo(){const ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2(0,0),this.cam);const hits=ray.intersectObjects(this.escena.children,true);for(const h of hits){if(h.distance>4)break;let o=h.object;while(o){if(o.userData&&o.userData.recurso)return o;o=o.parent;}}return null;}
-    golpearRecurso(){const ahora=performance.now();if(ahora-this.ultimoGolpe<350)return;this.ultimoGolpe=ahora;const o=this.encontrarObjetivo();if(!o||!o.userData.recurso)return;const r=o.userData.recurso;if(this.inv)Object.entries(r).forEach(([id,qty])=>this.inv.agregar(id,qty,id));if(o.parent)o.parent.remove(o);}
+    encontrarHit(){const ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2(0,0),this.cam);return ray.intersectObjects(this.escena.children,true).find(h=>h.distance<=4)||null;}
+    encontrarObjetivo(){let o=(this.encontrarHit()||{}).object;while(o){if(o.userData&&o.userData.recurso)return o;o=o.parent;}return null;}
+    golpearRecurso(){const ahora=performance.now();if(ahora-this.ultimoGolpe<350)return;this.ultimoGolpe=ahora;const hit=this.encontrarHit();let o=hit&&hit.object;while(o){if(o.userData&&o.userData.recurso)break;o=o.parent;}if(o&&o.userData.recurso){const r=o.userData.recurso;if(this.inv)Object.entries(r).forEach(([id,qty])=>this.inv.agregar(id,qty,id));if(o.parent)o.parent.remove(o);return;}const bloque=this.mundo&&this.mundo.destruirBloque(hit);if(bloque&&this.inv)this.inv.agregar(bloque.tipo,1,bloque.tipo);}
     agarrar(){if(this.inv&&typeof this.inv.recogerCercano==='function'){this.inv.recogerCercano(this.j);return;}const o=this.encontrarObjetivo();if(o&&o.userData&&o.userData.pickup&&this.inv)this.inv.agregar(o.userData.pickup.id,o.userData.pickup.qty||1,o.userData.pickup.name||o.userData.pickup.id);}
     atacar(){if(this.criaturas&&typeof this.criaturas.recibirDaño==='function')this.criaturas.recibirDaño(10);}
 }
