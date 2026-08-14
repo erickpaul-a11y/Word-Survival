@@ -4,23 +4,49 @@ class Jugador {
         this.hp=100; this.maxHp=100; this.mana=100; this.hambre=100;
         this.nivel=1; this.exp=0; this.expSig=120; this.vivo=true;
         this.corriendo=false; this.saltando=false; this.velocidadMovimiento=0;
-        this.modelo=null;
-        this.leftShoulder=null; this.rightShoulder=null;
-        this.leftHand=null; this.rightHand=null;
+        // Modelo humano de 1.80 unidades, a escala con el terreno.
+        const piel=new THREE.MeshLambertMaterial({color:0xc98b62});
+        const ropa=new THREE.MeshLambertMaterial({color:0x2563eb});
+        const oscuro=new THREE.MeshLambertMaterial({color:0x1f2937});
+        this.modelo=new THREE.Group();
+        const torso=new THREE.Mesh(new THREE.BoxGeometry(.58,.72,.34),ropa); torso.position.y=1.13;
+        const cabeza=new THREE.Mesh(new THREE.BoxGeometry(.42,.42,.42),piel); cabeza.position.y=1.70;
+        const brazoI=new THREE.Mesh(new THREE.BoxGeometry(.18,.68,.18),piel), brazoD=brazoI.clone();
+        brazoI.position.set(-.39,1.13,0); brazoD.position.set(.39,1.13,0);
+        const piernaI=new THREE.Mesh(new THREE.BoxGeometry(.22,.78,.22),oscuro), piernaD=piernaI.clone();
+        piernaI.position.set(-.17,.39,0); piernaD.position.set(.17,.39,0);
+        this.modelo.add(torso,cabeza,brazoI,brazoD,piernaI,piernaD); this.modelo.userData.esJugador=true;
+        this.leftShoulder=brazoI; this.rightShoulder=brazoD;
+        // Manos de primera persona.
+        this.leftHand=new THREE.Mesh(new THREE.BoxGeometry(.16,.30,.16),piel.clone());
+        this.rightHand=new THREE.Mesh(new THREE.BoxGeometry(.16,.30,.16),piel.clone());
+        this.leftHand.position.set(-.34,-.27,-.62); this.rightHand.position.set(.34,-.27,-.62);
+        this.leftHand.rotation.z=-.18; this.rightHand.rotation.z=.18;
+        this.leftHand.visible=false; this.rightHand.visible=false;
+        this._baseL=this.leftHand.position.clone(); this._baseR=this.rightHand.position.clone();
+        this._baseRL=this.leftHand.rotation.z; this._baseRR=this.rightHand.rotation.z;
+        this._golpeL=0; this._golpeR=0;
     }
-    agregarAEscena(){}
+    agregarAEscena(e){e.add(this.modelo);}
+    conectarManosACamara(cam){cam.add(this.leftHand,this.rightHand);this.setFirstPerson(true);}
+    animarMano(lado){if(lado==='izquierda')this._golpeL=1;else this._golpeR=1;}
+    actualizarManos(dt){
+        const s=Math.min(1,dt*18); this._golpeL=Math.max(0,this._golpeL-dt*5); this._golpeR=Math.max(0,this._golpeR-dt*5);
+        const l=this._golpeL,r=this._golpeR;
+        this.leftHand.position.lerp(new THREE.Vector3(this._baseL.x-.16*l,this._baseL.y-.10*l,this._baseL.z+.30*l),s);
+        this.rightHand.position.lerp(new THREE.Vector3(this._baseR.x+.16*r,this._baseR.y-.10*r,this._baseR.z+.30*r),s);
+        this.leftHand.rotation.z=this._baseRL-.9*l; this.rightHand.rotation.z=this._baseRR+.9*r;
+    }
     actualizarPosicion(){}
     animarMovimiento(){}
-    setFirstPerson(){}
-    actualizarManos(){}
-    seguirMouse(){}
-    recibirDaño(cantidad){if(!this.vivo)return;this.hp=Math.max(0,this.hp-(Number(cantidad)||0));if(this.hp<=0)this.vivo=false;}
-    curar(cantidad){this.hp=Math.min(this.maxHp,this.hp+(Number(cantidad)||0));}
-    ganarExperiencia(cantidad){this.exp+=Number(cantidad)||0;while(this.exp>=this.expSig){this.exp-=this.expSig;this.nivel++;this.expSig=Math.ceil(this.expSig*1.2);}}
+    setFirstPerson(primera){this.modelo.visible=!primera;this.leftHand.visible=!!primera;this.rightHand.visible=!!primera;}
     actualizarHUD(){
         const ids=[['lvl',this.nivel],['pos',`X:${Math.round(this.x)} Z:${Math.round(this.z)}`]];
         ids.forEach(([id,value])=>{const e=document.getElementById(id);if(e)e.textContent=value;});
         [['b-hp',this.hp],['b-mana',this.mana],['b-exp',(this.exp/this.expSig)*100],['b-hambre',this.hambre]].forEach(([id,value])=>{const e=document.getElementById(id);if(e)e.style.width=Math.max(0,Math.min(100,value))+'%';});
     }
+    recibirDaño(cantidad){if(!this.vivo)return;this.hp=Math.max(0,this.hp-(Number(cantidad)||0));if(this.hp<=0)this.vivo=false;}
+    curar(cantidad){this.hp=Math.min(this.maxHp,this.hp+(Number(cantidad)||0));}
+    ganarExperiencia(cantidad){this.exp+=Number(cantidad)||0;while(this.exp>=this.expSig){this.exp-=this.expSig;this.nivel++;this.expSig=Math.ceil(this.expSig*1.2);}}
 }
 window.Jugador=Jugador;
