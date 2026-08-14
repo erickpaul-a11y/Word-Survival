@@ -1,9 +1,9 @@
 class Motor {
     constructor(){
         this.escena=new THREE.Scene();
-        this.cam=new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,.05,1000);
+        this.cam=new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,.03,3000);
         this.renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio,1.5));
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
         this.renderer.setSize(window.innerWidth,window.innerHeight);
         this.renderer.domElement.id='canvas-3d'; document.body.appendChild(this.renderer.domElement);
         this.ang={x:0,y:0}; this.teclas={}; this.cameraMode='first';
@@ -19,6 +19,12 @@ class Motor {
         window.addEventListener('keyup',e=>{this.teclas[e.key.toLowerCase()]=false;});
         this.renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
         this.renderer.domElement.addEventListener('click',()=>{if(document.pointerLockElement!==this.renderer.domElement)this.renderer.domElement.requestPointerLock();});
+        this.renderer.domElement.addEventListener('mousedown',e=>{
+            if(document.pointerLockElement!==this.renderer.domElement)this.renderer.domElement.requestPointerLock();
+            if(!this.j)return;
+            if(e.button===0){this.j.animarMano('derecha');this.golpearRecurso();}
+            if(e.button===2){this.j.animarMano('izquierda');this.atacar();}
+        });
         document.addEventListener('mousemove',e=>{if(document.pointerLockElement!==this.renderer.domElement)return;this.ang.y-=e.movementX*.0024;this.ang.x-=e.movementY*.0024;const limite=Math.PI/2-.04;this.ang.x=THREE.MathUtils.clamp(this.ang.x,-limite,limite);});
         window.addEventListener('resize',()=>{this.cam.aspect=window.innerWidth/window.innerHeight;this.cam.updateProjectionMatrix();this.renderer.setSize(window.innerWidth,window.innerHeight);});
     }
@@ -26,44 +32,24 @@ class Motor {
     esAgua(x,z){return !!(this.mundo&&typeof this.mundo.esAgua==='function'&&this.mundo.esAgua(x,z));}
     getWaterHeightAt(x,z){return this.mundo&&typeof this.mundo.getWaterHeightAt==='function'?this.mundo.getWaterHeightAt(x,z):null;}
     actualizarDiaNoche(dt){this.tiempo.avanzar(dt);const h=this.tiempo.hora,ang=h/24*Math.PI*2,noche=this.tiempo.esNoche();this.luzSol.position.set(Math.cos(ang)*10,Math.max(1,Math.sin(ang)*12),Math.sin(ang)*10);this.luzSol.intensity=noche?.08:.65;this.luzAmbiente.intensity=noche?.25:1;this.escena.background=new THREE.Color(noche?0x071126:0x87ceeb);}
-    limpiarPartidaAnterior(){if(this.mundo&&this.mundo.chunks){for(const c of this.mundo.chunks.values()){c.objetos.forEach(o=>this.escena.remove(o));this.escena.remove(c.grupo);}this.mundo.chunks.clear();}if(this.j&&this.j.modelo&&this.j.modelo.parent)this.j.modelo.parent.remove(this.j.modelo);if(this.criaturas&&this.criaturas.lista)this.criaturas.lista.forEach(c=>{if(c.modelo&&c.modelo.parent)c.modelo.parent.remove(c.modelo);});this.j=null;this.mundo=null;this.criaturas=null;this.velocidadX=0;this.velocidadZ=0;this.velocidadY=0;}
-    iniciar(){this.limpiarPartidaAnterior();this.tiempo.hora=8;try{if(typeof Jugador!=='undefined'){this.j=new Jugador();this.j.y=this.getGroundHeightAt(0,0)+this.alturaJugador;this.j.agregarAEscena(this.escena);}}catch(e){console.warn('Error creando jugador:',e);}try{if(typeof Mundo!=='undefined')this.mundo=new Mundo(this,window.WORLD_SEED||Math.floor(Math.random()*2147483647));}catch(e){console.warn('Error creando mundo:',e);}try{const datos={vaca:{vida:20,velocidad:.9},oveja:{vida:15,velocidad:.75},pollo:{vida:8,velocidad:1.15},pez:{vida:5,velocidad:1.35}};if(typeof GestorCriaturas!=='undefined')this.criaturas=new GestorCriaturas(this,datos);if(this.criaturas)this.criaturas.generarIniciales();}catch(e){console.warn('Error creando criaturas:',e);}this._actualizarCamara();let anterior=performance.now();const loop=ahora=>{const dt=Math.min(.05,(ahora-anterior)/1000);anterior=ahora;this._updateMovement(dt);this.actualizarDiaNoche(dt);try{if(this.j&&this.mundo)this.mundo.actualizar(this.j.x,this.j.z);}catch(e){}try{if(this.criaturas)this.criaturas.actualizar(dt);}catch(e){}if(this.j)this.j.actualizarHUD();this._actualizarCamara();this.renderer.render(this.escena,this.cam);requestAnimationFrame(loop);};requestAnimationFrame(loop);}
-    saltar(){if(!this.j||(!this.enSuelo&&!this.enAgua)||this.profundidadAgua>.75)return;if(this.enAgua){this.velocidadY=this.fuerzaSalto*.72;}else{this.velocidadY=this.fuerzaSalto;}this.enSuelo=false;this.j.saltando=true;}
+    limpiarPartidaAnterior(){if(this.mundo&&this.mundo.chunks){for(const c of this.mundo.chunks.values()){c.objetos.forEach(o=>this.escena.remove(o));this.escena.remove(c.grupo);}this.mundo.chunks.clear();}if(this.j&&this.j.modelo&&this.j.modelo.parent)this.j.modelo.parent.remove(this.j.modelo);if(this.j&&this.j.leftHand&&this.j.leftHand.parent)this.j.leftHand.parent.remove(this.j.leftHand);if(this.j&&this.j.rightHand&&this.j.rightHand.parent)this.j.rightHand.parent.remove(this.j.rightHand);if(this.criaturas&&this.criaturas.lista)this.criaturas.lista.forEach(c=>{if(c.modelo&&c.modelo.parent)c.modelo.parent.remove(c.modelo);});this.j=null;this.mundo=null;this.criaturas=null;this.velocidadX=0;this.velocidadZ=0;this.velocidadY=0;}
+    iniciar(){this.limpiarPartidaAnterior();this.tiempo.hora=8;try{if(typeof Jugador!=='undefined'){this.j=new Jugador();this.j.y=this.getGroundHeightAt(0,0)+this.alturaJugador;this.j.agregarAEscena(this.escena);this.j.conectarManosACamara(this.cam);}}catch(e){console.warn('Error creando jugador:',e);}try{if(typeof Mundo!=='undefined')this.mundo=new Mundo(this,window.WORLD_SEED||Math.floor(Math.random()*2147483647));}catch(e){console.warn('Error creando mundo:',e);}try{const datos={vaca:{vida:20,velocidad:.9},oveja:{vida:15,velocidad:.75},pollo:{vida:8,velocidad:1.15},pez:{vida:5,velocidad:1.35}};if(typeof GestorCriaturas!=='undefined')this.criaturas=new GestorCriaturas(this,datos);if(this.criaturas)this.criaturas.generarIniciales();}catch(e){console.warn('Error creando criaturas:',e);}this._actualizarCamara();let anterior=performance.now();const loop=ahora=>{const dt=Math.min(.05,(ahora-anterior)/1000);anterior=ahora;this._updateMovement(dt);this.actualizarDiaNoche(dt);try{if(this.j&&this.mundo)this.mundo.actualizar(this.j.x,this.j.z);}catch(e){}try{if(this.criaturas)this.criaturas.actualizar(dt);}catch(e){}if(this.j){this.j.actualizarManos(dt);this.j.actualizarHUD();}this._actualizarCamara();this.renderer.render(this.escena,this.cam);requestAnimationFrame(loop);};requestAnimationFrame(loop);}
+    saltar(){if(!this.j||(!this.enSuelo&&!this.enAgua)||this.profundidadAgua>.75)return;if(this.enAgua)this.velocidadY=this.fuerzaSalto*.72;else this.velocidadY=this.fuerzaSalto;this.enSuelo=false;this.j.saltando=true;}
     _updateMovement(dt){
         if(!this.j||!this.j.vivo)return;
         const f=(this.teclas.w?1:0)-(this.teclas.s?1:0),r=(this.teclas.d?1:0)-(this.teclas.a?1:0);let tx=0,tz=0;
         if(f||r){const l=Math.hypot(f,r),nf=f/l,nr=r/l,y=this.ang.y;tx=Math.sin(y)*nf+Math.cos(y)*nr;tz=-Math.cos(y)*nf+Math.sin(y)*nr;}
-        this.enAgua=this.esAgua(this.j.x,this.j.z);
-        const agua=this.enAgua?this.getWaterHeightAt(this.j.x,this.j.z):null;
-        this.profundidadAgua=agua===null?0:Math.max(0,agua-this.j.y);
-        const corriendo=!!this.teclas.shift&&!!(f||r)&&!this.enAgua; this.j.corriendo=corriendo;
-        const objetivo=(corriendo?this.velocidadCorrer:this.velocidadCaminar)*(this.enAgua?.55:1);
-        const targetX=tx*objetivo,targetZ=tz*objetivo,cambio=Math.min(1,(f||r)?this.aceleracion*60*dt:this.frenado*60*dt);
-        this.velocidadX+=(targetX-this.velocidadX)*cambio;this.velocidadZ+=(targetZ-this.velocidadZ)*cambio;
+        this.enAgua=this.esAgua(this.j.x,this.j.z);const agua=this.enAgua?this.getWaterHeightAt(this.j.x,this.j.z):null;this.profundidadAgua=agua===null?0:Math.max(0,agua-this.j.y);
+        const corriendo=!!this.teclas.shift&&!!(f||r)&&!this.enAgua;this.j.corriendo=corriendo;const objetivo=(corriendo?this.velocidadCorrer:this.velocidadCaminar)*(this.enAgua?.55:1);
+        const targetX=tx*objetivo,targetZ=tz*objetivo,cambio=Math.min(1,(f||r)?this.aceleracion*60*dt:this.frenado*60*dt);this.velocidadX+=(targetX-this.velocidadX)*cambio;this.velocidadZ+=(targetZ-this.velocidadZ)*cambio;
         if(!f&&!r&&Math.hypot(this.velocidadX,this.velocidadZ)<.03){this.velocidadX=0;this.velocidadZ=0;}
-        const nx=this.j.x+this.velocidadX*dt,nz=this.j.z+this.velocidadZ*dt;
-        // El agua NO bloquea al jugador: se puede cruzar la orilla libremente.
-        this.j.x=nx;this.j.z=nz;
-        this.enAgua=this.esAgua(this.j.x,this.j.z);
-        const water=this.enAgua?this.getWaterHeightAt(this.j.x,this.j.z):null;
-        if(this.enAgua&&water!==null){
-            const superficie=water+this.alturaJugador*.35;
-            // Entrar al agua: el jugador desciende suavemente hasta quedar flotando.
-            this.velocidadY+=(superficie-this.j.y)*10*dt;
-            this.velocidadY*=Math.pow(.08,dt);
-            this.j.y+=this.velocidadY*dt;
-            this.enSuelo=false;this.j.saltando=false;
-        }else{
-            this.profundidadAgua=0;
-            this.velocidadY-=this.gravedad*dt;this.j.y+=this.velocidadY*dt;
-            const suelo=this.getGroundHeightAt(this.j.x,this.j.z)+this.alturaJugador;
-            if(this.j.y<=suelo){this.j.y=suelo;this.velocidadY=0;this.enSuelo=true;this.j.saltando=false;}else this.enSuelo=false;
-        }
-        if(water!==null&&this.enAgua)this.profundidadAgua=Math.max(0,water-this.j.y);
-        this.j.velocidadMovimiento=Math.hypot(this.velocidadX,this.velocidadZ);
+        this.j.x+=this.velocidadX*dt;this.j.z+=this.velocidadZ*dt;this.enAgua=this.esAgua(this.j.x,this.j.z);const water=this.enAgua?this.getWaterHeightAt(this.j.x,this.j.z):null;
+        if(this.enAgua&&water!==null){const superficie=water+this.alturaJugador*.35;this.velocidadY+=(superficie-this.j.y)*10*dt;this.velocidadY*=Math.pow(.08,dt);this.j.y+=this.velocidadY*dt;this.enSuelo=false;this.j.saltando=false;}
+        else{this.profundidadAgua=0;this.velocidadY-=this.gravedad*dt;this.j.y+=this.velocidadY*dt;const suelo=this.getGroundHeightAt(this.j.x,this.j.z)+this.alturaJugador;if(this.j.y<=suelo){this.j.y=suelo;this.velocidadY=0;this.enSuelo=true;this.j.saltando=false;}else this.enSuelo=false;}
+        if(water!==null&&this.enAgua)this.profundidadAgua=Math.max(0,water-this.j.y);this.j.velocidadMovimiento=Math.hypot(this.velocidadX,this.velocidadZ);this.j.actualizarPosicion();
     }
-    _actualizarCamara(){if(!this.j)return;this.cam.rotation.order='YXZ';this.cam.position.set(this.j.x,this.j.y+this.alturaCamara,this.j.z);this.cam.rotation.y=this.ang.y;this.cam.rotation.x=this.ang.x;}
-    toggleCamera(){this.cameraMode='first';if(this.j&&this.j.setFirstPerson)this.j.setFirstPerson(true);}
+    _actualizarCamara(){if(!this.j)return;this.cam.rotation.order='YXZ';if(this.cameraMode==='first'){this.cam.position.set(this.j.x,this.j.y+this.alturaCamara,this.j.z);this.cam.rotation.y=this.ang.y;this.cam.rotation.x=this.ang.x;}else{const distancia=3.2,alto=1.7;this.cam.position.set(this.j.x-Math.sin(this.ang.y)*distancia,this.j.y+alto-Math.sin(this.ang.x)*.5,this.j.z+Math.cos(this.ang.y)*distancia);this.cam.lookAt(this.j.x,this.j.y+1.0,this.j.z);}}
+    toggleCamera(){this.cameraMode=this.cameraMode==='first'?'third':'first';if(this.j&&this.j.setFirstPerson)this.j.setFirstPerson(this.cameraMode==='first');}
     encontrarObjetivo(){const ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2(0,0),this.cam);const hits=ray.intersectObjects(this.escena.children,true);for(const h of hits){if(h.distance>4)break;let o=h.object;while(o){if(o.userData&&o.userData.recurso)return o;o=o.parent;}}return null;}
     golpearRecurso(){const ahora=performance.now();if(ahora-this.ultimoGolpe<350)return;this.ultimoGolpe=ahora;const o=this.encontrarObjetivo();if(!o||!o.userData.recurso)return;const r=o.userData.recurso;if(this.inv)Object.entries(r).forEach(([id,qty])=>this.inv.agregar(id,qty,id));if(o.parent)o.parent.remove(o);}
     agarrar(){if(this.inv&&typeof this.inv.recogerCercano==='function'){this.inv.recogerCercano(this.j);return;}const o=this.encontrarObjetivo();if(o&&o.userData&&o.userData.pickup&&this.inv)this.inv.agregar(o.userData.pickup.id,o.userData.pickup.qty||1,o.userData.pickup.name||o.userData.pickup.id);}
