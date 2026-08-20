@@ -10,7 +10,8 @@ if(btnEmpezar)btnEmpezar.onclick=()=>{
     const pantallaInicio=document.getElementById('pantalla-inicio'),hudJuego=document.getElementById('hud-juego');
     if(pantallaInicio)pantallaInicio.style.display='none';if(hudJuego)hudJuego.style.display='block';
     window.WORLD_SEED=Math.floor(Math.random()*2147483647);motor.iniciar();
-    // Los recursos se mantienen físicamente en el suelo; no se abre inventario tradicional.
+    const activarAgua=()=>{if(typeof AguaUnificada!=='undefined'){motor.aguaUnificada=new AguaUnificada(motor);const original=motor.renderer.render.bind(motor.renderer);motor.renderer.render=(escena,camera)=>{if(motor.aguaUnificada)motor.aguaUnificada.actualizar(0.016);original(escena,camera);};}};
+    if(typeof AguaUnificada==='undefined'){const s=document.createElement('script');s.src='js/agua/agua.js';s.onload=activarAgua;document.head.appendChild(s);}else activarAgua();
     if(typeof Crafteos!=='undefined')motor.crafteos=new Crafteos(motor);
     if(typeof GestorLenguaje!=='undefined'){motor.lenguaje=new GestorLenguaje(motor);motor.lenguaje.cargarDatos();}
     window.GAME_CONFIG=window.GAME_CONFIG||{};window.GAME_CONFIG.fpEnabled=true;window.GAME_CONFIG.fpHeight=.72;
