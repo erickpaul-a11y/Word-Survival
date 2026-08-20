@@ -11,7 +11,7 @@ if(btnEmpezar)btnEmpezar.onclick=()=>{
     if(pantallaInicio)pantallaInicio.style.display='none';if(hudJuego)hudJuego.style.display='block';
     window.WORLD_SEED=Math.floor(Math.random()*2147483647);motor.iniciar();
     const activarAgua=()=>{if(typeof AguaUnificada!=='undefined'){motor.aguaUnificada=new AguaUnificada(motor);const original=motor.renderer.render.bind(motor.renderer);motor.renderer.render=(escena,camera)=>{if(motor.aguaUnificada)motor.aguaUnificada.actualizar(0.016);original(escena,camera);};}};
-    if(typeof AguaUnificada==='undefined'){const s=document.createElement('script');s.src='js/agua/agua.js';s.onload=activarAgua;document.head.appendChild(s);}else activarAgua();
+    if(typeof AguaUnificada==='undefined'){const s=document.createElement('script');s.src='js/agua/agua_fixed.js';s.onload=activarAgua;s.onerror=()=>console.error('No se pudo cargar el sistema de agua');document.head.appendChild(s);}else activarAgua();
     if(typeof Crafteos!=='undefined')motor.crafteos=new Crafteos(motor);
     if(typeof GestorLenguaje!=='undefined'){motor.lenguaje=new GestorLenguaje(motor);motor.lenguaje.cargarDatos();}
     window.GAME_CONFIG=window.GAME_CONFIG||{};window.GAME_CONFIG.fpEnabled=true;window.GAME_CONFIG.fpHeight=.72;
