@@ -1,13 +1,68 @@
 class AguaUnificada {
-  constructor(motor){this.motor=motor;this.mesh=null;this.geometry=null;this.material=null;this.signature='';this.time=0;this.lastBuild=0;this.instalarFisica();}
-  esLagoChunk(cx,cz){const m=this.motor.mundo;if(!m||!m.chunks)return false;const has=(x,z)=>{const c=m.chunks.get(`${x},${z}`);return !!(c&&c.pixeles&&c.pixeles.some(p=>p.tipo==='agua'));};if(!has(cx,cz))return false;const seen=new Set([`${cx},${cz}`]),q=[[cx,cz]];while(q.length&&seen.size<=4){const [x,z]=q.shift();for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const k=`${x+dx},${z+dz}`;if(!seen.has(k)&&has(x+dx,z+dz)){seen.add(k);q.push([x+dx,z+dz]);if(seen.size>4)return false;}}}return true;}
-  ocultarAguasPorChunk(){const m=this.motor.mundo;if(!m)return;for(const c of m.chunks.values())if(c.agua){c.agua.visible=false;c.agua.userData.agua=true;c.agua.userData.colision=false;}}
-  instalarFisica(){const m=this.motor;if(m._fisicaAguaInstalada)return;m._fisicaAguaInstalada=true;const original=m._updateMovement.bind(m);m._updateMovement=(dt)=>{if(!m.j){original(dt);return;}const oldGet=m.getWaterHeightAt,oldEs=m.esAgua;const bajo=!!(m.mundo&&m.mundo.esAgua(m.j.x,m.j.z)&&m.j.y<m.mundo.nivelAgua+.25);if(bajo){m.getWaterHeightAt=()=>null;m.esAgua=()=>false;}original(dt);m.getWaterHeightAt=oldGet;m.esAgua=oldEs;const agua=m.mundo&&m.mundo.getWaterHeightAt(m.j.x,m.j.z);if(agua!=null){if(m.teclas.control)m.j.y=Math.max(m.getGroundHeightAt(m.j.x,m.j.z)+.18,m.j.y-2.8*dt);else if(m.teclas[' '])m.j.y=Math.min(agua+2.2,m.j.y+3.2*dt);else if(m.j.y>agua-.15)m.j.y+=(agua-.15-m.j.y)*Math.min(1,dt*2.5);m.enAgua=true;m.enSuelo=false;m.j.saltando=false;}else m.enAgua=false;const suelo=m.getGroundHeightAt(m.j.x,m.j.z)+.18;if(m.j.y<suelo){m.j.y=suelo;m.velocidadY=0;}m.j.actualizarPosicion();};}
-  reconstruir(){const m=this.motor.mundo;if(!m)return;const pos=[],idx=[],waves=[];let off=0,count=0;const chunks=[];for(const c of m.chunks.values()){if(!c.agua||!c.agua.geometry)continue;const g=c.agua.geometry,p=g.getAttribute('position'),ix=g.index;if(!p||!ix)continue;const wave=this.esLagoChunk(c.cx,c.cz)?0:1;for(let i=0;i<p.count;i++){pos.push(p.getX(i),m.nivelAgua,p.getZ(i));waves.push(wave);}for(let i=0;i<ix.count;i++)idx.push(ix.getX(i)+off);off+=p.count;count+=ix.count;chunks.push(c);}if(!count)return;const sig=chunks.map(c=>c.cx+','+c.cz).join('|')+':'+count;if(sig===this.signature&&this.mesh)return;this.signature=sig;if(this.mesh){this.motor.escena.remove(this.mesh);this.geometry.dispose();this.material.dispose();}
-    this.geometry=new THREE.BufferGeometry();this.geometry.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));this.geometry.setAttribute('waveStrength',new THREE.Float32BufferAttribute(waves,1));this.geometry.setIndex(idx);this.geometry.computeVertexNormals();
-    this.material=new THREE.MeshPhongMaterial({color:0x3f9eea,transparent:true,opacity:.48,depthWrite:false,side:THREE.DoubleSide,shininess:100});const mat=this.material;
-    mat.onBeforeCompile=shader=>{shader.uniforms.waveTime={value:this.time};mat.userData.shader=shader;shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute float waveStrength;\nuniform float waveTime;').replace('#include <begin_vertex>','#include <begin_vertex>\nfloat w1=sin(position.x*.55+waveTime*1.35);\nfloat w2=cos(position.z*.42+waveTime*1.05);\nfloat w3=sin((position.x+position.z)*.22+waveTime*.75);\ntransformed.y+=(w1*.055+w2*.045+w3*.035)*waveStrength;');};
-    this.mesh=new THREE.Mesh(this.geometry,this.material);this.mesh.name='AguaUnificada';this.mesh.userData.agua=true;this.mesh.userData.colision=false;this.mesh.frustumCulled=false;this.motor.escena.add(this.mesh);this.ocultarAguasPorChunk();}
-  actualizar(dt){if(!this.motor.mundo)return;this.time+=dt;this.ocultarAguasPorChunk();if(performance.now()-this.lastBuild>400){this.lastBuild=performance.now();this.reconstruir();}const s=this.material&&this.material.userData.shader;if(s)s.uniforms.waveTime.value=this.time;}
+  constructor(motor){
+    this.motor=motor;this.material=null;this.chunksMeshes=new Map();this.particles=[];this.signature='';this.time=0;this.lastBuild=0;this.dummy=new THREE.Object3D();this.instalarFisica();
+  }
+  hayAgua(cx,cz){const m=this.motor.mundo;if(!m||!m.chunks)return false;const c=m.chunks.get(`${cx},${cz}`);return !!(c&&c.pixeles&&c.pixeles.some(p=>m.esAgua(p.x,p.z)));}
+  esLagoChunk(cx,cz){
+    if(!this.hayAgua(cx,cz))return false;
+    const seen=new Set([`${cx},${cz}`]),q=[[cx,cz]];
+    while(q.length&&seen.size<=4){const [x,z]=q.shift();for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,nz=z+dz,k=`${nx},${nz}`;if(!seen.has(k)&&this.hayAgua(nx,nz)){seen.add(k);q.push([nx,nz]);if(seen.size>4)return false;}}}
+    return true;
+  }
+  ocultarAguasAntiguas(){const m=this.motor.mundo;if(!m)return;for(const c of m.chunks.values())if(c.agua){c.agua.visible=false;c.agua.userData.agua=true;c.agua.userData.colision=false;}}
+  instalarFisica(){
+    const m=this.motor;if(m._fisicaAguaInstalada)return;m._fisicaAguaInstalada=true;
+    const original=m._updateMovement.bind(m);
+    m._updateMovement=(dt)=>{
+      if(!m.j){original(dt);return;}
+      const aguaAntes=m.esAgua,alturaAntes=m.getWaterHeightAt;
+      const dentro=!!(m.mundo&&m.mundo.esAgua(m.j.x,m.j.z));
+      if(dentro){m.getWaterHeightAt=()=>null;m.esAgua=()=>false;}
+      original(dt);
+      m.getWaterHeightAt=alturaAntes;m.esAgua=aguaAntes;
+      const water=m.mundo&&m.mundo.getWaterHeightAt(m.j.x,m.j.z);
+      if(water!==null){
+        if(m.teclas.control)m.j.y=Math.max(m.getGroundHeightAt(m.j.x,m.j.z)+.18,m.j.y-2.8*dt);
+        else if(m.teclas[' '])m.j.y=Math.min(water+2.4,m.j.y+3.2*dt);
+        else if(m.j.y>water-.2)m.j.y+=(water-.2-m.j.y)*Math.min(1,dt*2);
+        m.enAgua=true;m.enSuelo=false;m.j.saltando=false;
+      }else m.enAgua=false;
+      const suelo=m.getGroundHeightAt(m.j.x,m.j.z)+.18;if(m.j.y<suelo){m.j.y=suelo;m.velocidadY=0;}m.j.actualizarPosicion();
+    };
+  }
+  reconstruir(){
+    const m=this.motor.mundo;if(!m)return;
+    const chunks=[];const particles=[];
+    for(const c of m.chunks.values()){
+      const agua=[];const res=m.pixelsPorUnidad||4;const cell=1/res;
+      for(const p of c.pixeles||[]){if(m.esAgua(p.x,p.z)){agua.push(p);particles.push({x:p.x,z:p.z,cx:c.cx,cz:c.cz,lago:this.esLagoChunk(c.cx,c.cz),fase:((p.x*12.9898+p.z*78.233)%6.28318)});}}
+      if(agua.length)chunks.push({c,agua});
+    }
+    const sig=chunks.map(v=>v.c.cx+','+v.c.cz+':'+v.agua.length).join('|')+'|d'+m.aguaDinamica.size;
+    if(sig===this.signature&&this.chunksMeshes.size)return;
+    this.signature=sig;
+    for(const mesh of this.chunksMeshes.values()){this.motor.escena.remove(mesh);if(mesh.geometry)mesh.geometry.dispose();}
+    this.chunksMeshes.clear();this.particles=particles;
+    if(!this.material)this.material=new THREE.MeshPhongMaterial({color:0x278bd8,transparent:true,opacity:.38,depthWrite:false,side:THREE.DoubleSide,shininess:80});
+    const base=new THREE.PlaneGeometry(cell*.98,cell*.98,1,1);base.rotateX(-Math.PI/2);
+    let offset=0;
+    for(const group of chunks){
+      const count=group.agua.length;if(!count)continue;
+      const mesh=new THREE.InstancedMesh(base,this.material,count);mesh.name=`AguaParticulas_${group.c.cx}_${group.c.cz}`;mesh.frustumCulled=false;mesh.userData.agua=true;mesh.userData.colision=false;
+      for(let i=0;i<count;i++){const p=group.agua[i];this.dummy.position.set(p.x,m.nivelAgua+.015,p.z);this.dummy.rotation.set(0,0,0);this.dummy.scale.set(1,1,1);this.dummy.updateMatrix();mesh.setMatrixAt(i,this.dummy.matrix);}
+      mesh.instanceMatrix.needsUpdate=true;this.motor.escena.add(mesh);this.chunksMeshes.set(`${group.c.cx},${group.c.cz}`,mesh);offset+=count;
+    }
+    base.dispose();this.ocultarAguasAntiguas();
+  }
+  actualizar(dt){
+    if(!this.motor.mundo)return;this.time+=dt;this.ocultarAguasAntiguas();
+    if(performance.now()-this.lastBuild>350){this.lastBuild=performance.now();this.reconstruir();}
+    const m=this.motor.mundo;
+    let i=0;
+    for(const mesh of this.chunksMeshes.values()){
+      for(let k=0;k<mesh.count;k++){const p=this.particles[i++];if(!p)break;const amp=p.lago?0:.075;const y=m.nivelAgua+.015+Math.sin(this.time*1.25+p.fase)*amp;this.dummy.position.set(p.x,y,p.z);this.dummy.rotation.set(0,0,0);this.dummy.updateMatrix();mesh.setMatrixAt(k,this.dummy.matrix);}
+      mesh.instanceMatrix.needsUpdate=true;
+    }
+  }
 }
 window.AguaUnificada=AguaUnificada;
