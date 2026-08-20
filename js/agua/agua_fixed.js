@@ -1,68 +1,19 @@
 class AguaUnificada {
-  constructor(motor){
-    this.motor=motor;this.material=null;this.chunksMeshes=new Map();this.particles=[];this.signature='';this.time=0;this.lastBuild=0;this.dummy=new THREE.Object3D();this.instalarFisica();
-  }
+  constructor(motor){this.motor=motor;this.material=null;this.baseGeometry=null;this.chunksMeshes=new Map();this.particles=[];this.signature='';this.time=0;this.lastBuild=0;this.dummy=new THREE.Object3D();this.instalarFisica();}
   hayAgua(cx,cz){const m=this.motor.mundo;if(!m||!m.chunks)return false;const c=m.chunks.get(`${cx},${cz}`);return !!(c&&c.pixeles&&c.pixeles.some(p=>m.esAgua(p.x,p.z)));}
-  esLagoChunk(cx,cz){
-    if(!this.hayAgua(cx,cz))return false;
-    const seen=new Set([`${cx},${cz}`]),q=[[cx,cz]];
-    while(q.length&&seen.size<=4){const [x,z]=q.shift();for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,nz=z+dz,k=`${nx},${nz}`;if(!seen.has(k)&&this.hayAgua(nx,nz)){seen.add(k);q.push([nx,nz]);if(seen.size>4)return false;}}}
-    return true;
-  }
+  esLagoChunk(cx,cz){if(!this.hayAgua(cx,cz))return false;const seen=new Set([`${cx},${cz}`]),q=[[cx,cz]];while(q.length&&seen.size<=4){const [x,z]=q.shift();for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,nz=z+dz,k=`${nx},${nz}`;if(!seen.has(k)&&this.hayAgua(nx,nz)){seen.add(k);q.push([nx,nz]);if(seen.size>4)return false;}}}return true;}
   ocultarAguasAntiguas(){const m=this.motor.mundo;if(!m)return;for(const c of m.chunks.values())if(c.agua){c.agua.visible=false;c.agua.userData.agua=true;c.agua.userData.colision=false;}}
-  instalarFisica(){
-    const m=this.motor;if(m._fisicaAguaInstalada)return;m._fisicaAguaInstalada=true;
-    const original=m._updateMovement.bind(m);
-    m._updateMovement=(dt)=>{
-      if(!m.j){original(dt);return;}
-      const aguaAntes=m.esAgua,alturaAntes=m.getWaterHeightAt;
-      const dentro=!!(m.mundo&&m.mundo.esAgua(m.j.x,m.j.z));
-      if(dentro){m.getWaterHeightAt=()=>null;m.esAgua=()=>false;}
-      original(dt);
-      m.getWaterHeightAt=alturaAntes;m.esAgua=aguaAntes;
-      const water=m.mundo&&m.mundo.getWaterHeightAt(m.j.x,m.j.z);
-      if(water!==null){
-        if(m.teclas.control)m.j.y=Math.max(m.getGroundHeightAt(m.j.x,m.j.z)+.18,m.j.y-2.8*dt);
-        else if(m.teclas[' '])m.j.y=Math.min(water+2.4,m.j.y+3.2*dt);
-        else if(m.j.y>water-.2)m.j.y+=(water-.2-m.j.y)*Math.min(1,dt*2);
-        m.enAgua=true;m.enSuelo=false;m.j.saltando=false;
-      }else m.enAgua=false;
-      const suelo=m.getGroundHeightAt(m.j.x,m.j.z)+.18;if(m.j.y<suelo){m.j.y=suelo;m.velocidadY=0;}m.j.actualizarPosicion();
-    };
-  }
+  instalarFisica(){const m=this.motor;if(m._fisicaAguaInstalada)return;m._fisicaAguaInstalada=true;const original=m._updateMovement.bind(m);m._updateMovement=(dt)=>{if(!m.j){original(dt);return;}const aguaAntes=m.esAgua,alturaAntes=m.getWaterHeightAt;const dentro=!!(m.mundo&&m.mundo.esAgua(m.j.x,m.j.z));if(dentro){m.getWaterHeightAt=()=>null;m.esAgua=()=>false;}original(dt);m.getWaterHeightAt=alturaAntes;m.esAgua=aguaAntes;const water=m.mundo&&m.mundo.getWaterHeightAt(m.j.x,m.j.z);if(water!==null){if(m.teclas.control)m.j.y=Math.max(m.getGroundHeightAt(m.j.x,m.j.z)+.18,m.j.y-2.8*dt);else if(m.teclas[' '])m.j.y=Math.min(water+2.4,m.j.y+3.2*dt);else if(m.j.y>water-.2)m.j.y+=(water-.2-m.j.y)*Math.min(1,dt*2);m.enAgua=true;m.enSuelo=false;m.j.saltando=false;}else m.enAgua=false;const suelo=m.getGroundHeightAt(m.j.x,m.j.z)+.18;if(m.j.y<suelo){m.j.y=suelo;m.velocidadY=0;}m.j.actualizarPosicion();};}
   reconstruir(){
-    const m=this.motor.mundo;if(!m)return;
-    const chunks=[];const particles=[];
-    for(const c of m.chunks.values()){
-      const agua=[];const res=m.pixelsPorUnidad||4;const cell=1/res;
-      for(const p of c.pixeles||[]){if(m.esAgua(p.x,p.z)){agua.push(p);particles.push({x:p.x,z:p.z,cx:c.cx,cz:c.cz,lago:this.esLagoChunk(c.cx,c.cz),fase:((p.x*12.9898+p.z*78.233)%6.28318)});}}
-      if(agua.length)chunks.push({c,agua});
-    }
-    const sig=chunks.map(v=>v.c.cx+','+v.c.cz+':'+v.agua.length).join('|')+'|d'+m.aguaDinamica.size;
-    if(sig===this.signature&&this.chunksMeshes.size)return;
-    this.signature=sig;
-    for(const mesh of this.chunksMeshes.values()){this.motor.escena.remove(mesh);if(mesh.geometry)mesh.geometry.dispose();}
-    this.chunksMeshes.clear();this.particles=particles;
+    const m=this.motor.mundo;if(!m)return;const chunks=[];const particles=[];const res=m.pixelsPorUnidad||4;const cell=1/res;
+    for(const c of m.chunks.values()){const agua=[];for(const p of c.pixeles||[]){if(m.esAgua(p.x,p.z)){agua.push(p);particles.push({x:p.x,z:p.z,lago:this.esLagoChunk(c.cx,c.cz),fase:((p.x*12.9898+p.z*78.233)%6.28318)});}}if(agua.length)chunks.push({c,agua});}
+    const sig=chunks.map(v=>v.c.cx+','+v.c.cz+':'+v.agua.length).join('|')+'|d'+m.aguaDinamica.size;if(sig===this.signature&&this.chunksMeshes.size)return;this.signature=sig;
+    for(const mesh of this.chunksMeshes.values())this.motor.escena.remove(mesh);this.chunksMeshes.clear();this.particles=particles;
     if(!this.material)this.material=new THREE.MeshPhongMaterial({color:0x278bd8,transparent:true,opacity:.38,depthWrite:false,side:THREE.DoubleSide,shininess:80});
-    const base=new THREE.PlaneGeometry(cell*.98,cell*.98,1,1);base.rotateX(-Math.PI/2);
-    let offset=0;
-    for(const group of chunks){
-      const count=group.agua.length;if(!count)continue;
-      const mesh=new THREE.InstancedMesh(base,this.material,count);mesh.name=`AguaParticulas_${group.c.cx}_${group.c.cz}`;mesh.frustumCulled=false;mesh.userData.agua=true;mesh.userData.colision=false;
-      for(let i=0;i<count;i++){const p=group.agua[i];this.dummy.position.set(p.x,m.nivelAgua+.015,p.z);this.dummy.rotation.set(0,0,0);this.dummy.scale.set(1,1,1);this.dummy.updateMatrix();mesh.setMatrixAt(i,this.dummy.matrix);}
-      mesh.instanceMatrix.needsUpdate=true;this.motor.escena.add(mesh);this.chunksMeshes.set(`${group.c.cx},${group.c.cz}`,mesh);offset+=count;
-    }
-    base.dispose();this.ocultarAguasAntiguas();
+    if(!this.baseGeometry){this.baseGeometry=new THREE.PlaneGeometry(cell*.98,cell*.98,1,1);this.baseGeometry.rotateX(-Math.PI/2);}
+    for(const group of chunks){const count=group.agua.length;if(!count)continue;const mesh=new THREE.InstancedMesh(this.baseGeometry,this.material,count);mesh.name=`AguaParticulas_${group.c.cx}_${group.c.cz}`;mesh.frustumCulled=false;mesh.userData.agua=true;mesh.userData.colision=false;for(let i=0;i<count;i++){const p=group.agua[i];this.dummy.position.set(p.x,m.nivelAgua+.015,p.z);this.dummy.rotation.set(0,0,0);this.dummy.scale.set(1,1,1);this.dummy.updateMatrix();mesh.setMatrixAt(i,this.dummy.matrix);}mesh.instanceMatrix.needsUpdate=true;this.motor.escena.add(mesh);this.chunksMeshes.set(`${group.c.cx},${group.c.cz}`,mesh);}
+    this.ocultarAguasAntiguas();
   }
-  actualizar(dt){
-    if(!this.motor.mundo)return;this.time+=dt;this.ocultarAguasAntiguas();
-    if(performance.now()-this.lastBuild>350){this.lastBuild=performance.now();this.reconstruir();}
-    const m=this.motor.mundo;
-    let i=0;
-    for(const mesh of this.chunksMeshes.values()){
-      for(let k=0;k<mesh.count;k++){const p=this.particles[i++];if(!p)break;const amp=p.lago?0:.075;const y=m.nivelAgua+.015+Math.sin(this.time*1.25+p.fase)*amp;this.dummy.position.set(p.x,y,p.z);this.dummy.rotation.set(0,0,0);this.dummy.updateMatrix();mesh.setMatrixAt(k,this.dummy.matrix);}
-      mesh.instanceMatrix.needsUpdate=true;
-    }
-  }
+  actualizar(dt){if(!this.motor.mundo)return;this.time+=dt;this.ocultarAguasAntiguas();if(performance.now()-this.lastBuild>350){this.lastBuild=performance.now();this.reconstruir();}const m=this.motor.mundo;let i=0;for(const mesh of this.chunksMeshes.values()){for(let k=0;k<mesh.count;k++){const p=this.particles[i++];if(!p)break;const amp=p.lago?0:.075;const y=m.nivelAgua+.015+Math.sin(this.time*1.25+p.fase)*amp;this.dummy.position.set(p.x,y,p.z);this.dummy.rotation.set(0,0,0);this.dummy.updateMatrix();mesh.setMatrixAt(k,this.dummy.matrix);}mesh.instanceMatrix.needsUpdate=true;}}
 }
 window.AguaUnificada=AguaUnificada;
