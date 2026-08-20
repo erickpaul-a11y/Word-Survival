@@ -1,9 +1,169 @@
 class AguaUnificada {
-    constructor(motor){this.motor=motor;this.mesh=null;this.geometry=null;this.material=null;this.signature='';this.time=0;this.lastBuild=0;this.instalarFisica();}
-    esLagoChunk(cx,cz){const m=this.motor.mundo;if(!m||!m.chunks)return false;const aguaChunk=(x,z)=>{const c=m.chunks.get(`${x},${z}`);return !!(c&&c.pixeles&&c.pixeles.some(p=>p.tipo==='agua'));};if(!aguaChunk(cx,cz))return false;const visit=new Set([`${cx},${cz}`]),cola=[[cx,cz]];while(cola.length&&visit.size<=5){const [x,z]=cola.shift();for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const k=`${x+dx},${z+dz}`;if(!visit.has(k)&&aguaChunk(x+dx,z+dz)){visit.add(k);cola.push([x+dx,z+dz]);if(visit.size>4)return false;}}}return visit.size<=4;}
-    ocultarAguasPorChunk(){const mundo=this.motor.mundo;if(!mundo)return;for(const chunk of mundo.chunks.values())if(chunk.agua){chunk.agua.visible=false;chunk.agua.userData.agua=true;chunk.agua.userData.colision=false;}}
-    instalarFisica(){const m=this.motor;if(m._fisicaAguaInstalada)return;m._fisicaAguaInstalada=true;const original=m._updateMovement.bind(m);m._updateMovement=(dt)=>{if(!m.j){original(dt);return;}const oldGet=m.getWaterHeightAt,oldEs=m.esAgua;const bajoAgua=!!(m.mundo&&m.mundo.esAgua(m.j.x,m.j.z)&&m.j.y<m.mundo.nivelAgua+.25);if(bajoAgua){m.getWaterHeightAt=()=>null;m.esAgua=()=>false;}original(dt);m.getWaterHeightAt=oldGet;m.esAgua=oldEs;const agua=m.mundo&&m.mundo.getWaterHeightAt(m.j.x,m.j.z);if(agua!==null&&agua!==undefined){const subir=!!m.teclas[' '],bajar=!!m.teclas.control;if(bajar)m.j.y=Math.max(m.getGroundHeightAt(m.j.x,m.j.z)+.18,m.j.y-2.8*dt);else if(subir)m.j.y=Math.min(agua+2.2,m.j.y+3.2*dt);else if(m.j.y>agua-.15)m.j.y+=(agua-.15-m.j.y)*Math.min(1,dt*2.5);m.enAgua=true;m.enSuelo=false;m.j.saltando=false;}else m.enAgua=false;const radio=.34;if(m.mundo&&m.mundo.chunks)for(const chunk of m.mundo.chunks.values())for(const o of chunk.objetos||[]){if(!o||!o.parent||o.userData.pickup||o.userData.agua||o.userData.cayendo)continue;const p=o.getWorldPosition(new THREE.Vector3()),dx=m.j.x-p.x,dz=m.j.z-p.z,d=Math.hypot(dx,dz),ob=o.userData.arbol?.72:.48,min=radio+ob;if(d>.001&&d<min){const k=(min-d)/d;m.j.x+=dx*k;m.j.z+=dz*k;m.velocidadX*=.35;m.velocidadZ*=.35;}}const suelo=m.getGroundHeightAt(m.j.x,m.j.z)+.18;if(m.j.y<suelo){m.j.y=suelo;m.velocidadY=0;}m.j.actualizarPosicion();};}
-    reconstruir(){const mundo=this.motor.mundo;if(!mundo)return;const posiciones=[],indices=[],ondas=[];let vertexOffset=0,cantidad=0;const chunks=[];for(const chunk of mundo.chunks.values()){if(!chunk.agua||!chunk.agua.geometry)continue;const g=chunk.agua.geometry,p=g.getAttribute('position'),idx=g.index;if(!p||!idx)continue;const ola=this.esLagoChunk(chunk.cx,chunk.cz)?0:1;for(let i=0;i<p.count;i++){posiciones.push(p.getX(i),mundo.nivelAgua,p.getZ(i));ondas.push(ola);}for(let i=0;i<idx.count;i++)indices.push(idx.getX(i)+vertexOffset);vertexOffset+=p.count;cantidad+=idx.count;chunks.push(chunk);}if(!cantidad)return;const firma=chunks.map(c=>c.cx+','+c.cz).join('|')+':'+cantidad;if(firma===this.signature&&this.mesh)return;this.signature=firma;if(this.mesh){this.motor.escena.remove(this.mesh);this.geometry.dispose();this.material.dispose();}this.geometry=new THREE.BufferGeometry();this.geometry.setAttribute('position',new THREE.Float32BufferAttribute(posiciones,3));this.geometry.setAttribute('waveStrength',new THREE.Float32BufferAttribute(ondas,1));this.geometry.setIndex(indices);this.geometry.computeVertexNormals();this.material=new THREE.MeshPhongMaterial({color:0x3f9eea,transparent:true,opacity:.48,depthWrite:false,side:THREE.DoubleSide,shininess:100});const material=this.material;material.onBeforeCompile=shader=>{shader.uniforms.waveTime={value:this.time};material.userData.shader=shader;shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nattribute float waveStrength;\nfloat w1=sin(position.x*.55+waveTime*1.35);\nfloat w2=cos(position.z*.42+waveTime*1.05);\nfloat w3=sin((position.x+position.z)*.22+waveTime*.75);\ntransformed.y+=(w1*.055+w2*.045+w3*.035)*waveStrength;').replace('void main() {','uniform float waveTime;\nvoid main() {');};this.mesh=new THREE.Mesh(this.geometry,this.material);this.mesh.name='AguaUnificada';this.mesh.userData.agua=true;this.mesh.userData.colision=false;this.mesh.frustumCulled=false;this.motor.escena.add(this.mesh);this.ocultarAguasPorChunk();}
-    actualizar(dt){if(!this.motor.mundo)return;this.time+=dt;this.ocultarAguasPorChunk();if(performance.now()-this.lastBuild>400){this.lastBuild=performance.now();this.reconstruir();}const shader=this.material&&this.material.userData.shader;if(shader)shader.uniforms.waveTime.value=this.time;}
+    constructor(motor){
+        this.motor=motor;
+        this.aguas=[];
+        this.signature='';
+        this.time=0;
+        this.lastBuild=0;
+        this.instalarFisica();
+    }
+
+    esLagoChunk(cx,cz){
+        const m=this.motor.mundo;
+        if(!m||!m.chunks)return false;
+        const tieneAgua=(x,z)=>{
+            const c=m.chunks.get(`${x},${z}`);
+            return !!(c&&c.pixeles&&c.pixeles.some(p=>p.tipo==='agua'));
+        };
+        if(!tieneAgua(cx,cz))return false;
+        const visit=new Set([`${cx},${cz}`]),cola=[[cx,cz]];
+        while(cola.length&&visit.size<=4){
+            const [x,z]=cola.shift();
+            for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){
+                const k=`${x+dx},${z+dz}`;
+                if(!visit.has(k)&&tieneAgua(x+dx,z+dz)){
+                    visit.add(k);
+                    cola.push([x+dx,z+dz]);
+                }
+            }
+        }
+        return visit.size<=4;
+    }
+
+    ocultarAguasAntiguas(){
+        const mundo=this.motor.mundo;
+        if(!mundo)return;
+        for(const chunk of mundo.chunks.values()){
+            if(chunk.agua){
+                chunk.agua.visible=false;
+                chunk.agua.userData.agua=true;
+                chunk.agua.userData.colision=false;
+            }
+        }
+    }
+
+    instalarFisica(){
+        const m=this.motor;
+        if(m._fisicaAguaInstalada)return;
+        m._fisicaAguaInstalada=true;
+
+        const original=m._updateMovement.bind(m);
+        m._updateMovement=(dt)=>{
+            original(dt);
+            if(!m.j)return;
+
+            const agua=m.mundo&&m.mundo.getWaterHeightAt
+                ?m.mundo.getWaterHeightAt(m.j.x,m.j.z)
+                :null;
+
+            // El agua NO tiene colisión: el jugador puede atravesar la superficie.
+            if(agua!==null&&agua!==undefined){
+                const subir=!!m.teclas[' '];
+                const bajar=!!m.teclas.control;
+                if(bajar)m.j.y-=2.8*dt;
+                else if(subir)m.j.y+=3.2*dt;
+                m.enAgua=true;
+                m.enSuelo=false;
+                m.j.saltando=false;
+                m.velocidadY=0;
+            }else{
+                m.enAgua=false;
+            }
+            m.j.actualizarPosicion();
+        };
+    }
+
+    limpiar(){
+        for(const a of this.aguas){
+            if(a.mesh.parent)this.motor.escena.remove(a.mesh);
+            if(a.geometry)a.geometry.dispose();
+            if(a.material)a.material.dispose();
+        }
+        this.aguas=[];
+    }
+
+    reconstruir(){
+        const mundo=this.motor.mundo;
+        if(!mundo)return;
+
+        const chunks=[];
+        for(const chunk of mundo.chunks.values()){
+            if(chunk.agua&&chunk.agua.geometry)chunks.push(chunk);
+        }
+        const firma=chunks.map(c=>`${c.cx},${c.cz}`).join('|');
+        if(firma===this.signature)return;
+        this.signature=firma;
+        this.limpiar();
+
+        // Cada superficie de agua se mantiene como una pieza independiente.
+        // No se fusionan en una malla única: cada pieza puede animarse por separado.
+        for(const chunk of chunks){
+            const g0=chunk.agua.geometry;
+            const p=g0.getAttribute('position');
+            if(!p)continue;
+
+            const posiciones=[];
+            for(let i=0;i<p.count;i++){
+                posiciones.push(p.getX(i),mundo.nivelAgua,p.getZ(i));
+            }
+
+            const geometry=new THREE.BufferGeometry();
+            geometry.setAttribute('position',new THREE.Float32BufferAttribute(posiciones,3));
+            if(g0.index)geometry.setIndex(g0.index.clone());
+            geometry.computeVertexNormals();
+
+            // Transparente y sin profundidad de escritura para poder ver peces y fondo.
+            const material=new THREE.MeshBasicMaterial({
+                color:0x55bfff,
+                transparent:true,
+                opacity:0.34,
+                depthWrite:false,
+                side:THREE.DoubleSide
+            });
+
+            const mesh=new THREE.Mesh(geometry,material);
+            mesh.name=`Agua_${chunk.cx}_${chunk.cz}`;
+            mesh.userData.agua=true;
+            mesh.userData.colision=false;
+            mesh.userData.independiente=true;
+            mesh.userData.esLago=this.esLagoChunk(chunk.cx,chunk.cz);
+            mesh.frustumCulled=false;
+            this.motor.escena.add(mesh);
+
+            this.aguas.push({mesh,geometry,material,base:posiciones.slice(),lago:mesh.userData.esLago,fase:Math.random()*Math.PI*2});
+        }
+
+        this.ocultarAguasAntiguas();
+    }
+
+    actualizar(dt){
+        if(!this.motor.mundo)return;
+        this.time+=dt;
+        this.ocultarAguasAntiguas();
+
+        if(performance.now()-this.lastBuild>400){
+            this.lastBuild=performance.now();
+            this.reconstruir();
+        }
+
+        // Cada pieza se mueve de forma independiente.
+        for(const agua of this.aguas){
+            const p=agua.geometry.getAttribute('position');
+            if(!p)continue;
+            const base=agua.base;
+            const fuerza=agua.lago?0:1;
+            for(let i=0;i<p.count;i++){
+                const x=base[i*3],z=base[i*3+2];
+                const onda=(
+                    Math.sin(x*.55+this.time*1.35+agua.fase)*.055+
+                    Math.cos(z*.42+this.time*1.05+agua.fase)*.045+
+                    Math.sin((x+z)*.22+this.time*.75+agua.fase)*.035
+                )*fuerza;
+                p.setY(i,base[i*3+1]+onda);
+            }
+            p.needsUpdate=true;
+            agua.geometry.computeVertexNormals();
+        }
+    }
 }
 window.AguaUnificada=AguaUnificada;
