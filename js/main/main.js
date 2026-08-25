@@ -13,7 +13,10 @@ if(btnEmpezar)btnEmpezar.onclick=()=>{
     // Los recursos se mantienen físicamente en el suelo; no se abre inventario tradicional.
     if(typeof Crafteos!=='undefined')motor.crafteos=new Crafteos(motor);
     if(typeof GestorLenguaje!=='undefined'){motor.lenguaje=new GestorLenguaje(motor);motor.lenguaje.cargarDatos();}
-    window.GAME_CONFIG=window.GAME_CONFIG||{};window.GAME_CONFIG.fpEnabled=true;window.GAME_CONFIG.fpHeight=.72;
+    window.GAME_CONFIG=window.GAME_CONFIG||{};
+    window.GAME_CONFIG.fpEnabled=true;
+    // Personaje de 1.8 unidades: cámara a la altura de los ojos/cabeza.
+    window.GAME_CONFIG.fpHeight=1.62;
     const btnCamera=document.getElementById('btn-toggle-camera');if(btnCamera){btnCamera.textContent='Cámara: 1ª';btnCamera.onclick=()=>{motor.toggleCamera();btnCamera.textContent=motor.cameraMode==='first'?'Cámara: 1ª':'Cámara: 3ª';};}
     const chk=document.getElementById('chk-crosshair'),cross=document.getElementById('crosshair');
     if(chk&&cross){cross.style.display=chk.checked?'block':'none';chk.onchange=()=>cross.style.display=chk.checked?'block':'none';}
