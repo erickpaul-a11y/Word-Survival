@@ -10,13 +10,13 @@ if(btnEmpezar)btnEmpezar.onclick=()=>{
     const pantallaInicio=document.getElementById('pantalla-inicio'),hudJuego=document.getElementById('hud-juego');
     if(pantallaInicio)pantallaInicio.style.display='none';if(hudJuego)hudJuego.style.display='block';
     window.WORLD_SEED=Math.floor(Math.random()*2147483647);motor.iniciar();
-    // Los recursos se mantienen físicamente en el suelo; no se abre inventario tradicional.
     if(typeof Crafteos!=='undefined')motor.crafteos=new Crafteos(motor);
     if(typeof GestorLenguaje!=='undefined'){motor.lenguaje=new GestorLenguaje(motor);motor.lenguaje.cargarDatos();}
     window.GAME_CONFIG=window.GAME_CONFIG||{};
     window.GAME_CONFIG.fpEnabled=true;
-    // Personaje de 1.8 unidades: cámara a la altura de los ojos/cabeza.
-    window.GAME_CONFIG.fpHeight=1.62;
+    // El personaje mide 1.0 unidad. La cámara queda a 0.90,
+    // aproximadamente a la altura de los ojos dentro de la cabeza.
+    window.GAME_CONFIG.fpHeight=0.90;
     const btnCamera=document.getElementById('btn-toggle-camera');if(btnCamera){btnCamera.textContent='Cámara: 1ª';btnCamera.onclick=()=>{motor.toggleCamera();btnCamera.textContent=motor.cameraMode==='first'?'Cámara: 1ª':'Cámara: 3ª';};}
     const chk=document.getElementById('chk-crosshair'),cross=document.getElementById('crosshair');
     if(chk&&cross){cross.style.display=chk.checked?'block':'none';chk.onchange=()=>cross.style.display=chk.checked?'block':'none';}
