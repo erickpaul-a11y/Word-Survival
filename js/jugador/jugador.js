@@ -11,12 +11,13 @@ class Jugador {
         this.modelo.userData.esJugador=true;
 
         const piel=new THREE.MeshLambertMaterial({color:0xc98b62});
-        this.leftHand=new THREE.Mesh(new THREE.BoxGeometry(.19,.34,.19),piel.clone());
-        this.rightHand=new THREE.Mesh(new THREE.BoxGeometry(.19,.34,.19),piel.clone());
+        // Manos pequeñas y proporcionadas a la vista en primera persona.
+        this.leftHand=new THREE.Mesh(new THREE.BoxGeometry(.12,.20,.12),piel.clone());
+        this.rightHand=new THREE.Mesh(new THREE.BoxGeometry(.12,.20,.12),piel.clone());
         this.leftHand.name='ManoIzquierda';
         this.rightHand.name='ManoDerecha';
-        this.leftHand.position.set(-.38,-.24,-.78);
-        this.rightHand.position.set(.38,-.24,-.78);
+        this.leftHand.position.set(-.28,-.20,-.62);
+        this.rightHand.position.set(.28,-.20,-.62);
         this.leftHand.rotation.z=-.18;
         this.rightHand.rotation.z=.18;
         this.leftHand.renderOrder=20;
@@ -51,8 +52,8 @@ class Jugador {
         this._golpeL=Math.max(0,this._golpeL-dt*5);
         this._golpeR=Math.max(0,this._golpeR-dt*5);
         const l=this._golpeL,r=this._golpeR;
-        this.leftHand.position.lerp(new THREE.Vector3(this._baseL.x-.16*l,this._baseL.y-.10*l,this._baseL.z+.30*l),s);
-        this.rightHand.position.lerp(new THREE.Vector3(this._baseR.x+.16*r,this._baseR.y-.10*r,this._baseR.z+.30*r),s);
+        this.leftHand.position.lerp(new THREE.Vector3(this._baseL.x-.10*l,this._baseL.y-.06*l,this._baseL.z+.22*l),s);
+        this.rightHand.position.lerp(new THREE.Vector3(this._baseR.x+.10*r,this._baseR.y-.06*r,this._baseR.z+.22*r),s);
         this.leftHand.rotation.z=this._baseRL-.9*l;
         this.rightHand.rotation.z=this._baseRR+.9*r;
     }
