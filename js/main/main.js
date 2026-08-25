@@ -1,4 +1,16 @@
 const motor=new Motor();window.motor=motor;
+// El movimiento original ya detecta el agua y mantiene la flotacion. Solo quitamos
+// el limite que mantenia al jugador siempre por encima de la superficie: ahora puede
+// bajar dentro del agua usando CTRL y volver a subir con ESPACIO.
+try{
+    const movimientoOriginal=motor._updateMovement;
+    const codigo=movimientoOriginal.toString();
+    const codigoAgua=codigo.replace(
+        "this.j.y=Math.max(this.getGroundHeightAt(this.j.x,this.j.z)+.18,Math.min(water+.25,this.j.y));",
+        "this.j.y=Math.max(this.getGroundHeightAt(this.j.x,this.j.z)+.18,this.j.y);"
+    );
+    if(codigoAgua!==codigo)motor._updateMovement=eval('('+codigoAgua+')');
+}catch(e){console.warn('No se pudo habilitar inmersion:',e);}
 const btnEmpezar=document.getElementById('btn-empezar');
 const btnOpciones=document.getElementById('btn-opciones');
 const btnIdiomas=document.getElementById('btn-idiomas');
@@ -14,8 +26,6 @@ if(btnEmpezar)btnEmpezar.onclick=()=>{
     if(typeof GestorLenguaje!=='undefined'){motor.lenguaje=new GestorLenguaje(motor);motor.lenguaje.cargarDatos();}
     window.GAME_CONFIG=window.GAME_CONFIG||{};
     window.GAME_CONFIG.fpEnabled=true;
-    // El personaje mide 1.0 unidad. La cámara queda a 0.90,
-    // aproximadamente a la altura de los ojos dentro de la cabeza.
     window.GAME_CONFIG.fpHeight=0.90;
     const btnCamera=document.getElementById('btn-toggle-camera');if(btnCamera){btnCamera.textContent='Cámara: 1ª';btnCamera.onclick=()=>{motor.toggleCamera();btnCamera.textContent=motor.cameraMode==='first'?'Cámara: 1ª':'Cámara: 3ª';};}
     const chk=document.getElementById('chk-crosshair'),cross=document.getElementById('crosshair');
