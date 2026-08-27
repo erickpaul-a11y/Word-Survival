@@ -7,3 +7,5 @@ Supervivencia 3D procedural donde desbloqueas el idioma explorando.
 
 - No borrar código funcional
 - modo de control con la mano con clik 
+- sin inventario solo podras gurdar cosas cuando tengas la mochila
+- 
