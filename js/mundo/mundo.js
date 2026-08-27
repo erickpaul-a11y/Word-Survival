@@ -1,31 +1,228 @@
 class Mundo {
-constructor(m,seed){this.m=m;this.chunks=new Map();this.tam=16;this.pixelsPorUnidad=4;this.radioCarga=4;this.radioEliminar=6;this.seed=seed||Math.random()*100000;this.nivelAgua=0;this.tiempoAgua=0;this.ondaAgua=0;this.bloquesEliminados=new Set();this.pendientes=[];this._pendientes=new Set();this.arbolesCayendo=[];this._texturas=this.crearTexturasNaturales();this._materiales={tronco:new THREE.MeshLambertMaterial({map:this._texturas.tronco}),hojas:new THREE.MeshLambertMaterial({map:this._texturas.hojas}),roca:new THREE.MeshLambertMaterial({map:this._texturas.roca})};}
-crearTextura(w,h,pintar){const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');pintar(x,w,h);const t=new THREE.CanvasTexture(c);t.magFilter=THREE.NearestFilter;t.minFilter=THREE.NearestFilter;t.generateMipmaps=false;t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;}
-crearTexturasNaturales(){const ruido=(x,y,s)=>{const n=Math.sin((x*127.1+y*311.7+s)*12.9898)*43758.5453;return n-Math.floor(n);};const tronco=this.crearTextura(256,256,(c,w,h)=>{for(let y=0;y<h;y++)for(let x=0;x<w;x++){const n=ruido(x,y,2);c.fillStyle=`rgb(${45+Math.floor(n*65)},${20+Math.floor(n*40)},${8+Math.floor(n*25)})`;c.fillRect(x,y,1,1);}});const hojas=this.crearTextura(256,256,(c,w,h)=>{for(let y=0;y<h;y++)for(let x=0;x<w;x++){const n=ruido(x,y,9);c.fillStyle=`rgb(${5+Math.floor(n*50)},${45+Math.floor(n*125)},${3+Math.floor(n*40)})`;c.fillRect(x,y,1,1);}});const roca=this.crearTextura(256,256,(c,w,h)=>{for(let y=0;y<h;y++)for(let x=0;x<w;x++){const n=ruido(x,y,17),v=45+Math.floor(n*115);c.fillStyle=`rgb(${v},${v+3},${v+7})`;c.fillRect(x,y,1,1);}});return{tronco,hojas,roca};}
-ruidoSuave(x,z){const n=Math.sin((x*127.1+z*311.7+this.seed)*12.9898)*43758.5453;return n-Math.floor(n);}
-altura(x,z){const s=this.seed;const base=ruido(x*.018+s,z*.018+s)*10;const detalle=ruido(x*.055+s*.3,z*.055+s*.3)*3;const mont=Math.pow(Math.max(0,ruido(x*.009+s*.7,z*.009+s*.7)-.42),1.7)*30;return base*.35+detalle*.2+mont-3;}
-tipoBloque(h){if(h<0)return'agua';if(h<.8)return'arena';if(h<8)return'cesped';return'tierra';}
-esAgua(x,z){return this.altura(x,z)<this.nivelAgua;}
-getWaterHeightAt(x,z){return this.esAgua(x,z)?this.nivelAgua:null;}
-puedeCaminarEn(){return true;}
-claveBloque(x,z){return `${Math.round(x*this.pixelsPorUnidad)},${Math.round(z*this.pixelsPorUnidad)}`;}
-estaEliminado(x,z){return this.bloquesEliminados.has(this.claveBloque(x,z));}
-crearArbol(x,z,h,chunk){const arbol=new THREE.Group();const vari=this.ruidoSuave(x+11,z+7);const tronco=new THREE.Mesh(new THREE.CylinderGeometry(.28+.12*vari,.48+.14*vari,4.3+vari,10),this._materiales.tronco.clone());tronco.position.y=2.15;arbol.add(tronco);for(let i=0;i<5;i++){const copa=new THREE.Mesh(new THREE.SphereGeometry(1.35+vari*.7-i*.08,12,9),this._materiales.hojas.clone());copa.position.set((i%2-.5)*.65,4.35+i*.38,(i*.31-.45));copa.scale.set(1.05,.8,1.05);arbol.add(copa);}for(let i=0;i<5;i++){const raiz=new THREE.Mesh(new THREE.CylinderGeometry(.07,.18,.9,5),this._materiales.tronco.clone());raiz.position.set(Math.cos(i*1.256)*.45,.14,Math.sin(i*1.256)*.45);raiz.rotation.z=Math.PI/2;raiz.rotation.y=i*1.256;arbol.add(raiz);}arbol.position.set(x,h,z);arbol.userData.recurso={madera:3,palo:2};arbol.userData.vida=3;arbol.userData.arbol=true;tronco.userData.recurso=arbol.userData.recurso;chunk.objetos.push(arbol);chunk.grupo.add(arbol);}
-crearRoca(x,z,h,chunk){const r=this.ruidoSuave(x+91,z+37);const roca=new THREE.Mesh(new THREE.DodecahedronGeometry(.65+.5*r,2),this._materiales.roca.clone());roca.position.set(x,h+.35+.3*r,z);roca.scale.set(1+.35*r,.65+.5*r,.8+.45*(1-r));roca.userData.recurso={piedra:3};roca.userData.tipo='piedra';chunk.objetos.push(roca);chunk.grupo.add(roca);}
-generar(cx,cz){const clave=`${cx},${cz}`;if(this.chunks.has(clave))return;const chunk={grupo:new THREE.Group(),objetos:[],pixeles:[],cx,cz},size=this.tam,res=this.pixelsPorUnidad,n=size*res,verts=[],indices=[],colors=[];for(let x=0;x<=n;x++)for(let z=0;z<=n;z++){const wx=cx*size+x/res,wz=cz*size+z/res,h=this.altura(wx,wz),t=this.tipoBloque(h),y=t==='agua'?this.nivelAgua+.01:h;verts.push(wx,y,wz);const noise=this.ruidoSuave(wx*4.7,wz*4.7),d=(noise-.5)*.13;let c=t==='agua'?[.03,.28,.78]:t==='arena'?[.78,.59,.25]:t==='cesped'?[.12,.46,.12]:t==='tierra'?[.34,.19,.08]:[.30,.32,.35];colors.push(...c.map(v=>Math.max(0,Math.min(1,v+d))));}
-for(let x=0;x<n;x++)for(let z=0;z<n;z++){const a=x*(n+1)+z,b=(x+1)*(n+1)+z,c=b+1,d=a+1;const wx=cx*size+(x+.5)/res,wz=cz*size+(z+.5)/res,h=this.altura(wx,wz),pixel={x:wx,z:wz,y:h,tipo:this.tipoBloque(h),interactivo:true,destruido:this.estaEliminado(wx,wz)};chunk.pixeles.push(pixel);if(!pixel.destruido)indices.push(a,b,d,b,c,d);}
-const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geo.setIndex(indices);geo.computeVertexNormals();const mat=new THREE.MeshPhongMaterial({vertexColors:true,side:THREE.DoubleSide,shininess:8});const terreno=new THREE.Mesh(geo,mat);terreno.userData.interactivo=true;terreno.userData.pixeles=chunk.pixeles;terreno.userData.resolucion=res;chunk.terreno=terreno;chunk.grupo.add(terreno);
-const aguaIndices=[];for(let x=0;x<n;x++)for(let z=0;z<n;z++){const wx=cx*size+(x+.5)/res,wz=cz*size+(z+.5)/res;if(this.esAgua(wx,wz)){const a=x*(n+1)+z,b=(x+1)*(n+1)+z,c=b+1,d=a+1;aguaIndices.push(a,b,d,b,c,d);}}
-if(aguaIndices.length){const waterVerts=verts.slice();aguaIndices.forEach(i=>waterVerts[i*3+1]=this.nivelAgua);const wg=new THREE.BufferGeometry();wg.setAttribute('position',new THREE.Float32BufferAttribute(waterVerts,3));wg.setIndex(aguaIndices);wg.computeVertexNormals();const wm=new THREE.MeshPhongMaterial({color:0x176dcc,transparent:true,opacity:.72,side:THREE.DoubleSide,shininess:80});wm.onBeforeCompile=s=>{s.uniforms.waveTime={value:0};wm.userData.shader=s;s.vertexShader=s.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n float wave1 = sin(position.x*.55 + waveTime)*.055;\n float wave2 = cos(position.z*.42 + waveTime*.8)*.045;\n float wave3 = sin((position.x+position.z)*.28 + waveTime*1.25)*.025;\n transformed.y += wave1 + wave2 + wave3;').replace('void main() {','uniform float waveTime;\nvoid main() {');};const agua=new THREE.Mesh(wg,wm);agua.userData.agua=true;chunk.agua=agua;chunk.grupo.add(agua);}
-const arboles=[];for(let x=1;x<size;x++)for(let z=1;z<size;z++){const wx=cx*size+x,wz=cz*size+z,h=this.altura(wx,wz),t=this.tipoBloque(h),r=this.ruidoSuave(wx,wz);if(t==='cesped'&&r<.04){this.crearArbol(wx,wz,h,chunk);arboles.push({x:wx,z:wz});}}
-this.chunks.set(clave,chunk);this.m.escena.add(chunk.grupo);}
-actualizarAgua(dt){this.tiempoAgua+=dt;for(const chunk of this.chunks.values())if(chunk.agua&&chunk.agua.material.userData.shader)chunk.agua.material.userData.shader.uniforms.waveTime.value=this.tiempoAgua*1.8;}
-derribarArbol(arbol){if(!arbol||arbol.userData.cayendo)return;arbol.userData.cayendo=true;arbol.userData.caida=0;arbol.userData.direccion=Math.random()>.5?1:-1;this.arbolesCayendo.push(arbol);}
-actualizarFisicas(dt){for(let i=this.arbolesCayendo.length-1;i>=0;i--){const a=this.arbolesCayendo[i],d=a.userData;a.userData.caida+=dt;a.rotation.z=d.direccion*Math.min(Math.PI/2,d.caida*1.3);if(d.caida>1.2){if(a.parent)a.parent.remove(a);this.m.soltarRecursos(d.recurso,a.position);this.arbolesCayendo.splice(i,1);}}}
-destruirBloque(hit){if(!hit||!hit.object||!hit.object.userData.interactivo)return null;const p=hit.point,res=this.pixelsPorUnidad,x=(Math.floor(p.x*res)+.5)/res,z=(Math.floor(p.z*res)+.5)/res;const clave=this.claveBloque(x,z);if(this.bloquesEliminados.has(clave))return null;this.bloquesEliminados.add(clave);const cx=Math.floor(x/this.tam),cz=Math.floor(z/this.tam),chunk=this.chunks.get(`${cx},${cz}`);if(!chunk)return null;const pixel=chunk.pixeles.find(q=>this.claveBloque(q.x,q.z)===clave);if(!pixel)return null;pixel.destruido=true;const i=chunk.pixeles.indexOf(pixel),n=this.tam*this.pixelsPorUnidad,cellX=Math.floor(i/n),cellZ=i%n,a=cellX*(n+1)+cellZ,b=(cellX+1)*(n+1)+cellZ,c=b+1,d=a+1,old=Array.from(chunk.terreno.geometry.index.array),next=[];for(let k=0;k<old.length;k+=3){const tri=[old[k],old[k+1],old[k+2]];if(tri.includes(a)&&tri.includes(b)&&tri.includes(c)&&tri.includes(d))continue;next.push(...tri);}chunk.terreno.geometry.setIndex(next);chunk.terreno.geometry.computeVertexNormals();return pixel;}
-eliminarLejanos(cx,cz){for(const [clave,chunk] of this.chunks){const p=clave.split(','),x=parseInt(p[0]),z=parseInt(p[1]),d=Math.max(Math.abs(cx-x),Math.abs(cz-z));if(d>this.radioEliminar){chunk.grupo.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}});this.m.escena.remove(chunk.grupo);this.chunks.delete(clave);}}}
-solicitarChunk(cx,cz){const clave=`${cx},${cz}`;if(!this.chunks.has(clave)&&!this._pendientes.has(clave)){this._pendientes.add(clave);this.pendientes.push([cx,cz]);}}
-actualizar(jx,jz,dt=.016){const cx=Math.floor(jx/this.tam),cz=Math.floor(jz/this.tam);for(let x=-this.radioCarga;x<=this.radioCarga;x++)for(let z=-this.radioCarga;z<=this.radioCarga;z++)this.solicitarChunk(cx+x,cz+z);this.pendientes.sort((a,b)=>Math.hypot(a[0]-cx,a[1]-cz)-Math.hypot(b[0]-cx,b[1]-cz));for(let i=0;i<2&&this.pendientes.length;i++){const [x,z]=this.pendientes.shift();this._pendientes.delete(`${x},${z}`);this.generar(x,z);}this.eliminarLejanos(cx,cz);this.actualizarAgua(dt);this.actualizarFisicas(dt);}
-nuevaSemilla(){for(const chunk of this.chunks.values())this.m.escena.remove(chunk.grupo);this.chunks.clear();this.seed=Math.random()*100000;}
+  constructor(m, seed) {
+    this.m = m;
+    this.chunks = new Map();
+    this.tam = 12;            // Tamaño de chunk en unidades de espacio 3D
+    this.res = 1;             // Resolución de puntos por unidad
+    this.radioCarga = 2;
+    this.radioEliminar = 4;
+    this.seed = seed || Math.random() * 100000;
+    
+    this.nivelAgua = 3;       // Altura del agua (Crea volumen hasta este punto)
+    
+    // Almacena modificaciones hechas por el jugador: Map<"x,y,z", densidad>
+    // Densidad > 0 = Tierra/Roca | Densidad <= 0 = Aire/Hueco
+    this.modificaciones = new Map();
+
+    this._texturas = this.crearTexturasNaturales();
+    this._materiales = {
+      terreno: new THREE.MeshPhongMaterial({
+        vertexColors: true,
+        flatShading: true,
+        shininess: 5
+      }),
+      agua: new THREE.MeshPhongMaterial({
+        color: 0x176dcc,
+        transparent: true,
+        opacity: 0.7,
+        shininess: 80,
+        side: THREE.DoubleSide
+      })
+    };
+  }
+
+  crearTextura(w, h, pintar) {
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const x = c.getContext('2d');
+    pintar(x, w, h);
+    const t = new THREE.CanvasTexture(c);
+    t.magFilter = t.minFilter = THREE.NearestFilter;
+    return t;
+  }
+
+  crearTexturasNaturales() {
+    return {};
+  }
+
+  ruido(x, y, z) {
+    const n = Math.sin((x * 127.1 + y * 311.7 + z * 74.7 + this.seed) * 12.9898) * 43758.5453;
+    return n - Math.floor(n);
+  }
+
+  // Devuelve la densidad en un punto tridimensional
+  obtenerDensidad(x, y, z) {
+    const clave = `${Math.round(x * 2) / 2},${Math.round(y * 2) / 2},${Math.round(z * 2) / 2}`;
+    
+    // Si el jugador modificó esta zona concreta, usar ese valor
+    if (this.modificaciones.has(clave)) {
+      return this.modificaciones.get(clave);
+    }
+
+    // Terreno procedural base suave usando funciones continuas
+    const hBase = Math.sin(x * 0.15 + this.seed) * 3 + Math.cos(z * 0.15 + this.seed) * 3 + 4;
+    const detalle = (this.ruido(x * 0.2, y * 0.2, z * 0.2) - 0.5) * 1.5;
+    
+    // Si Y está por debajo de la altura, la densidad es positiva (Sólido)
+    return (hBase + detalle) - y;
+  }
+
+  // Modifica un punto concreto o esfera de influencia en el espacio 3D
+  modificarDensidadEn(posCentro, radio, cambio) {
+    const minX = Math.floor(posCentro.x - radio);
+    const maxX = Math.ceil(posCentro.x + radio);
+    const minY = Math.floor(posCentro.y - radio);
+    const maxY = Math.ceil(posCentro.y + radio);
+    const minZ = Math.floor(posCentro.z - radio);
+    const maxZ = Math.ceil(posCentro.z + radio);
+
+    const chunksAfectados = new Set();
+
+    for (let x = minX; x <= maxX; x += 0.5) {
+      for (let y = minY; y <= maxY; y += 0.5) {
+        for (let z = minZ; z <= maxZ; z += 0.5) {
+          const d = Math.hypot(x - posCentro.x, y - posCentro.y, z - posCentro.z);
+          if (d <= radio) {
+            const clave = `${x},${y},${z}`;
+            const densActual = this.obtenerDensidad(x, y, z);
+            
+            // Suavizado según la distancia al centro de la interacción
+            const factor = (1 - d / radio);
+            this.modificaciones.set(clave, densActual + cambio * factor);
+
+            // Marcar chunks vecinos para reconstruir su geometría
+            const cx = Math.floor(x / this.tam);
+            const cz = Math.floor(z / this.tam);
+            chunksAfectados.add(`${cx},${cz}`);
+          }
+        }
+      }
+    }
+
+    // Recargar solo las áreas modificadas dinámicamente
+    chunksAfectados.forEach(claveChunk => {
+      if (this.chunks.has(claveChunk)) {
+        const [cx, cz] = claveChunk.split(',').map(Number);
+        const oldChunk = this.chunks.get(claveChunk);
+        this.m.escena.remove(oldChunk.grupo);
+        this.chunks.delete(claveChunk);
+        this.generar(cx, cz);
+      }
+    });
+  }
+
+  generar(cx, cz) {
+    const clave = `${cx},${cz}`;
+    if (this.chunks.has(clave)) return;
+
+    const chunk = { grupo: new THREE.Group(), cx, cz };
+    const size = this.tam;
+    const minY = -4, maxY = 12; // Límites verticales del volumen
+
+    const vertsTerreno = [];
+    const colorsTerreno = [];
+    const vertsAgua = [];
+
+    // Generador de Malla Suave editable (Surface Sampling / Grid Evaluation)
+    for (let x = 0; x < size; x += this.res) {
+      for (let z = 0; z < size; z += this.res) {
+        for (let y = minY; y < maxY; y += this.res) {
+          const wx = cx * size + x;
+          const wz = cz * size + z;
+          
+          const d0 = this.obtenerDensidad(wx, y, wz);
+          const dX = this.obtenerDensidad(wx + this.res, y, wz);
+          const dY = this.obtenerDensidad(wx, y + this.res, wz);
+          const dZ = this.obtenerDensidad(wx, y, wz + this.res);
+
+          // Construcción de triángulos suaves en intersecciones de densidad (Puntos interactuables)
+          if ((d0 > 0) !== (dX > 0) || (d0 > 0) !== (dY > 0) || (d0 > 0) !== (dZ > 0)) {
+            vertsTerreno.push(
+              wx, y, wz,
+              wx + this.res, y, wz,
+              wx, y + this.res, wz
+            );
+
+            // Asignación cromática natural según altura y material
+            let color = [0.15, 0.5, 0.15]; // Césped
+            if (y < this.nivelAgua) color = [0.7, 0.6, 0.3]; // Arena
+            if (y < 0) color = [0.4, 0.4, 0.45]; // Roca
+            
+            colorsTerreno.push(...color, ...color, ...color);
+          }
+
+          // AGUA VOLUMÉTRICA EN 3D:
+          // Si el terreno está vacío (densidad <= 0) pero está por debajo del nivelAgua, genera volumen acuático con profundidad
+          if (d0 <= 0 && y <= this.nivelAgua) {
+            vertsAgua.push(
+              wx, y, wz,
+              wx + this.res, y, wz,
+              wx, y + this.res, wz,
+              
+              wx + this.res, y, wz,
+              wx + this.res, y + this.res, wz,
+              wx, y + this.res, wz
+            );
+          }
+        }
+      }
+    }
+
+    // Malla de Terreno editable
+    if (vertsTerreno.length > 0) {
+      const geoT = new THREE.BufferGeometry();
+      geoT.setAttribute('position', new THREE.Float32BufferAttribute(vertsTerreno, 3));
+      geoT.setAttribute('color', new THREE.Float32BufferAttribute(colorsTerreno, 3));
+      geoT.computeVertexNormals();
+
+      const meshT = new THREE.Mesh(geoT, this._materiales.terreno);
+      meshT.userData.interactivo = true;
+      chunk.grupo.add(meshT);
+    }
+
+    // Malla de Agua con Volumen Real 3D
+    if (vertsAgua.length > 0) {
+      const geoA = new THREE.BufferGeometry();
+      geoA.setAttribute('position', new THREE.Float32BufferAttribute(vertsAgua, 3));
+      geoA.computeVertexNormals();
+
+      const meshA = new THREE.Mesh(geoA, this._materiales.agua);
+      chunk.grupo.add(meshA);
+    }
+
+    this.chunks.set(clave, chunk);
+    this.m.escena.add(chunk.grupo);
+  }
+
+  // Métodos de interacción desde el juego:
+  
+  // Llama a esto para excavar/picar una esfera en el espacio 3D
+  excavar(posicionImpacto, radio = 1.5) {
+    this.modificarDensidadEn(posicionImpacto, radio, -2.0);
+  }
+
+  // Llama a esto para añadir/construir tierra orgánica en el espacio 3D
+  anadirTierra(posicionImpacto, radio = 1.5) {
+    this.modificarDensidadEn(posicionImpacto, radio, 2.0);
+  }
+
+  solicitarChunk(cx, cz) {
+    const clave = `${cx},${cz}`;
+    if (!this.chunks.has(clave)) {
+      this.generar(cx, cz);
+    }
+  }
+
+  actualizar(jx, jz) {
+    const cx = Math.floor(jx / this.tam);
+    const cz = Math.floor(jz / this.tam);
+
+    for (let x = -this.radioCarga; x <= this.radioCarga; x++) {
+      for (let z = -this.radioCarga; z <= this.radioCarga; z++) {
+        this.solicitarChunk(cx + x, cz + z);
+      }
+    }
+  }
 }
-window.Mundo=Mundo;
+
+window.Mundo = Mundo;
