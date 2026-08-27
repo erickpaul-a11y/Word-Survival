@@ -1,15 +1,13 @@
-<div class="cow-texture"></div>
-
-<style>
-.cow-texture {
-  width: 100%;
-  height: 300px;
-  background-color: #f5f5f0;
-  background-image: 
-    radial-gradient(ellipse at 20% 20%, #111 0%, #111 40%, transparent 41%),
-    radial-gradient(ellipse at 80% 30%, #111 0%, #111 50%, transparent 51%),
-    radial-gradient(ellipse at 35% 75%, #111 0%, #111 45%, transparent 46%),
-    radial-gradient(ellipse at 75% 80%, #111 0%, #111 35%, transparent 36%);
-  background-size: 200px 200px;
-}
-</style>
+<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fondo blanco (piel) -->
+  <rect width="100%" height="100%" fill="#f4f4f0" />
+  
+  <!-- Manchas negras con formas orgánicas -->
+  <g fill="#111111">
+    <path d="M 20,30 Q 80,10 120,60 T 90,140 Q 30,150 10,90 Z" />
+    <path d="M 220,40 Q 310,20 350,90 T 310,200 Q 200,180 210,100 Z" />
+    <path d="M 50,220 Q 150,200 160,290 T 80,380 Q 10,350 20,260 Z" />
+    <path d="M 260,240 Q 380,220 370,330 T 280,390 Q 210,340 230,280 Z" />
+    <circle cx="180" cy="150" r="25" />
+  </g>
+</svg>
