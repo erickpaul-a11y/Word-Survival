@@ -2,29 +2,29 @@ class Mundo {
   constructor(m, seed) {
     this.m = m;
     this.chunks = new Map();
-    this.tam = 12;            // Tamaño del chunk en unidades 3D
-    this.res = 1;             // Resolución de densidad
+    this.tam = 12;            // Tamaño del chunk
     this.radioCarga = 2;
     this.radioEliminar = 4;
     this.seed = seed || Math.random() * 100000;
     
-    this.nivelAgua = 3;       // Nivel donde se genera el volumen de agua profundo
+    this.nivelAgua = 3;       // Límite donde el agua tiene volumen 3D
     
-    // Almacena las modificaciones tridimensionales hechas por el jugador: Map<"x,y,z", densidad>
+    // Almacena modificaciones hechas por el jugador en espacio 3D
     this.modificaciones = new Map();
 
+    // Geometría sólida 3D real de 1x1x1
+    this._boxGeo = new THREE.BoxGeometry(1, 1, 1);
+
     this._materiales = {
-      terreno: new THREE.MeshPhongMaterial({
-        vertexColors: true,
-        flatShading: true,
-        shininess: 5
-      }),
-      agua: new THREE.MeshPhongMaterial({
+      cesped: new THREE.MeshLambertMaterial({ color: 0x2d8a2d }),
+      tierra: new THREE.MeshLambertMaterial({ color: 0x5a3d28 }),
+      arena:  new THREE.MeshLambertMaterial({ color: 0xc2a649 }),
+      roca:   new THREE.MeshLambertMaterial({ color: 0x666666 }),
+      agua:   new THREE.MeshPhongMaterial({
         color: 0x176dcc,
         transparent: true,
         opacity: 0.7,
-        shininess: 80,
-        side: THREE.DoubleSide
+        shininess: 80
       })
     };
   }
@@ -34,60 +34,84 @@ class Mundo {
     return n - Math.floor(n);
   }
 
-  // Consulta la densidad en un punto tridimensional (X, Y, Z)
-  obtenerDensidad(x, y, z) {
-    const rx = Math.round(x * 2) / 2;
-    const ry = Math.round(y * 2) / 2;
-    const rz = Math.round(z * 2) / 2;
+  obtenerSolido(x, y, z) {
+    const rx = Math.floor(x);
+    const ry = Math.floor(y);
+    const rz = Math.floor(z);
     const clave = `${rx},${ry},${rz}`;
     
-    // Si la zona fue modificada por el jugador, usar ese valor
+    // Modificaciones directas (1 = Bloque / 0 = Aire)
     if (this.modificaciones.has(clave)) {
       return this.modificaciones.get(clave);
     }
 
     // Terreno procedural base
-    const hBase = Math.sin(x * 0.15 + this.seed) * 3 + Math.cos(z * 0.15 + this.seed) * 3 + 4;
-    const detalle = (this.ruido(x * 0.2, y * 0.2, z * 0.2) - 0.5) * 1.5;
-    
-    return (hBase + detalle) - y;
+    const hBase = Math.floor(Math.sin(x * 0.15 + this.seed) * 3 + Math.cos(z * 0.15 + this.seed) * 3 + 4);
+    return y <= hBase ? 1 : 0;
   }
 
-  // Aplica o quita masa en un radio dentro del volumen 3D
-  modificarDensidadEn(posCentro, radio, cambio) {
-    const minX = Math.floor(posCentro.x - radio);
-    const maxX = Math.ceil(posCentro.x + radio);
-    const minY = Math.floor(posCentro.y - radio);
-    const maxY = Math.ceil(posCentro.y + radio);
-    const minZ = Math.floor(posCentro.z - radio);
-    const maxZ = Math.ceil(posCentro.z + radio);
+  // --- INTERACCIÓN Y PERSISTENCIA 3D ---
 
+  excavar(posicionImpacto, radio = 1) {
+    const cx = Math.floor(posicionImpacto.x);
+    const cy = Math.floor(posicionImpacto.y);
+    const cz = Math.floor(posicionImpacto.z);
+
+    const r = Math.ceil(radio);
     const chunksAfectados = new Set();
 
-    for (let x = minX; x <= maxX; x += 0.5) {
-      for (let y = minY; y <= maxY; y += 0.5) {
-        for (let z = minZ; z <= maxZ; z += 0.5) {
-          const d = Math.hypot(x - posCentro.x, y - posCentro.y, z - posCentro.z);
-          if (d <= radio) {
-            const rx = Math.round(x * 2) / 2;
-            const ry = Math.round(y * 2) / 2;
-            const rz = Math.round(z * 2) / 2;
-            const clave = `${rx},${ry},${rz}`;
+    for (let x = -r; x <= r; x++) {
+      for (let y = -r; y <= r; y++) {
+        for (let z = -r; z <= r; z++) {
+          if (Math.hypot(x, y, z) <= radio) {
+            const bx = cx + x;
+            const by = cy + y;
+            const bz = cz + z;
+            
+            this.modificaciones.set(`${bx},${by},${bz}`, 0); // Quitar bloque
 
-            const densActual = this.obtenerDensidad(x, y, z);
-            const factor = (1 - d / radio);
-            this.modificaciones.set(clave, densActual + cambio * factor);
-
-            const cx = Math.floor(x / this.tam);
-            const cz = Math.floor(z / this.tam);
-            chunksAfectados.add(`${cx},${cz}`);
+            const chunkX = Math.floor(bx / this.tam);
+            const chunkZ = Math.floor(bz / this.tam);
+            chunksAfectados.add(`${chunkX},${chunkZ}`);
           }
         }
       }
     }
 
-    // Regenera dinámicamente los chunks modificados
-    chunksAfectados.forEach(claveChunk => {
+    this.recargarChunks(chunksAfectados);
+  }
+
+  anadirTierra(posicionImpacto, radio = 1) {
+    const cx = Math.floor(posicionImpacto.x);
+    const cy = Math.floor(posicionImpacto.y);
+    const cz = Math.floor(posicionImpacto.z);
+
+    const r = Math.ceil(radio);
+    const chunksAfectados = new Set();
+
+    for (let x = -r; x <= r; x++) {
+      for (let y = -r; y <= r; y++) {
+        for (let z = -r; z <= r; z++) {
+          if (Math.hypot(x, y, z) <= radio) {
+            const bx = cx + x;
+            const by = cy + y;
+            const bz = cz + z;
+            
+            this.modificaciones.set(`${bx},${by},${bz}`, 1); // Agregar bloque
+
+            const chunkX = Math.floor(bx / this.tam);
+            const chunkZ = Math.floor(bz / this.tam);
+            chunksAfectados.add(`${chunkX},${chunkZ}`);
+          }
+        }
+      }
+    }
+
+    this.recargarChunks(chunksAfectados);
+  }
+
+  recargarChunks(setChunks) {
+    setChunks.forEach(claveChunk => {
       if (this.chunks.has(claveChunk)) {
         const [cx, cz] = claveChunk.split(',').map(Number);
         const oldChunk = this.chunks.get(claveChunk);
@@ -98,45 +122,27 @@ class Mundo {
     });
   }
 
-  excavar(posicionImpacto, radio = 1.5) {
-    this.modificarDensidadEn(posicionImpacto, radio, -2.0);
-  }
-
-  anadirTierra(posicionImpacto, radio = 1.5) {
-    this.modificarDensidadEn(posicionImpacto, radio, 2.0);
-  }
-
-  // --- MÉTODOS DE INTERACCIÓN Y PERSISTENCIA ---
-
   destruirBloque(hit, radio) {
     if (!hit || !hit.point) return null;
-    const p = hit.point;
-    const r = radio || 1.5;
-
-    this.excavar(p, r);
-    return { x: p.x, y: p.y, z: p.z, radio: r };
+    this.excavar(hit.point, radio || 1);
+    return hit.point;
   }
 
   colocarBloque(x, y, z, radio) {
-    const pos = new THREE.Vector3(x, y, z);
-    const r = radio || 1.5;
-
-    this.anadirTierra(pos, r);
-    return { x, y, z, radio: r };
+    this.anadirTierra(new THREE.Vector3(x, y, z), radio || 1);
+    return { x, y, z };
   }
 
   colocarTierraCercana(hit, radio) {
     if (!hit || !hit.point) return null;
-    
     let pos = hit.point.clone();
     if (hit.face && hit.face.normal) {
       pos.add(hit.face.normal.clone().multiplyScalar(0.5));
     }
-
     return this.colocarBloque(pos.x, pos.y, pos.z, radio);
   }
 
-  // --- GENERACIÓN DE MALLA Y VOLUMEN 3D ---
+  // --- GENERACIÓN DE BLOQUES 3D CON VOLUMEN COMPLETO ---
 
   generar(cx, cz) {
     const clave = `${cx},${cz}`;
@@ -144,72 +150,62 @@ class Mundo {
 
     const chunk = { grupo: new THREE.Group(), cx, cz };
     const size = this.tam;
-    const minY = -4, maxY = 12;
+    const minY = -2, maxY = 10;
 
-    const vertsTerreno = [];
-    const colorsTerreno = [];
-    const vertsAgua = [];
+    const listas = {
+      cesped: [], tierra: [], arena: [], roca: [], agua: []
+    };
 
-    for (let x = 0; x < size; x += this.res) {
-      for (let z = 0; z < size; z += this.res) {
-        for (let y = minY; y < maxY; y += this.res) {
-          const wx = cx * size + x;
-          const wz = cz * size + z;
-          
-          const d0 = this.obtenerDensidad(wx, y, wz);
-          const dX = this.obtenerDensidad(wx + this.res, y, wz);
-          const dY = this.obtenerDensidad(wx, y + this.res, wz);
-          const dZ = this.obtenerDensidad(wx, y, wz + this.res);
+    for (let x = 0; x < size; x++) {
+      for (let z = 0; z < size; z++) {
+        const wx = cx * size + x;
+        const wz = cz * size + z;
 
-          // Construcción de la superficie suave del terreno en 3D
-          if ((d0 > 0) !== (dX > 0) || (d0 > 0) !== (dY > 0) || (d0 > 0) !== (dZ > 0)) {
-            vertsTerreno.push(
-              wx, y, wz,
-              wx + this.res, y, wz,
-              wx, y + this.res, wz
-            );
+        for (let y = minY; y <= maxY; y++) {
+          const esSolido = this.obtenerSolido(wx, y, wz);
 
-            let color = [0.15, 0.5, 0.15]; // Césped
-            if (y < this.nivelAgua) color = [0.7, 0.6, 0.3]; // Arena
-            if (y < 0) color = [0.4, 0.4, 0.45]; // Roca
+          if (esSolido === 1) {
+            // Determinar tipo de bloque sólido
+            const solidoArriba = this.obtenerSolido(wx, y + 1, wz);
+            let tipo = 'tierra';
             
-            colorsTerreno.push(...color, ...color, ...color);
-          }
+            if (solidoArriba === 0) {
+              tipo = y <= this.nivelAgua ? 'arena' : 'cesped';
+            } else if (y < 0) {
+              tipo = 'roca';
+            }
 
-          // Generación de volumen de agua 3D (Se llena si hay hueco bajo el nivel del agua)
-          if (d0 <= 0 && y <= this.nivelAgua) {
-            vertsAgua.push(
-              wx, y, wz,
-              wx + this.res, y, wz,
-              wx, y + this.res, wz,
-              
-              wx + this.res, y, wz,
-              wx + this.res, y + this.res, wz,
-              wx, y + this.res, wz
-            );
+            listas[tipo].push(new THREE.Vector3(wx, y, wz));
+          } else {
+            // Agua en volumen 3D: Llenar si no hay bloque sólido y está bajo el nivel del agua
+            if (y <= this.nivelAgua) {
+              listas.agua.push(new THREE.Vector3(wx, y, wz));
+            }
           }
         }
       }
     }
 
-    if (vertsTerreno.length > 0) {
-      const geoT = new THREE.BufferGeometry();
-      geoT.setAttribute('position', new THREE.Float32BufferAttribute(vertsTerreno, 3));
-      geoT.setAttribute('color', new THREE.Float32BufferAttribute(colorsTerreno, 3));
-      geoT.computeVertexNormals();
+    // Instanciar bloques sólidos con 6 caras cerradas en 3D
+    const dummy = new THREE.Object3D();
+    for (const [tipo, posiciones] of Object.entries(listas)) {
+      if (posiciones.length === 0) continue;
 
-      const meshT = new THREE.Mesh(geoT, this._materiales.terreno);
-      meshT.userData.interactivo = true;
-      chunk.grupo.add(meshT);
-    }
+      const mesh = new THREE.InstancedMesh(
+        this._boxGeo,
+        this._materiales[tipo],
+        posiciones.length
+      );
 
-    if (vertsAgua.length > 0) {
-      const geoA = new THREE.BufferGeometry();
-      geoA.setAttribute('position', new THREE.Float32BufferAttribute(vertsAgua, 3));
-      geoA.computeVertexNormals();
+      posiciones.forEach((pos, i) => {
+        dummy.position.set(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(i, dummy.matrix);
+      });
 
-      const meshA = new THREE.Mesh(geoA, this._materiales.agua);
-      chunk.grupo.add(meshA);
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.userData.interactivo = true;
+      chunk.grupo.add(mesh);
     }
 
     this.chunks.set(clave, chunk);
