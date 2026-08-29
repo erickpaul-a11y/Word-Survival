@@ -1,51 +1,340 @@
-/* Módulo de Interacción con el Terreno 3D */
-(function() {
-  'use strict';
+/* ============================================================
+   WORD SURVIVAL ∞
+   INTERACCIÓN CON EL TERRENO
+   - Terreno
+   - Árboles
+   - Agua
+   - Peces
+   ============================================================ */
 
-  class Terreno {
-    constructor(mundo) {
-      this.mundo = mundo;
-      this.raycaster = new THREE.Raycaster();
+(function () {
+
+    'use strict';
+
+
+    class Terreno {
+
+        constructor(mundo) {
+
+            this.mundo =
+                mundo;
+
+            this.raycaster =
+                new THREE.Raycaster();
+        }
+
+
+        // =====================================================
+        // OBTENER OBJETOS INTERACTIVOS
+        // =====================================================
+
+        obtenerObjetosInteractivos() {
+
+            const objetos = [];
+
+
+            for (
+                const chunk of
+                this.mundo.chunks.values()
+            ) {
+
+                if (
+                    !chunk ||
+                    !chunk.grupo
+                ) {
+                    continue;
+                }
+
+
+                chunk.grupo.traverse(
+                    child => {
+
+                        if (
+                            !child ||
+                            !child.isObject3D
+                        ) {
+                            return;
+                        }
+
+
+                        /*
+                         * El terreno actual es THREE.Mesh,
+                         * no InstancedMesh.
+                         */
+
+                        if (
+                            child.userData &&
+                            child.userData.interactivo
+                        ) {
+
+                            objetos.push(
+                                child
+                            );
+                        }
+
+                    }
+                );
+            }
+
+
+            return objetos;
+        }
+
+
+        // =====================================================
+        // BLOQUE MIRADO
+        // =====================================================
+
+        obtenerBloqueMirado(
+            camara,
+            distanciaMax = 8
+        ) {
+
+            this.raycaster.setFromCamera(
+                {
+                    x: 0,
+                    y: 0
+                },
+                camara
+            );
+
+
+            const objetos =
+                this.obtenerObjetosInteractivos();
+
+
+            if (
+                objetos.length === 0
+            ) {
+
+                return null;
+            }
+
+
+            const impactos =
+                this.raycaster.intersectObjects(
+                    objetos,
+                    true
+                );
+
+
+            for (
+                const impacto of
+                impactos
+            ) {
+
+                if (
+                    impacto.distance >
+                    distanciaMax
+                ) {
+
+                    continue;
+                }
+
+
+                /*
+                 * No permitir seleccionar
+                 * el agua como si fuera terreno.
+                 */
+
+                let objeto =
+                    impacto.object;
+
+                while (
+                    objeto
+                ) {
+
+                    if (
+                        objeto.userData &&
+                        objeto.userData.tipo ===
+                        'agua'
+                    ) {
+
+                        break;
+                    }
+
+                    objeto =
+                        objeto.parent;
+                }
+
+
+                /*
+                 * Si encontramos agua,
+                 * seguimos buscando otro objeto.
+                 */
+
+                let esAgua =
+                    false;
+
+                objeto =
+                    impacto.object;
+
+                while (
+                    objeto
+                ) {
+
+                    if (
+                        objeto.userData &&
+                        objeto.userData.tipo ===
+                        'agua'
+                    ) {
+
+                        esAgua =
+                            true;
+
+                        break;
+                    }
+
+                    objeto =
+                        objeto.parent;
+                }
+
+
+                if (esAgua) {
+                    continue;
+                }
+
+
+                return impacto;
+            }
+
+
+            return null;
+        }
+
+
+        // =====================================================
+        // EXCAVAR
+        // =====================================================
+
+        excavar(camara) {
+
+            const hit =
+                this.obtenerBloqueMirado(
+                    camara
+                );
+
+
+            if (!hit) {
+
+                return null;
+            }
+
+
+            return this.mundo.destruirBloque(
+                hit,
+                1
+            );
+        }
+
+
+        // =====================================================
+        // COLOCAR TIERRA
+        // =====================================================
+
+        colocarTierra(camara) {
+
+            const hit =
+                this.obtenerBloqueMirado(
+                    camara
+                );
+
+
+            if (!hit) {
+
+                return null;
+            }
+
+
+            return this.mundo.colocarTierraCercana(
+                hit,
+                1
+            );
+        }
+
+
+        // =====================================================
+        // AGUA
+        // =====================================================
+
+        obtenerProfundidadAgua(
+            x,
+            z
+        ) {
+
+            return this.mundo.getWaterDepthAt(
+                x,
+                z
+            );
+        }
+
+
+        estaEnAgua(
+            x,
+            z
+        ) {
+
+            return this.mundo.esAgua(
+                x,
+                z
+            );
+        }
+
+
+        // =====================================================
+        // OBJETO MIRADO
+        // =====================================================
+
+        obtenerObjetoMirado(
+            camara,
+            distanciaMax = 8
+        ) {
+
+            this.raycaster.setFromCamera(
+                {
+                    x: 0,
+                    y: 0
+                },
+                camara
+            );
+
+
+            const objetos =
+                this.obtenerObjetosInteractivos();
+
+
+            const impactos =
+                this.raycaster.intersectObjects(
+                    objetos,
+                    true
+                );
+
+
+            for (
+                const impacto of
+                impactos
+            ) {
+
+                if (
+                    impacto.distance <=
+                    distanciaMax
+                ) {
+
+                    return impacto;
+                }
+            }
+
+
+            return null;
+        }
     }
 
-    // Detecta qué bloque 3D está mirando la cámara o cursor
-    obtenerBloqueMirado(camara, distanciaMax = 8) {
-      this.raycaster.setFromCamera({ x: 0, y: 0 }, camara); // Apunta al centro de la pantalla
-      
-      const objetosInteractivos = [];
-      for (const chunk of this.mundo.chunks.values()) {
-        chunk.grupo.traverse(child => {
-          if (child.isInstancedMesh && child.userData.interactivo) {
-            objetosInteractivos.push(child);
-          }
-        });
-      }
 
-      const impactos = this.raycaster.intersectObjects(objetosInteractivos);
-      if (impactos.length > 0 && impactos[0].distance <= distanciaMax) {
-        return impactos[0];
-      }
-      return null;
-    }
+    // =========================================================
+    // EXPORTAR
+    // =========================================================
 
-    // Acción para picar / excavar un bloque en 3D
-    excavar(camara) {
-      const hit = this.obtenerBloqueMirado(camara);
-      if (hit) {
-        return this.mundo.destruirBloque(hit, 1);
-      }
-      return null;
-    }
+    window.Terreno =
+        Terreno;
 
-    // Acción para colocar un bloque de tierra en 3D sobre la cara seleccionada
-    colocarTierra(camara) {
-      const hit = this.obtenerBloqueMirado(camara);
-      if (hit) {
-        return this.mundo.colocarTierraCercana(hit, 1);
-      }
-      return null;
-    }
-  }
-
-  window.Terreno = Terreno;
 })();
