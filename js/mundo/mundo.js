@@ -1,13 +1,13 @@
 /* ============================================================
    WORD SURVIVAL ∞
-   MUNDO 3D
-   - Terreno procedural
-   - Altura correcta
-   - Colisión con suelo
+   MUNDO
+   - Terreno suave
+   - Sin aspecto de cubos
+   - Altura compatible con Motor
    - Agua
+   - Chunks
    - Excavación
    - Colocación de tierra
-   - Chunks infinitos
    ============================================================ */
 
 class Mundo {
@@ -21,6 +21,7 @@ class Mundo {
         this.tam = 12;
 
         this.radioCarga = 2;
+
         this.radioEliminar = 4;
 
         this.seed =
@@ -30,59 +31,41 @@ class Mundo {
 
         this.modificaciones = new Map();
 
-        this._boxGeo =
-            new THREE.BoxGeometry(
-                1,
-                1,
-                1
-            );
+        this.materialTerreno =
+            new THREE.MeshLambertMaterial({
+                color: 0x4d8f38,
+                side: THREE.DoubleSide
+            });
 
-        this._materiales = {
+        this.materialTierra =
+            new THREE.MeshLambertMaterial({
+                color: 0x6e4b2f,
+                side: THREE.DoubleSide
+            });
 
-            cesped:
-                new THREE.MeshLambertMaterial({
-                    color: 0x2d8a2d
-                }),
-
-            tierra:
-                new THREE.MeshLambertMaterial({
-                    color: 0x5a3d28
-                }),
-
-            arena:
-                new THREE.MeshLambertMaterial({
-                    color: 0xc2a649
-                }),
-
-            roca:
-                new THREE.MeshLambertMaterial({
-                    color: 0x666666
-                }),
-
-            agua:
-                new THREE.MeshPhongMaterial({
-                    color: 0x176dcc,
-                    transparent: true,
-                    opacity: 0.7,
-                    shininess: 80,
-                    depthWrite: false
-                })
-        };
+        this.materialAgua =
+            new THREE.MeshPhongMaterial({
+                color: 0x176dcc,
+                transparent: true,
+                opacity: 0.65,
+                shininess: 80,
+                depthWrite: false,
+                side: THREE.DoubleSide
+            });
     }
 
 
-    // ============================================================
-    // RUIDO
-    // ============================================================
+    // =========================================================
+    // RUIDO SUAVE
+    // =========================================================
 
-    ruido(x, y, z) {
+    ruido(x, z) {
 
         const n =
             Math.sin(
                 (
                     x * 127.1 +
-                    y * 311.7 +
-                    z * 74.7 +
+                    z * 311.7 +
                     this.seed
                 ) * 12.9898
             ) * 43758.5453;
@@ -91,71 +74,192 @@ class Mundo {
     }
 
 
-    // ============================================================
-    // ALTURA DEL TERRENO
-    // ============================================================
+    // =========================================================
+    // INTERPOLACIÓN SUAVE
+    // =========================================================
 
-    altura(x, z) {
+    suavizar(t) {
 
-        const h =
-            Math.floor(
-                Math.sin(
-                    x * 0.15 +
-                    this.seed
-                ) * 3 +
-
-                Math.cos(
-                    z * 0.15 +
-                    this.seed
-                ) * 3 +
-
-                4
-            );
-
-        /*
-         * obtenerSolido() considera sólido
-         * todo bloque y <= h.
-         *
-         * Por eso la superficie REAL está
-         * en h + 1.
-         */
-
-        return h + 1;
+        return t * t * (3 - 2 * t);
     }
 
 
-    // ============================================================
+    ruidoSuave(x, z) {
+
+        const x0 = Math.floor(x);
+        const z0 = Math.floor(z);
+
+        const fx =
+            this.suavizar(
+                x - x0
+            );
+
+        const fz =
+            this.suavizar(
+                z - z0
+            );
+
+        const a =
+            this.ruido(
+                x0,
+                z0
+            );
+
+        const b =
+            this.ruido(
+                x0 + 1,
+                z0
+            );
+
+        const c =
+            this.ruido(
+                x0,
+                z0 + 1
+            );
+
+        const d =
+            this.ruido(
+                x0 + 1,
+                z0 + 1
+            );
+
+        const ab =
+            a + (b - a) * fx;
+
+        const cd =
+            c + (d - c) * fx;
+
+        return ab +
+            (cd - ab) * fz;
+    }
+
+
+    // =========================================================
+    // ALTURA DEL TERRENO
+    // =========================================================
+
+    altura(x, z) {
+
+        /*
+         * Varias escalas de ruido para que el terreno
+         * tenga colinas naturales en vez de cuadrados.
+         */
+
+        const grande =
+            this.ruidoSuave(
+                x * 0.045,
+                z * 0.045
+            );
+
+        const medio =
+            this.ruidoSuave(
+                x * 0.11,
+                z * 0.11
+            );
+
+        const pequeno =
+            this.ruidoSuave(
+                x * 0.23,
+                z * 0.23
+            );
+
+        let h =
+            2.5 +
+            grande * 5.0 +
+            medio * 1.8 +
+            pequeno * 0.45;
+
+        h =
+            Math.max(
+                -1,
+                Math.min(
+                    10,
+                    h
+                )
+            );
+
+        /*
+         * Las modificaciones del jugador pueden cambiar
+         * ligeramente la superficie.
+         */
+
+        const bx =
+            Math.floor(x);
+
+        const bz =
+            Math.floor(z);
+
+        const base =
+            Math.floor(h);
+
+        const clave =
+            `${bx},${base},${bz}`;
+
+        if (
+            this.modificaciones.has(
+                clave
+            )
+        ) {
+
+            const valor =
+                this.modificaciones.get(
+                    clave
+                );
+
+            if (valor === 0) {
+                h -= 1;
+            }
+
+            if (valor === 1) {
+                h += 1;
+            }
+        }
+
+        return h;
+    }
+
+
+    // =========================================================
     // ALTURA SEGURA
-    // ============================================================
+    // =========================================================
 
     obtenerAlturaSegura(x, z) {
 
-        const h = this.altura(x, z);
-
         return Math.max(
             -1,
-            h
+            this.altura(
+                x,
+                z
+            )
         );
     }
 
 
-    // ============================================================
-    // BLOQUE SÓLIDO
-    // ============================================================
+    // =========================================================
+    // SOLIDO
+    // =========================================================
 
     obtenerSolido(x, y, z) {
 
-        const rx =
+        const bx =
             Math.floor(x);
 
-        const ry =
+        const by =
             Math.floor(y);
 
-        const rz =
+        const bz =
             Math.floor(z);
 
+        const h =
+            Math.floor(
+                this.altura(
+                    bx,
+                    bz
+                )
+            );
+
         const clave =
-            `${rx},${ry},${rz}`;
+            `${bx},${by},${bz}`;
 
         if (
             this.modificaciones.has(
@@ -168,403 +272,267 @@ class Mundo {
             );
         }
 
-        const h =
-            this.altura(
-                rx,
-                rz
-            ) - 1;
-
-        return ry <= h
+        return by <= h
             ? 1
             : 0;
     }
 
 
-    // ============================================================
+    // =========================================================
     // AGUA
-    // ============================================================
+    // =========================================================
 
     esAgua(x, z) {
 
-        const superficie =
-            this.altura(x, z);
-
         return (
-            superficie <=
-            this.nivelAgua
+            this.altura(
+                x,
+                z
+            ) < this.nivelAgua
         );
     }
 
 
     getWaterHeightAt(x, z) {
 
-        if (!this.esAgua(x, z)) {
+        if (
+            !this.esAgua(
+                x,
+                z
+            )
+        ) {
+
             return null;
         }
+
+        return this.nivelAgua;
+    }
+
+
+    // =========================================================
+    // CREAR TERRENO SUAVE
+    // =========================================================
+
+    crearTerrenoChunk(
+        cx,
+        cz
+    ) {
+
+        const size =
+            this.tam;
+
+        const verticesPorLado =
+            size + 1;
+
+        const vertices = [];
+
+        const indices = [];
 
         /*
-         * El agua ocupa bloques hasta
-         * el nivel de agua.
+         * Generamos una cuadrícula de vértices.
+         *
+         * Cada vértice tiene una altura diferente,
+         * creando una superficie continua.
          */
 
-        return this.nivelAgua + 1;
-    }
-
-
-    // ============================================================
-    // EXCAVAR
-    // ============================================================
-
-    excavar(
-        posicionImpacto,
-        radio = 1
-    ) {
-
-        if (!posicionImpacto) {
-            return;
-        }
-
-        const cx =
-            Math.floor(
-                posicionImpacto.x
-            );
-
-        const cy =
-            Math.floor(
-                posicionImpacto.y
-            );
-
-        const cz =
-            Math.floor(
-                posicionImpacto.z
-            );
-
-        const r =
-            Math.ceil(radio);
-
-        const chunksAfectados =
-            new Set();
-
         for (
-            let x = -r;
-            x <= r;
-            x++
+            let z = 0;
+            z <= size;
+            z++
         ) {
 
             for (
-                let y = -r;
-                y <= r;
-                y++
+                let x = 0;
+                x <= size;
+                x++
             ) {
 
-                for (
-                    let z = -r;
-                    z <= r;
-                    z++
-                ) {
+                const wx =
+                    cx * size + x;
 
-                    if (
-                        Math.hypot(
-                            x,
-                            y,
-                            z
-                        ) <= radio
-                    ) {
+                const wz =
+                    cz * size + z;
 
-                        const bx =
-                            cx + x;
+                const y =
+                    this.altura(
+                        wx,
+                        wz
+                    );
 
-                        const by =
-                            cy + y;
-
-                        const bz =
-                            cz + z;
-
-                        this.modificaciones.set(
-                            `${bx},${by},${bz}`,
-                            0
-                        );
-
-                        const chunkX =
-                            Math.floor(
-                                bx / this.tam
-                            );
-
-                        const chunkZ =
-                            Math.floor(
-                                bz / this.tam
-                            );
-
-                        chunksAfectados.add(
-                            `${chunkX},${chunkZ}`
-                        );
-                    }
-                }
+                vertices.push(
+                    wx,
+                    y,
+                    wz
+                );
             }
         }
 
-        this.recargarChunks(
-            chunksAfectados
-        );
-    }
-
-
-    // ============================================================
-    // AÑADIR TIERRA
-    // ============================================================
-
-    anadirTierra(
-        posicionImpacto,
-        radio = 1
-    ) {
-
-        if (!posicionImpacto) {
-            return;
-        }
-
-        const cx =
-            Math.floor(
-                posicionImpacto.x
-            );
-
-        const cy =
-            Math.floor(
-                posicionImpacto.y
-            );
-
-        const cz =
-            Math.floor(
-                posicionImpacto.z
-            );
-
-        const r =
-            Math.ceil(radio);
-
-        const chunksAfectados =
-            new Set();
 
         for (
-            let x = -r;
-            x <= r;
-            x++
+            let z = 0;
+            z < size;
+            z++
         ) {
 
             for (
-                let y = -r;
-                y <= r;
-                y++
+                let x = 0;
+                x < size;
+                x++
             ) {
 
-                for (
-                    let z = -r;
-                    z <= r;
-                    z++
-                ) {
+                const a =
+                    z *
+                    verticesPorLado +
+                    x;
 
-                    if (
-                        Math.hypot(
-                            x,
-                            y,
-                            z
-                        ) <= radio
-                    ) {
+                const b =
+                    a + 1;
 
-                        const bx =
-                            cx + x;
+                const c =
+                    a +
+                    verticesPorLado;
 
-                        const by =
-                            cy + y;
+                const d =
+                    c + 1;
 
-                        const bz =
-                            cz + z;
+                indices.push(
+                    a,
+                    c,
+                    b,
 
-                        this.modificaciones.set(
-                            `${bx},${by},${bz}`,
-                            1
-                        );
-
-                        const chunkX =
-                            Math.floor(
-                                bx / this.tam
-                            );
-
-                        const chunkZ =
-                            Math.floor(
-                                bz / this.tam
-                            );
-
-                        chunksAfectados.add(
-                            `${chunkX},${chunkZ}`
-                        );
-                    }
-                }
-            }
-        }
-
-        this.recargarChunks(
-            chunksAfectados
-        );
-    }
-
-
-    // ============================================================
-    // RECARGAR CHUNKS
-    // ============================================================
-
-    recargarChunks(
-        setChunks
-    ) {
-
-        setChunks.forEach(
-            claveChunk => {
-
-                if (
-                    !this.chunks.has(
-                        claveChunk
-                    )
-                ) {
-                    return;
-                }
-
-                const partes =
-                    claveChunk
-                        .split(',')
-                        .map(Number);
-
-                const cx =
-                    partes[0];
-
-                const cz =
-                    partes[1];
-
-                const oldChunk =
-                    this.chunks.get(
-                        claveChunk
-                    );
-
-                if (
-                    oldChunk &&
-                    oldChunk.grupo
-                ) {
-
-                    this.m.escena.remove(
-                        oldChunk.grupo
-                    );
-                }
-
-                this.chunks.delete(
-                    claveChunk
-                );
-
-                this.generar(
-                    cx,
-                    cz
+                    b,
+                    c,
+                    d
                 );
             }
-        );
-    }
-
-
-    // ============================================================
-    // DESTRUIR BLOQUE
-    // ============================================================
-
-    destruirBloque(
-        hit,
-        radio
-    ) {
-
-        if (
-            !hit ||
-            !hit.point
-        ) {
-
-            return null;
         }
 
-        this.excavar(
-            hit.point,
-            radio || 1
+
+        const geometria =
+            new THREE.BufferGeometry();
+
+        geometria.setAttribute(
+            'position',
+            new THREE.Float32BufferAttribute(
+                vertices,
+                3
+            )
         );
 
-        return hit.point;
+        geometria.setIndex(
+            indices
+        );
+
+        geometria.computeVertexNormals();
+
+
+        const malla =
+            new THREE.Mesh(
+                geometria,
+                this.materialTerreno
+            );
+
+        malla.castShadow =
+            true;
+
+        malla.receiveShadow =
+            true;
+
+        malla.userData.interactivo =
+            true;
+
+        malla.userData.pixeles =
+            true;
+
+        malla.userData.suelo =
+            true;
+
+        malla.userData.tipo =
+            'terreno';
+
+        return malla;
     }
 
 
-    // ============================================================
-    // COLOCAR BLOQUE
-    // ============================================================
+    // =========================================================
+    // CREAR AGUA
+    // =========================================================
 
-    colocarBloque(
-        x,
-        y,
-        z,
-        radio
+    crearAguaChunk(
+        cx,
+        cz
     ) {
 
-        this.anadirTierra(
-            new THREE.Vector3(
-                x,
-                y,
-                z
-            ),
-            radio || 1
-        );
+        const size =
+            this.tam;
 
-        return {
-            x,
-            y,
-            z
-        };
-    }
+        const geometria =
+            new THREE.PlaneGeometry(
+                size,
+                size,
+                size,
+                size
+            );
 
+        const posiciones =
+            geometria.attributes.position;
 
-    // ============================================================
-    // COLOCAR TIERRA CERCA
-    // ============================================================
-
-    colocarTierraCercana(
-        hit,
-        radio
-    ) {
-
-        if (
-            !hit ||
-            !hit.point
+        for (
+            let i = 0;
+            i < posiciones.count;
+            i++
         ) {
 
-            return null;
-        }
+            const x =
+                posiciones.getX(i) +
+                cx * size;
 
-        const posicion =
-            hit.point.clone();
+            const z =
+                -posiciones.getY(i) +
+                cz * size;
 
-        if (
-            hit.face &&
-            hit.face.normal
-        ) {
-
-            posicion.add(
-                hit.face.normal
-                    .clone()
-                    .multiplyScalar(
-                        0.5
-                    )
+            posiciones.setXYZ(
+                i,
+                x - cx * size,
+                -(z - cz * size),
+                this.nivelAgua
             );
         }
 
-        return this.colocarBloque(
-            posicion.x,
-            posicion.y,
-            posicion.z,
-            radio
+        posiciones.needsUpdate =
+            true;
+
+        geometria.computeVertexNormals();
+
+        const agua =
+            new THREE.Mesh(
+                geometria,
+                this.materialAgua
+            );
+
+        agua.rotation.x =
+            -Math.PI / 2;
+
+        agua.position.set(
+            cx * size +
+            size / 2,
+
+            0,
+
+            cz * size +
+            size / 2
         );
+
+        agua.userData.agua =
+            true;
+
+        return agua;
     }
 
 
-    // ============================================================
+    // =========================================================
     // GENERAR CHUNK
-    // ============================================================
+    // =========================================================
 
     generar(
         cx,
@@ -583,252 +551,84 @@ class Mundo {
             return;
         }
 
+
         const chunk = {
 
             grupo:
                 new THREE.Group(),
 
+            objetos: [],
+
             cx,
-            cz,
-
-            /*
-             * Importante:
-             * motor.js espera que exista
-             * esta propiedad al limpiar.
-             */
-
-            objetos: []
-        };
-
-        const size =
-            this.tam;
-
-        const minY =
-            -2;
-
-        const maxY =
-            12;
-
-        const listas = {
-
-            cesped: [],
-            tierra: [],
-            arena: [],
-            roca: [],
-            agua: []
+            cz
         };
 
 
-        // --------------------------------------------------------
-        // BLOQUES
-        // --------------------------------------------------------
+        // Terreno suave
+        const terreno =
+            this.crearTerrenoChunk(
+                cx,
+                cz
+            );
+
+        chunk.grupo.add(
+            terreno
+        );
+
+
+        // Agua
+        let hayAgua =
+            false;
 
         for (
-            let x = 0;
-            x < size;
-            x++
+            let z = 0;
+            z <= this.tam;
+            z++
         ) {
 
             for (
-                let z = 0;
-                z < size;
-                z++
+                let x = 0;
+                x <= this.tam;
+                x++
             ) {
 
-                const wx =
-                    cx * size + x;
+                const h =
+                    this.altura(
+                        cx * this.tam + x,
+                        cz * this.tam + z
+                    );
 
-                const wz =
-                    cz * size + z;
-
-
-                for (
-                    let y = minY;
-                    y <= maxY;
-                    y++
+                if (
+                    h <
+                    this.nivelAgua
                 ) {
 
-                    const solido =
-                        this.obtenerSolido(
-                            wx,
-                            y,
-                            wz
-                        );
+                    hayAgua =
+                        true;
 
-
-                    // ------------------------------------------------
-                    // BLOQUE SÓLIDO
-                    // ------------------------------------------------
-
-                    if (
-                        solido === 1
-                    ) {
-
-                        const arriba =
-                            this.obtenerSolido(
-                                wx,
-                                y + 1,
-                                wz
-                            );
-
-                        let tipo =
-                            'tierra';
-
-
-                        if (
-                            arriba === 0
-                        ) {
-
-                            if (
-                                y <=
-                                this.nivelAgua
-                            ) {
-
-                                tipo =
-                                    'arena';
-
-                            } else {
-
-                                tipo =
-                                    'cesped';
-                            }
-
-                        } else if (
-                            y < 0
-                        ) {
-
-                            tipo =
-                                'roca';
-                        }
-
-
-                        listas[
-                            tipo
-                        ].push(
-
-                            new THREE.Vector3(
-                                wx,
-                                y,
-                                wz
-                            )
-
-                        );
-
-                    }
-
-                    // ------------------------------------------------
-                    // AGUA
-                    // ------------------------------------------------
-
-                    else if (
-                        y <=
-                        this.nivelAgua &&
-                        this.altura(
-                            wx,
-                            wz
-                        ) <=
-                        this.nivelAgua
-                    ) {
-
-                        listas.agua.push(
-
-                            new THREE.Vector3(
-                                wx,
-                                y,
-                                wz
-                            )
-
-                        );
-                    }
+                    break;
                 }
+            }
+
+            if (hayAgua) {
+                break;
             }
         }
 
 
-        // ========================================================
-        // CREAR MESHES
-        // ========================================================
+        if (hayAgua) {
 
-        const dummy =
-            new THREE.Object3D();
-
-
-        for (
-            const [
-                tipo,
-                posiciones
-            ]
-            of Object.entries(
-                listas
-            )
-        ) {
-
-            if (
-                posiciones.length === 0
-            ) {
-
-                continue;
-            }
-
-
-            const mesh =
-                new THREE.InstancedMesh(
-                    this._boxGeo,
-                    this._materiales[
-                        tipo
-                    ],
-                    posiciones.length
+            const agua =
+                this.crearAguaChunk(
+                    cx,
+                    cz
                 );
 
-
-            posiciones.forEach(
-                (pos, i) => {
-
-                    dummy.position.set(
-                        pos.x + 0.5,
-                        pos.y + 0.5,
-                        pos.z + 0.5
-                    );
-
-                    dummy.updateMatrix();
-
-                    mesh.setMatrixAt(
-                        i,
-                        dummy.matrix
-                    );
-                }
-            );
-
-
-            mesh.instanceMatrix.needsUpdate =
-                true;
-
-            mesh.userData.interactivo =
-                true;
-
-            mesh.userData.pixeles =
-                true;
-
-            mesh.userData.tipo =
-                tipo;
-
-            /*
-             * Esto hace que el raycaster
-             * pueda identificar el terreno.
-             */
-
-            mesh.userData.suelo =
-                true;
-
             chunk.grupo.add(
-                mesh
+                agua
             );
         }
 
-
-        // ========================================================
-        // GUARDAR CHUNK
-        // ========================================================
 
         this.chunks.set(
             clave,
@@ -841,9 +641,9 @@ class Mundo {
     }
 
 
-    // ============================================================
-    // SOLICITAR CHUNK
-    // ============================================================
+    // =========================================================
+    // CHUNK
+    // =========================================================
 
     solicitarChunk(
         cx,
@@ -867,9 +667,9 @@ class Mundo {
     }
 
 
-    // ============================================================
+    // =========================================================
     // ACTUALIZAR MUNDO
-    // ============================================================
+    // =========================================================
 
     actualizar(
         jx,
@@ -913,6 +713,330 @@ class Mundo {
                 );
             }
         }
+    }
+
+
+    // =========================================================
+    // EXCAVAR
+    // =========================================================
+
+    excavar(
+        posicionImpacto,
+        radio = 1
+    ) {
+
+        if (!posicionImpacto) {
+            return;
+        }
+
+        const bx =
+            Math.floor(
+                posicionImpacto.x
+            );
+
+        const by =
+            Math.floor(
+                posicionImpacto.y
+            );
+
+        const bz =
+            Math.floor(
+                posicionImpacto.z
+            );
+
+        const r =
+            Math.ceil(radio);
+
+        const chunks =
+            new Set();
+
+
+        for (
+            let x = -r;
+            x <= r;
+            x++
+        ) {
+
+            for (
+                let y = -r;
+                y <= r;
+                y++
+            ) {
+
+                for (
+                    let z = -r;
+                    z <= r;
+                    z++
+                ) {
+
+                    if (
+                        Math.hypot(
+                            x,
+                            y,
+                            z
+                        ) <= radio
+                    ) {
+
+                        const xx =
+                            bx + x;
+
+                        const yy =
+                            by + y;
+
+                        const zz =
+                            bz + z;
+
+                        this.modificaciones.set(
+                            `${xx},${yy},${zz}`,
+                            0
+                        );
+
+                        chunks.add(
+                            `${Math.floor(xx / this.tam)},${Math.floor(zz / this.tam)}`
+                        );
+                    }
+                }
+            }
+        }
+
+
+        this.recargarChunks(
+            chunks
+        );
+    }
+
+
+    // =========================================================
+    // AÑADIR TIERRA
+    // =========================================================
+
+    anadirTierra(
+        posicionImpacto,
+        radio = 1
+    ) {
+
+        if (!posicionImpacto) {
+            return;
+        }
+
+        const bx =
+            Math.floor(
+                posicionImpacto.x
+            );
+
+        const by =
+            Math.floor(
+                posicionImpacto.y
+            );
+
+        const bz =
+            Math.floor(
+                posicionImpacto.z
+            );
+
+        const r =
+            Math.ceil(radio);
+
+        const chunks =
+            new Set();
+
+
+        for (
+            let x = -r;
+            x <= r;
+            x++
+        ) {
+
+            for (
+                let y = -r;
+                y <= r;
+                y++
+            ) {
+
+                for (
+                    let z = -r;
+                    z <= r;
+                    z++
+                ) {
+
+                    if (
+                        Math.hypot(
+                            x,
+                            y,
+                            z
+                        ) <= radio
+                    ) {
+
+                        const xx =
+                            bx + x;
+
+                        const yy =
+                            by + y;
+
+                        const zz =
+                            bz + z;
+
+                        this.modificaciones.set(
+                            `${xx},${yy},${zz}`,
+                            1
+                        );
+
+                        chunks.add(
+                            `${Math.floor(xx / this.tam)},${Math.floor(zz / this.tam)}`
+                        );
+                    }
+                }
+            }
+        }
+
+
+        this.recargarChunks(
+            chunks
+        );
+    }
+
+
+    // =========================================================
+    // RECARGAR CHUNKS
+    // =========================================================
+
+    recargarChunks(
+        lista
+    ) {
+
+        lista.forEach(
+            clave => {
+
+                const chunk =
+                    this.chunks.get(
+                        clave
+                    );
+
+                if (!chunk) {
+                    return;
+                }
+
+                if (
+                    chunk.grupo
+                ) {
+
+                    this.m.escena.remove(
+                        chunk.grupo
+                    );
+                }
+
+                this.chunks.delete(
+                    clave
+                );
+
+                const partes =
+                    clave
+                        .split(',')
+                        .map(Number);
+
+                this.generar(
+                    partes[0],
+                    partes[1]
+                );
+            }
+        );
+    }
+
+
+    // =========================================================
+    // DESTRUIR BLOQUE
+    // =========================================================
+
+    destruirBloque(
+        hit,
+        radio = 1
+    ) {
+
+        if (
+            !hit ||
+            !hit.point
+        ) {
+
+            return null;
+        }
+
+        this.excavar(
+            hit.point,
+            radio
+        );
+
+        return hit.point;
+    }
+
+
+    // =========================================================
+    // COLOCAR BLOQUE
+    // =========================================================
+
+    colocarBloque(
+        x,
+        y,
+        z,
+        radio = 1
+    ) {
+
+        this.anadirTierra(
+            new THREE.Vector3(
+                x,
+                y,
+                z
+            ),
+            radio
+        );
+
+        return {
+            x,
+            y,
+            z
+        };
+    }
+
+
+    // =========================================================
+    // COLOCAR TIERRA CERCA
+    // =========================================================
+
+    colocarTierraCercana(
+        hit,
+        radio = 1
+    ) {
+
+        if (
+            !hit ||
+            !hit.point
+        ) {
+
+            return null;
+        }
+
+        const pos =
+            hit.point.clone();
+
+        if (
+            hit.face &&
+            hit.face.normal
+        ) {
+
+            pos.add(
+                hit.face.normal
+                    .clone()
+                    .multiplyScalar(
+                        0.45
+                    )
+            );
+        }
+
+        return this.colocarBloque(
+            pos.x,
+            pos.y,
+            pos.z,
+            radio
+        );
     }
 }
 
