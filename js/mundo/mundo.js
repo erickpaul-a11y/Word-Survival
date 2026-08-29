@@ -2,10 +2,10 @@
    WORD SURVIVAL ∞
    MUNDO
    - Terreno suave
-   - Sin aspecto de cubos
-   - Altura compatible con Motor
-   - Agua
-   - Chunks
+   - Chunks infinitos
+   - Árboles
+   - Agua con profundidad real
+   - Peces
    - Excavación
    - Colocación de tierra
    ============================================================ */
@@ -29,6 +29,8 @@ class Mundo {
 
         this.nivelAgua = 3;
 
+        this.profundidadMinimaPez = 1.5;
+
         this.modificaciones = new Map();
 
         this.materialTerreno =
@@ -43,20 +45,35 @@ class Mundo {
                 side: THREE.DoubleSide
             });
 
+        this.materialTronco =
+            new THREE.MeshLambertMaterial({
+                color: 0x75451f
+            });
+
+        this.materialHojas =
+            new THREE.MeshLambertMaterial({
+                color: 0x287a32
+            });
+
         this.materialAgua =
             new THREE.MeshPhongMaterial({
                 color: 0x176dcc,
                 transparent: true,
-                opacity: 0.65,
-                shininess: 80,
+                opacity: 0.60,
+                shininess: 90,
                 depthWrite: false,
                 side: THREE.DoubleSide
+            });
+
+        this.materialPez =
+            new THREE.MeshLambertMaterial({
+                color: 0xe28b32
             });
     }
 
 
     // =========================================================
-    // RUIDO SUAVE
+    // RUIDO
     // =========================================================
 
     ruido(x, z) {
@@ -74,10 +91,6 @@ class Mundo {
     }
 
 
-    // =========================================================
-    // INTERPOLACIÓN SUAVE
-    // =========================================================
-
     suavizar(t) {
 
         return t * t * (3 - 2 * t);
@@ -90,38 +103,22 @@ class Mundo {
         const z0 = Math.floor(z);
 
         const fx =
-            this.suavizar(
-                x - x0
-            );
+            this.suavizar(x - x0);
 
         const fz =
-            this.suavizar(
-                z - z0
-            );
+            this.suavizar(z - z0);
 
         const a =
-            this.ruido(
-                x0,
-                z0
-            );
+            this.ruido(x0, z0);
 
         const b =
-            this.ruido(
-                x0 + 1,
-                z0
-            );
+            this.ruido(x0 + 1, z0);
 
         const c =
-            this.ruido(
-                x0,
-                z0 + 1
-            );
+            this.ruido(x0, z0 + 1);
 
         const d =
-            this.ruido(
-                x0 + 1,
-                z0 + 1
-            );
+            this.ruido(x0 + 1, z0 + 1);
 
         const ab =
             a + (b - a) * fx;
@@ -139,11 +136,6 @@ class Mundo {
     // =========================================================
 
     altura(x, z) {
-
-        /*
-         * Varias escalas de ruido para que el terreno
-         * tenga colinas naturales en vez de cuadrados.
-         */
 
         const grande =
             this.ruidoSuave(
@@ -177,11 +169,6 @@ class Mundo {
                     h
                 )
             );
-
-        /*
-         * Las modificaciones del jugador pueden cambiar
-         * ligeramente la superficie.
-         */
 
         const bx =
             Math.floor(x);
@@ -219,18 +206,11 @@ class Mundo {
     }
 
 
-    // =========================================================
-    // ALTURA SEGURA
-    // =========================================================
-
     obtenerAlturaSegura(x, z) {
 
         return Math.max(
             -1,
-            this.altura(
-                x,
-                z
-            )
+            this.altura(x, z)
         );
     }
 
@@ -272,9 +252,7 @@ class Mundo {
             );
         }
 
-        return by <= h
-            ? 1
-            : 0;
+        return by <= h ? 1 : 0;
     }
 
 
@@ -285,10 +263,8 @@ class Mundo {
     esAgua(x, z) {
 
         return (
-            this.altura(
-                x,
-                z
-            ) < this.nivelAgua
+            this.altura(x, z) <
+            this.nivelAgua
         );
     }
 
@@ -296,10 +272,7 @@ class Mundo {
     getWaterHeightAt(x, z) {
 
         if (
-            !this.esAgua(
-                x,
-                z
-            )
+            !this.esAgua(x, z)
         ) {
 
             return null;
@@ -309,14 +282,31 @@ class Mundo {
     }
 
 
+    // PROFUNDIDAD REAL DEL AGUA
+    getWaterDepthAt(x, z) {
+
+        const suelo =
+            this.altura(x, z);
+
+        if (
+            suelo >= this.nivelAgua
+        ) {
+
+            return 0;
+        }
+
+        return Math.max(
+            0,
+            this.nivelAgua - suelo
+        );
+    }
+
+
     // =========================================================
-    // CREAR TERRENO SUAVE
+    // CREAR TERRENO
     // =========================================================
 
-    crearTerrenoChunk(
-        cx,
-        cz
-    ) {
+    crearTerrenoChunk(cx, cz) {
 
         const size =
             this.tam;
@@ -327,13 +317,6 @@ class Mundo {
         const vertices = [];
 
         const indices = [];
-
-        /*
-         * Generamos una cuadrícula de vértices.
-         *
-         * Cada vértice tiene una altura diferente,
-         * creando una superficie continua.
-         */
 
         for (
             let z = 0;
@@ -441,9 +424,6 @@ class Mundo {
         malla.userData.interactivo =
             true;
 
-        malla.userData.pixeles =
-            true;
-
         malla.userData.suelo =
             true;
 
@@ -455,13 +435,208 @@ class Mundo {
 
 
     // =========================================================
-    // CREAR AGUA
+    // ÁRBOL
     // =========================================================
 
-    crearAguaChunk(
+    crearArbol(x, y, z, escala = 1) {
+
+        const arbol =
+            new THREE.Group();
+
+        arbol.position.set(
+            x,
+            y,
+            z
+        );
+
+        arbol.scale.set(
+            escala,
+            escala,
+            escala
+        );
+
+        arbol.userData.tipo =
+            'arbol';
+
+        arbol.userData.interactivo =
+            true;
+
+        arbol.userData.vida =
+            5;
+
+        arbol.userData.madera =
+            3;
+
+
+        // Tronco
+        const troncoGeo =
+            new THREE.CylinderGeometry(
+                0.22,
+                0.30,
+                2.3,
+                7
+            );
+
+        const tronco =
+            new THREE.Mesh(
+                troncoGeo,
+                this.materialTronco
+            );
+
+        tronco.position.y =
+            1.15;
+
+        tronco.castShadow =
+            true;
+
+        tronco.userData.tipo =
+            'tronco';
+
+        tronco.userData.arbol =
+            arbol;
+
+        arbol.add(
+            tronco
+        );
+
+
+        // Copa
+        const hojasGeo =
+            new THREE.SphereGeometry(
+                1.15,
+                8,
+                6
+            );
+
+        const hojas =
+            new THREE.Mesh(
+                hojasGeo,
+                this.materialHojas
+            );
+
+        hojas.position.y =
+            2.45;
+
+        hojas.scale.set(
+            1,
+            1.1,
+            1
+        );
+
+        hojas.castShadow =
+            true;
+
+        hojas.userData.tipo =
+            'hojas';
+
+        hojas.userData.arbol =
+            arbol;
+
+        arbol.add(
+            hojas
+        );
+
+
+        return arbol;
+    }
+
+
+    // =========================================================
+    // GENERAR ÁRBOLES
+    // =========================================================
+
+    generarArbolesChunk(
+        chunk,
         cx,
         cz
     ) {
+
+        /*
+         * Revisamos posiciones separadas.
+         * El ruido determina dónde aparecen.
+         */
+
+        for (
+            let z = 2;
+            z < this.tam;
+            z += 3
+        ) {
+
+            for (
+                let x = 2;
+                x < this.tam;
+                x += 3
+            ) {
+
+                const wx =
+                    cx * this.tam + x;
+
+                const wz =
+                    cz * this.tam + z;
+
+                const h =
+                    this.altura(
+                        wx,
+                        wz
+                    );
+
+                const profundidad =
+                    this.getWaterDepthAt(
+                        wx,
+                        wz
+                    );
+
+                // Nunca generar árboles dentro del agua
+                if (
+                    profundidad > 0
+                ) {
+                    continue;
+                }
+
+                const probabilidad =
+                    this.ruido(
+                        wx * 3.71,
+                        wz * 5.19
+                    );
+
+                if (
+                    probabilidad < 0.76
+                ) {
+                    continue;
+                }
+
+                const escala =
+                    0.85 +
+                    this.ruido(
+                        wx * 7.13,
+                        wz * 4.27
+                    ) * 0.45;
+
+                const arbol =
+                    this.crearArbol(
+                        wx,
+                        h,
+                        wz,
+                        escala
+                    );
+
+                chunk.grupo.add(
+                    arbol
+                );
+
+                chunk.objetos.push(
+                    arbol
+                );
+            }
+        }
+    }
+
+
+    // =========================================================
+    // AGUA
+    // =========================================================
+
+    crearAguaChunk(cx, cz) {
 
         const size =
             this.tam;
@@ -470,39 +645,9 @@ class Mundo {
             new THREE.PlaneGeometry(
                 size,
                 size,
-                size,
-                size
+                1,
+                1
             );
-
-        const posiciones =
-            geometria.attributes.position;
-
-        for (
-            let i = 0;
-            i < posiciones.count;
-            i++
-        ) {
-
-            const x =
-                posiciones.getX(i) +
-                cx * size;
-
-            const z =
-                -posiciones.getY(i) +
-                cz * size;
-
-            posiciones.setXYZ(
-                i,
-                x - cx * size,
-                -(z - cz * size),
-                this.nivelAgua
-            );
-        }
-
-        posiciones.needsUpdate =
-            true;
-
-        geometria.computeVertexNormals();
 
         const agua =
             new THREE.Mesh(
@@ -517,7 +662,7 @@ class Mundo {
             cx * size +
             size / 2,
 
-            0,
+            this.nivelAgua,
 
             cz * size +
             size / 2
@@ -526,7 +671,213 @@ class Mundo {
         agua.userData.agua =
             true;
 
+        agua.userData.tipo =
+            'agua';
+
+        agua.userData.interactivo =
+            true;
+
         return agua;
+    }
+
+
+    // =========================================================
+    // PEZ
+    // =========================================================
+
+    crearPez(x, y, z) {
+
+        const pez =
+            new THREE.Group();
+
+        pez.position.set(
+            x,
+            y,
+            z
+        );
+
+        pez.userData.tipo =
+            'pez';
+
+        pez.userData.interactivo =
+            true;
+
+        pez.userData.vida =
+            1;
+
+        pez.userData.velocidad =
+            0.5 +
+            Math.random() * 0.5;
+
+        pez.userData.direccion =
+            Math.random() *
+            Math.PI * 2;
+
+
+        const cuerpoGeo =
+            new THREE.SphereGeometry(
+                0.20,
+                8,
+                6
+            );
+
+        const cuerpo =
+            new THREE.Mesh(
+                cuerpoGeo,
+                this.materialPez
+            );
+
+        cuerpo.scale.set(
+            1.5,
+            0.65,
+            0.7
+        );
+
+        cuerpo.userData.tipo =
+            'pez';
+
+        cuerpo.userData.pez =
+            pez;
+
+        pez.add(
+            cuerpo
+        );
+
+
+        const colaGeo =
+            new THREE.ConeGeometry(
+                0.16,
+                0.35,
+                4
+            );
+
+        const cola =
+            new THREE.Mesh(
+                colaGeo,
+                this.materialPez
+            );
+
+        cola.rotation.z =
+            -Math.PI / 2;
+
+        cola.position.x =
+            -0.32;
+
+        cola.userData.tipo =
+            'pez';
+
+        cola.userData.pez =
+            pez;
+
+        pez.add(
+            cola
+        );
+
+
+        return pez;
+    }
+
+
+    // =========================================================
+    // GENERAR PECES
+    // =========================================================
+
+    generarPecesChunk(
+        chunk,
+        cx,
+        cz
+    ) {
+
+        for (
+            let z = 1;
+            z < this.tam;
+            z += 4
+        ) {
+
+            for (
+                let x = 1;
+                x < this.tam;
+                x += 4
+            ) {
+
+                const wx =
+                    cx * this.tam + x;
+
+                const wz =
+                    cz * this.tam + z;
+
+                const profundidad =
+                    this.getWaterDepthAt(
+                        wx,
+                        wz
+                    );
+
+                /*
+                 * El pez necesita agua suficientemente profunda.
+                 */
+
+                if (
+                    profundidad <
+                    this.profundidadMinimaPez
+                ) {
+                    continue;
+                }
+
+                const probabilidad =
+                    this.ruido(
+                        wx * 8.21,
+                        wz * 6.17
+                    );
+
+                if (
+                    probabilidad < 0.70
+                ) {
+                    continue;
+                }
+
+                /*
+                 * El pez aparece entre el fondo
+                 * y la superficie.
+                 */
+
+                const fondo =
+                    this.altura(
+                        wx,
+                        wz
+                    );
+
+                const margen =
+                    Math.min(
+                        0.7,
+                        profundidad * 0.25
+                    );
+
+                const y =
+                    fondo +
+                    margen +
+                    Math.random() *
+                    Math.max(
+                        0.2,
+                        profundidad -
+                        margen * 2
+                    );
+
+                const pez =
+                    this.crearPez(
+                        wx,
+                        y,
+                        wz
+                    );
+
+                chunk.grupo.add(
+                    pez
+                );
+
+                chunk.objetos.push(
+                    pez
+                );
+            }
+        }
     }
 
 
@@ -534,10 +885,7 @@ class Mundo {
     // GENERAR CHUNK
     // =========================================================
 
-    generar(
-        cx,
-        cz
-    ) {
+    generar(cx, cz) {
 
         const clave =
             `${cx},${cz}`;
@@ -547,7 +895,6 @@ class Mundo {
                 clave
             )
         ) {
-
             return;
         }
 
@@ -564,7 +911,7 @@ class Mundo {
         };
 
 
-        // Terreno suave
+        // Terreno
         const terreno =
             this.crearTerrenoChunk(
                 cx,
@@ -576,7 +923,15 @@ class Mundo {
         );
 
 
-        // Agua
+        // Árboles
+        this.generarArbolesChunk(
+            chunk,
+            cx,
+            cz
+        );
+
+
+        // Comprobar agua
         let hayAgua =
             false;
 
@@ -592,15 +947,11 @@ class Mundo {
                 x++
             ) {
 
-                const h =
-                    this.altura(
+                if (
+                    this.esAgua(
                         cx * this.tam + x,
                         cz * this.tam + z
-                    );
-
-                if (
-                    h <
-                    this.nivelAgua
+                    )
                 ) {
 
                     hayAgua =
@@ -627,6 +978,17 @@ class Mundo {
             chunk.grupo.add(
                 agua
             );
+
+            chunk.objetos.push(
+                agua
+            );
+
+            // Peces
+            this.generarPecesChunk(
+                chunk,
+                cx,
+                cz
+            );
         }
 
 
@@ -642,13 +1004,10 @@ class Mundo {
 
 
     // =========================================================
-    // CHUNK
+    // CHUNKS
     // =========================================================
 
-    solicitarChunk(
-        cx,
-        cz
-    ) {
+    solicitarChunk(cx, cz) {
 
         const clave =
             `${cx},${cz}`;
@@ -667,14 +1026,7 @@ class Mundo {
     }
 
 
-    // =========================================================
-    // ACTUALIZAR MUNDO
-    // =========================================================
-
-    actualizar(
-        jx,
-        jz
-    ) {
+    actualizar(jx, jz) {
 
         const cx =
             Math.floor(
@@ -702,10 +1054,25 @@ class Mundo {
                     -this.radioCarga;
 
                 z <=
-                    this.radioCarga;
+                this.radioCarga;
 
                 z++
             ) {
+
+                /*
+                 * Carga circular para evitar
+                 * una zona perfectamente cuadrada.
+                 */
+
+                if (
+                    Math.hypot(
+                        x,
+                        z
+                    ) >
+                    this.radioCarga + 0.35
+                ) {
+                    continue;
+                }
 
                 this.solicitarChunk(
                     cx + x,
@@ -713,6 +1080,139 @@ class Mundo {
                 );
             }
         }
+    }
+
+
+    // =========================================================
+    // ANIMAR PECES
+    // =========================================================
+
+    actualizarPeces(delta = 0.016) {
+
+        for (
+            const chunk of
+            this.chunks.values()
+        ) {
+
+            for (
+                const objeto of
+                chunk.objetos
+            ) {
+
+                if (
+                    !objeto ||
+                    objeto.userData.tipo !==
+                    'pez'
+                ) {
+                    continue;
+                }
+
+                const pez =
+                    objeto;
+
+                const velocidad =
+                    pez.userData.velocidad;
+
+                const direccion =
+                    pez.userData.direccion;
+
+                pez.position.x +=
+                    Math.cos(direccion) *
+                    velocidad *
+                    delta;
+
+                pez.position.z +=
+                    Math.sin(direccion) *
+                    velocidad *
+                    delta;
+
+                /*
+                 * Mantener el pez dentro del agua.
+                 */
+
+                const profundidad =
+                    this.getWaterDepthAt(
+                        pez.position.x,
+                        pez.position.z
+                    );
+
+                if (
+                    profundidad <
+                    this.profundidadMinimaPez
+                ) {
+
+                    pez.userData.direccion +=
+                        Math.PI * 0.75;
+                }
+
+                /*
+                 * Movimiento suave de subida/bajada.
+                 */
+
+                pez.position.y +=
+                    Math.sin(
+                        performance.now() *
+                        0.003 +
+                        pez.position.x
+                    ) *
+                    delta *
+                    0.08;
+
+                pez.rotation.y =
+                    -direccion;
+            }
+        }
+    }
+
+
+    // =========================================================
+    // ÁRBOL: GOLPEAR
+    // =========================================================
+
+    golpearArbol(arbol, dano = 1) {
+
+        if (!arbol) {
+            return null;
+        }
+
+        if (
+            typeof arbol.userData.vida !==
+            'number'
+        ) {
+
+            return null;
+        }
+
+        arbol.userData.vida -=
+            dano;
+
+        if (
+            arbol.userData.vida <= 0
+        ) {
+
+            const madera =
+                arbol.userData.madera || 1;
+
+            if (
+                arbol.parent
+            ) {
+
+                arbol.parent.remove(
+                    arbol
+                );
+            }
+
+            return {
+                destruido: true,
+                madera
+            };
+        }
+
+        return {
+            destruido: false,
+            vida:
+                arbol.userData.vida
+        };
     }
 
 
@@ -900,9 +1400,7 @@ class Mundo {
     // RECARGAR CHUNKS
     // =========================================================
 
-    recargarChunks(
-        lista
-    ) {
+    recargarChunks(lista) {
 
         lista.forEach(
             clave => {
@@ -960,6 +1458,46 @@ class Mundo {
             return null;
         }
 
+        /*
+         * Si el golpe fue contra un árbol,
+         * se usa su sistema de vida.
+         */
+
+        let objeto =
+            hit.object;
+
+        while (
+            objeto
+        ) {
+
+            if (
+                objeto.userData &&
+                objeto.userData.tipo ===
+                'arbol'
+            ) {
+
+                return this.golpearArbol(
+                    objeto,
+                    1
+                );
+            }
+
+            if (
+                objeto.userData &&
+                objeto.userData.arbol
+            ) {
+
+                return this.golpearArbol(
+                    objeto.userData.arbol,
+                    1
+                );
+            }
+
+            objeto =
+                objeto.parent;
+        }
+
+
         this.excavar(
             hit.point,
             radio
@@ -998,7 +1536,7 @@ class Mundo {
 
 
     // =========================================================
-    // COLOCAR TIERRA CERCA
+    // COLOCAR TIERRA
     // =========================================================
 
     colocarTierraCercana(
