@@ -1,35 +1,436 @@
-const motor=new Motor();window.motor=motor;
-// Agua: permite entrar y bajar dentro del agua.
-try{const movimientoOriginal=motor._updateMovement;const codigo=movimientoOriginal.toString();const codigoAgua=codigo.replace("this.j.y=Math.max(this.getGroundHeightAt(this.j.x,this.j.z)+.18,Math.min(water+.25,this.j.y));","this.j.y=Math.max(this.getGroundHeightAt(this.j.x,this.j.z)+.18,this.j.y);");if(codigoAgua!==codigo)motor._updateMovement=eval('('+codigoAgua+')');}catch(e){console.warn('No se pudo habilitar inmersion:',e);}
-// DOS MANOS, SIN INVENTARIO.
-motor.manoDerechaObjeto=null;motor.manoIzquierdaObjeto=null;
-// VERIFICADOR CENTRAL DE OBJETOS: solo son recogibles objetos con pickup válido.
-motor.verificarObjeto=function(o){return !!(o&&o.userData&&o.userData.pickup&&typeof o.userData.pickup.id==='string'&&o.userData.pickup.id.length>0&&o.userData.suelo);};
-motor.obtenerObjetoApuntado=function(){const hit=this.encontrarHit();let o=hit&&hit.object;while(o&&!this.verificarObjeto(o))o=o.parent;return o&&this.verificarObjeto(o)?o:null;};
-const colocarEnMano=function(o,mano){if(!this.verificarObjeto(o))return false;const mano3d=mano==='izquierda'?this.j.leftHand:this.j.rightHand;if(!mano3d)return false;this.retirarObjeto(o);o.userData.mano=mano;o.userData.suelo=false;o.userData.colisionable=false;mano3d.add(o);o.visible=true;o.position.set(0,-.22,-.16);o.rotation.set(0,0,mano==='izquierda'?.12:-.12);o.scale.setScalar(1.15);if(mano==='izquierda')this.manoIzquierdaObjeto=o;else this.manoDerechaObjeto=o;return true;};
-const recogerSoloApuntado=function(){const o=this.obtenerObjetoApuntado();if(!o){this.mostrarMensaje('Apunta directamente al objeto que quieres recoger.');return;}if(this.manoDerechaObjeto&&this.manoIzquierdaObjeto){this.mostrarMensaje('Las dos manos están ocupadas.');return;}const mano=!this.manoDerechaObjeto?'derecha':'izquierda';if(colocarEnMano.call(this,o,mano))this.mostrarMensaje(`Recogido: ${o.userData.pickup.name} en mano ${mano}.`);};
-motor.equiparCercano=recogerSoloApuntado;
-// E: con algo en las manos SOLO suelta; si no tienes nada, recoge lo apuntado.
-motor.agarrar=function(){if(this.manoDerechaObjeto||this.manoIzquierdaObjeto){this.desequipar();return;}this.equiparCercano();};
-// Q: SOLO suelta, nunca recoge.
-window.addEventListener('keydown',e=>{if(e.key.toLowerCase()!=='q'||e.repeat||!motor.j)return;if(motor.manoDerechaObjeto||motor.manoIzquierdaObjeto)motor.desequipar();});
-// Soltar conserva el objeto y crea una instancia física en el mundo.
-motor.desequipar=function(mano=null){const lado=mano||(this.manoDerechaObjeto?'derecha':this.manoIzquierdaObjeto?'izquierda':null);if(!lado)return;const o=lado==='izquierda'?this.manoIzquierdaObjeto:this.manoDerechaObjeto;if(!o)return;const mano3d=lado==='izquierda'?this.j.leftHand:this.j.rightHand;const p=mano3d.getWorldPosition(new THREE.Vector3());const q=o.userData.pickup||{id:'objeto',name:'objeto'};mano3d.remove(o);if(lado==='izquierda')this.manoIzquierdaObjeto=null;else this.manoDerechaObjeto=null;this.crearObjeto(q.id,q.name,p.x,p.z,1,p.y-.08);};
-motor.tieneHerramienta=function(id){return (this.manoDerechaObjeto&&this.manoDerechaObjeto.userData.pickup.id===id)||(this.manoIzquierdaObjeto&&this.manoIzquierdaObjeto.userData.pickup.id===id);};
-// RESALTADO: ilumina únicamente el objeto válido que está bajo el puntero.
-motor._objetoResaltado=null;
-motor._resaltarApuntado=function(){const o=this.obtenerObjetoApuntado();if(this._objetoResaltado&&this._objetoResaltado!==o)this._objetoResaltado.traverse(n=>{if(n.material&&n.userData._oldEmissive!==undefined){n.material.emissive.setHex(n.userData._oldEmissive);delete n.userData._oldEmissive;}});if(o&&o!==this._objetoResaltado)o.traverse(n=>{if(n.material&&n.material.emissive){n.userData._oldEmissive=n.material.emissive.getHex();n.material.emissive.setHex(0xffff66);}});this._objetoResaltado=o;};
-// Los objetos recogidos siguen existiendo: solo cambian de la escena del suelo a la mano.
-motor._actualizarObjetosEnManos=function(){if(!this.j)return;for(const [o,mano] of [[this.manoDerechaObjeto,this.j.rightHand],[this.manoIzquierdaObjeto,this.j.leftHand]])if(o){if(o.parent!==mano)mano.add(o);o.visible=true;o.position.set(0,-.22,-.16);o.userData.mano=o.userData.mano||'derecha';}};
-// Colisión simple: los objetos que están en el suelo bloquean el paso y no se atraviesan.
-motor._resolverColisionObjetos=function(){if(!this.j||!this.objetosSuelo)return;const radioJugador=.23;for(const o of this.objetosSuelo){if(!this.verificarObjeto(o)||!o.parent)continue;const dx=this.j.x-o.position.x,dz=this.j.z-o.position.z;const d=Math.hypot(dx,dz);const radioObjeto=Math.max(.14,Math.max(o.scale.x,o.scale.z)*.18);const min=radioJugador+radioObjeto;if(d>0&&d<min){const k=(min-d)/d;this.j.x+=dx*k;this.j.z+=dz*k;}}};
-// Integra la colisión después de cada actualización de movimiento.
-const movimientoConColision=motor._updateMovement.bind(motor);motor._updateMovement=function(dt){movimientoConColision(dt);this._resolverColisionObjetos();};
-// Actualiza resaltado y manos sin crear ni destruir objetos.
-const iniciarOriginal=motor.iniciar.bind(motor);motor.iniciar=function(){iniciarOriginal();const loopManos=()=>{this._resaltarApuntado();this._actualizarObjetosEnManos();requestAnimationFrame(loopManos);};requestAnimationFrame(loopManos);};
-// Modelos físicos correspondientes para los objetos equipables.
-try{const crearOriginal=motor.crearObjeto.bind(motor);motor.crearObjeto=function(id,nombre,x,z,qty=1,yOverride=null){const m=crearOriginal(id,nombre,x,z,qty,yOverride);if(!m)return m;m.userData.suelo=true;m.userData.colisionable=true;let g=null;if(id==='pala_madera'){g=new THREE.Group();const mango=new THREE.Mesh(new THREE.CylinderGeometry(.035,.045,.62,8),new THREE.MeshLambertMaterial({color:0x9b5a2e}));const hoja=new THREE.Mesh(new THREE.BoxGeometry(.16,.22,.045),new THREE.MeshLambertMaterial({color:0x777777}));mango.position.y=-.18;hoja.position.y=.18;hoja.rotation.x=-.12;g.add(mango,hoja);}else if(id==='pico_piedra'){g=new THREE.Group();const mango=new THREE.Mesh(new THREE.CylinderGeometry(.035,.045,.62,8),new THREE.MeshLambertMaterial({color:0x9b5a2e}));const cabeza=new THREE.Mesh(new THREE.BoxGeometry(.34,.07,.08),new THREE.MeshLambertMaterial({color:0x8d99a6}));cabeza.position.y=.18;g.add(mango,cabeza);}if(g){m.geometry.dispose();m.geometry=new THREE.BufferGeometry();m.add(g);m.userData.modeloHerramienta=g;}return m;};}catch(e){console.warn('No se pudieron preparar modelos de herramientas:',e);}
-const btnEmpezar=document.getElementById('btn-empezar'),btnOpciones=document.getElementById('btn-opciones'),btnIdiomas=document.getElementById('btn-idiomas'),panelOpciones=document.getElementById('panel-opciones'),panelIdiomas=document.getElementById('panel-idiomas');
-if(btnOpciones)btnOpciones.onclick=()=>{if(panelOpciones)panelOpciones.style.display=panelOpciones.style.display==='block'?'none':'block';if(panelIdiomas)panelIdiomas.style.display='none';};
-if(btnIdiomas)btnIdiomas.onclick=()=>{if(panelIdiomas)panelIdiomas.style.display=panelIdiomas.style.display==='block'?'none':'block';if(panelOpciones)panelOpciones.style.display='none';};
-if(btnEmpezar)btnEmpezar.onclick=()=>{const pantallaInicio=document.getElementById('pantalla-inicio'),hudJuego=document.getElementById('hud-juego');if(pantallaInicio)pantallaInicio.style.display='none';if(hudJuego)hudJuego.style.display='block';window.WORLD_SEED=Math.floor(Math.random()*2147483647);motor.iniciar();if(typeof Crafteos!=='undefined')motor.crafteos=new Crafteos(motor);if(typeof GestorLenguaje!=='undefined'){motor.lenguaje=new GestorLenguaje(motor);motor.lenguaje.cargarDatos();}window.GAME_CONFIG=window.GAME_CONFIG||{};window.GAME_CONFIG.fpEnabled=true;window.GAME_CONFIG.fpHeight=0.90;const btnCamera=document.getElementById('btn-toggle-camera');if(btnCamera){btnCamera.textContent='Cámara: 1ª';btnCamera.onclick=()=>{motor.toggleCamera();btnCamera.textContent=motor.cameraMode==='first'?'Cámara: 1ª':'Cámara: 3ª';};}const chk=document.getElementById('chk-crosshair'),cross=document.getElementById('crosshair');if(chk&&cross){cross.style.display=chk.checked?'block':'none';chk.onchange=()=>cross.style.display=chk.checked?'block':'none';}const fp=document.getElementById('chk-fp');if(fp){fp.checked=true;fp.disabled=false;fp.title='Primera persona muestra las manos; tercera persona muestra el modelo completo.';}};
+const motor = new Motor();
+window.motor = motor;
+
+/*
+ * WORD SURVIVAL ∞
+ * Integración principal.
+ *
+ * IMPORTANTE:
+ * - interaccion2.js controla manos, recoger y soltar.
+ * - motor.js controla movimiento, cámara y mundo.
+ * - main.js NO vuelve a registrar los clics de interacción.
+ */
+
+// ============================================================
+// CONFIGURACIÓN
+// ============================================================
+
+window.GAME_CONFIG = {
+    fpEnabled: true,
+    fpHeight: 0.72
+};
+
+motor.manoDerechaObjeto = null;
+motor.manoIzquierdaObjeto = null;
+
+// ============================================================
+// OBJETOS
+// ============================================================
+
+motor.verificarObjeto = function (objeto) {
+    return !!(
+        objeto &&
+        objeto.userData &&
+        objeto.userData.pickup &&
+        typeof objeto.userData.pickup.id === "string" &&
+        objeto.userData.pickup.id.length > 0 &&
+        objeto.userData.suelo === true
+    );
+};
+
+motor.obtenerObjetoApuntado = function () {
+    const hit = this.encontrarHit();
+
+    if (!hit) return null;
+
+    let objeto = hit.object;
+
+    while (objeto && !this.verificarObjeto(objeto)) {
+        objeto = objeto.parent;
+    }
+
+    return objeto && this.verificarObjeto(objeto)
+        ? objeto
+        : null;
+};
+
+// ============================================================
+// COLISIÓN CON OBJETOS
+// ============================================================
+
+motor._resolverColisionObjetos = function () {
+    if (!this.j || !this.objetosSuelo) return;
+
+    const radioJugador = 0.23;
+
+    for (const objeto of this.objetosSuelo) {
+        if (!objeto || !objeto.parent) continue;
+        if (!this.verificarObjeto(objeto)) continue;
+
+        const dx = this.j.x - objeto.position.x;
+        const dz = this.j.z - objeto.position.z;
+
+        const distancia = Math.hypot(dx, dz);
+
+        const radioObjeto = Math.max(
+            0.14,
+            Math.max(
+                Math.abs(objeto.scale.x),
+                Math.abs(objeto.scale.z)
+            ) * 0.18
+        );
+
+        const distanciaMinima =
+            radioJugador + radioObjeto;
+
+        if (distancia > 0 && distancia < distanciaMinima) {
+            const factor =
+                (distanciaMinima - distancia) / distancia;
+
+            this.j.x += dx * factor;
+            this.j.z += dz * factor;
+        }
+    }
+};
+
+// ============================================================
+// MOVIMIENTO
+// ============================================================
+
+const movimientoOriginal = motor._updateMovement.bind(motor);
+
+motor._updateMovement = function (dt) {
+    movimientoOriginal(dt);
+    this._resolverColisionObjetos();
+};
+
+// ============================================================
+// RESALTAR OBJETO APUNTADO
+// ============================================================
+
+motor._objetoResaltado = null;
+
+motor._restaurarResaltado = function (objeto) {
+    if (!objeto) return;
+
+    objeto.traverse(nodo => {
+        if (
+            nodo.material &&
+            nodo.userData &&
+            nodo.userData._oldEmissive !== undefined
+        ) {
+            nodo.material.emissive.setHex(
+                nodo.userData._oldEmissive
+            );
+
+            delete nodo.userData._oldEmissive;
+        }
+    });
+};
+
+motor._aplicarResaltado = function (objeto) {
+    if (!objeto) return;
+
+    objeto.traverse(nodo => {
+        if (
+            nodo.material &&
+            nodo.material.emissive
+        ) {
+            nodo.userData._oldEmissive =
+                nodo.material.emissive.getHex();
+
+            nodo.material.emissive.setHex(0xffff66);
+        }
+    });
+};
+
+motor._actualizarResaltado = function () {
+    const objeto = this.obtenerObjetoApuntado();
+
+    if (objeto === this._objetoResaltado) {
+        return;
+    }
+
+    if (this._objetoResaltado) {
+        this._restaurarResaltado(
+            this._objetoResaltado
+        );
+    }
+
+    this._objetoResaltado = objeto;
+
+    if (objeto) {
+        this._aplicarResaltado(objeto);
+    }
+};
+
+// ============================================================
+// MANTENER OBJETOS EN LAS MANOS
+// ============================================================
+
+motor._actualizarObjetosEnManos = function () {
+    if (!this.j) return;
+
+    const manos = [
+        [
+            this.manoDerechaObjeto,
+            this.j.rightHand
+        ],
+        [
+            this.manoIzquierdaObjeto,
+            this.j.leftHand
+        ]
+    ];
+
+    for (const [objeto, mano] of manos) {
+        if (!objeto || !mano) continue;
+
+        if (objeto.parent !== mano) {
+            mano.add(objeto);
+        }
+
+        objeto.visible = true;
+        objeto.position.set(
+            0,
+            -0.22,
+            -0.16
+        );
+    }
+};
+
+// ============================================================
+// MODELOS DE OBJETOS
+// ============================================================
+
+const crearObjetoOriginal =
+    motor.crearObjeto.bind(motor);
+
+motor.crearObjeto = function (
+    id,
+    nombre,
+    x,
+    z,
+    cantidad = 1,
+    yOverride = null
+) {
+    const objeto = crearObjetoOriginal(
+        id,
+        nombre,
+        x,
+        z,
+        cantidad,
+        yOverride
+    );
+
+    if (!objeto) return null;
+
+    objeto.userData.suelo = true;
+    objeto.userData.colisionable = true;
+
+    return objeto;
+};
+
+// ============================================================
+// INICIAR JUEGO
+// ============================================================
+
+const iniciarOriginal =
+    motor.iniciar.bind(motor);
+
+motor.iniciar = function () {
+    iniciarOriginal();
+
+    const actualizar = () => {
+        if (!this.j) {
+            requestAnimationFrame(actualizar);
+            return;
+        }
+
+        this._actualizarResaltado();
+        this._actualizarObjetosEnManos();
+
+        requestAnimationFrame(actualizar);
+    };
+
+    requestAnimationFrame(actualizar);
+};
+
+// ============================================================
+// MENÚ
+// ============================================================
+
+const btnEmpezar =
+    document.getElementById("btn-empezar");
+
+const btnOpciones =
+    document.getElementById("btn-opciones");
+
+const btnIdiomas =
+    document.getElementById("btn-idiomas");
+
+const panelOpciones =
+    document.getElementById("panel-opciones");
+
+const panelIdiomas =
+    document.getElementById("panel-idiomas");
+
+if (btnOpciones) {
+    btnOpciones.onclick = () => {
+        if (panelOpciones) {
+            panelOpciones.style.display =
+                panelOpciones.style.display === "block"
+                    ? "none"
+                    : "block";
+        }
+
+        if (panelIdiomas) {
+            panelIdiomas.style.display = "none";
+        }
+    };
+}
+
+if (btnIdiomas) {
+    btnIdiomas.onclick = () => {
+        if (panelIdiomas) {
+            panelIdiomas.style.display =
+                panelIdiomas.style.display === "block"
+                    ? "none"
+                    : "block";
+        }
+
+        if (panelOpciones) {
+            panelOpciones.style.display = "none";
+        }
+    };
+}
+
+// ============================================================
+// CREAR PARTIDA
+// ============================================================
+
+if (btnEmpezar) {
+    btnEmpezar.onclick = () => {
+
+        const pantallaInicio =
+            document.getElementById(
+                "pantalla-inicio"
+            );
+
+        const hudJuego =
+            document.getElementById(
+                "hud-juego"
+            );
+
+        if (pantallaInicio) {
+            pantallaInicio.style.display = "none";
+        }
+
+        if (hudJuego) {
+            hudJuego.style.display = "block";
+        }
+
+        window.WORLD_SEED =
+            Math.floor(
+                Math.random() * 2147483647
+            );
+
+        motor.iniciar();
+
+        if (
+            typeof Crafteos !== "undefined"
+        ) {
+            motor.crafteos =
+                new Crafteos(motor);
+        }
+
+        if (
+            typeof GestorLenguaje !== "undefined"
+        ) {
+            motor.lenguaje =
+                new GestorLenguaje(motor);
+
+            motor.lenguaje.cargarDatos();
+        }
+
+        // Cámara
+        const btnCamera =
+            document.getElementById(
+                "btn-toggle-camera"
+            );
+
+        if (btnCamera) {
+            btnCamera.textContent =
+                "Cámara: 1ª";
+
+            btnCamera.onclick = () => {
+                motor.toggleCamera();
+
+                btnCamera.textContent =
+                    motor.cameraMode === "first"
+                        ? "Cámara: 1ª"
+                        : "Cámara: 3ª";
+            };
+        }
+
+        // Crosshair
+        const checkboxCrosshair =
+            document.getElementById(
+                "chk-crosshair"
+            );
+
+        const crosshair =
+            document.getElementById(
+                "crosshair"
+            );
+
+        if (
+            checkboxCrosshair &&
+            crosshair
+        ) {
+            crosshair.style.display =
+                checkboxCrosshair.checked
+                    ? "block"
+                    : "none";
+
+            checkboxCrosshair.onchange = () => {
+                crosshair.style.display =
+                    checkboxCrosshair.checked
+                        ? "block"
+                        : "none";
+            };
+        }
+
+        // Primera persona
+        const checkboxFP =
+            document.getElementById(
+                "chk-fp"
+            );
+
+        if (checkboxFP) {
+            checkboxFP.checked = true;
+        }
+    };
+}
+
+// ============================================================
+// SEGURIDAD DEL MODELO DEL JUGADOR
+// ============================================================
+
+setInterval(() => {
+    const jugador = motor && motor.j;
+
+    if (!jugador) return;
+
+    if (jugador.modelo) {
+        jugador.modelo.visible = false;
+    }
+
+    if (jugador.leftHand) {
+        jugador.leftHand.visible = true;
+    }
+
+    if (jugador.rightHand) {
+        jugador.rightHand.visible = true;
+    }
+
+}, 250);
