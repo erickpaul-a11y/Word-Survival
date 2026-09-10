@@ -5,17 +5,64 @@ class Jugador {
         this.nivel=1; this.exp=0; this.expSig=120; this.vivo=true;
         this.corriendo=false; this.saltando=false; this.velocidadMovimiento=0;
 
-        // Cuerpo eliminado: en primera persona solo se ven las manos.
         this.modelo=new THREE.Group();
-        this.modelo.name='JugadorModeloInvisible';
+        this.modelo.name='JugadorModelo';
         this.modelo.userData.esJugador=true;
+        this.modelo.userData.tipo='humano';
 
-        const piel=new THREE.MeshLambertMaterial({color:0xc98b62});
-        // Manos pequeñas y proporcionadas a la vista en primera persona.
+        const piel=new THREE.MeshLambertMaterial({color:0xc98b62,flatShading:true});
+        const pelo=new THREE.MeshLambertMaterial({color:0x151515,flatShading:true});
+        const ropa=new THREE.MeshLambertMaterial({color:0x315f8f,flatShading:true});
+        const pantalon=new THREE.MeshLambertMaterial({color:0x273447,flatShading:true});
+        const negro=new THREE.MeshLambertMaterial({color:0x101010,flatShading:true});
+
+        const cuerpo=new THREE.Mesh(new THREE.BoxGeometry(.58,.82,.34),ropa);
+        cuerpo.position.y=1.05;
+        cuerpo.userData.tipo='humano';
+        this.modelo.add(cuerpo);
+
+        const cabeza=new THREE.Mesh(new THREE.IcosahedronGeometry(.34,1),piel);
+        cabeza.position.y=1.72;
+        cabeza.userData.tipo='humano';
+        this.modelo.add(cabeza);
+
+        const cabello=new THREE.Mesh(new THREE.BoxGeometry(.58,.16,.40),pelo);
+        cabello.position.set(0,2.00,0);
+        this.modelo.add(cabello);
+
+        const piernas=[];
+        [-.17,.17].forEach(x=>{
+            const pierna=new THREE.Mesh(new THREE.BoxGeometry(.22,.72,.25),pantalon);
+            pierna.position.set(x,.28,0);
+            pierna.userData.tipo='humano';
+            this.modelo.add(pierna);
+            piernas.push(pierna);
+        });
+
+        const brazos=[];
+        [-.40,.40].forEach(x=>{
+            const brazo=new THREE.Mesh(new THREE.BoxGeometry(.18,.68,.20),ropa);
+            brazo.position.set(x,1.08,0);
+            brazo.userData.tipo='humano';
+            this.modelo.add(brazo);
+            brazos.push(brazo);
+        });
+
+        [-.13,.13].forEach(x=>{
+            const ojo=new THREE.Mesh(new THREE.BoxGeometry(.055,.07,.035),negro);
+            ojo.position.set(x,1.76,.315);
+            this.modelo.add(ojo);
+        });
+
+        this.modelo.userData.animacion={piernas,brazos};
+        this.modelo.visible=false;
+
         this.leftHand=new THREE.Mesh(new THREE.BoxGeometry(.12,.20,.12),piel.clone());
         this.rightHand=new THREE.Mesh(new THREE.BoxGeometry(.12,.20,.12),piel.clone());
         this.leftHand.name='ManoIzquierda';
         this.rightHand.name='ManoDerecha';
+        this.leftHand.userData.tipo='humano';
+        this.rightHand.userData.tipo='humano';
         this.leftHand.position.set(-.28,-.20,-.62);
         this.rightHand.position.set(.28,-.20,-.62);
         this.leftHand.rotation.z=-.18;
@@ -30,11 +77,18 @@ class Jugador {
         this._baseRR=this.rightHand.rotation.z;
         this._golpeL=0;
         this._golpeR=0;
+        this._tiempoAnimacion=0;
     }
 
-    agregarAEscena(e){}
+    agregarAEscena(e){
+        if(!e)return;
+        if(this.modelo.parent)this.modelo.parent.remove(this.modelo);
+        e.add(this.modelo);
+        this.actualizarPosicion();
+    }
 
     conectarManosACamara(cam){
+        if(!cam)return;
         if(this.leftHand.parent)this.leftHand.parent.remove(this.leftHand);
         if(this.rightHand.parent)this.rightHand.parent.remove(this.rightHand);
         cam.add(this.leftHand,this.rightHand);
@@ -60,15 +114,22 @@ class Jugador {
 
     actualizarPosicion(){
         this.modelo.position.set(this.x,this.y,this.z);
-        this.modelo.visible=false;
     }
 
-    animarMovimiento(){}
+    animarMovimiento(dt=.016){
+        const anim=this.modelo.userData.animacion;
+        if(!anim)return;
+        if(Math.hypot(this.velocidadMovimiento||0,0)<.01&&!this.corriendo&&!this.saltando)return;
+        this._tiempoAnimacion+=dt*9;
+        const paso=Math.sin(this._tiempoAnimacion)*.45;
+        anim.piernas.forEach((p,i)=>p.rotation.x=paso*(i%2? -1:1));
+        anim.brazos.forEach((b,i)=>b.rotation.x=paso*(i%2? 1:-1));
+    }
 
     setFirstPerson(primera){
-        this.modelo.visible=false;
-        this.leftHand.visible=true;
-        this.rightHand.visible=true;
+        this.modelo.visible=!primera;
+        this.leftHand.visible=primera;
+        this.rightHand.visible=primera;
     }
 
     actualizarHUD(){
