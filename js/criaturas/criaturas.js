@@ -1,15 +1,37 @@
 class GestorCriaturas {
-constructor(motor,datos){this.m=motor;this.d=datos||{};this.lista=[];this.tiempoSpawn=0;this.maxTerrestres=24;this.maxPeces=12;this.texturas={};}
+constructor(motor,datos){this.m=motor;this.d=datos||{};this.lista=[];this.tiempoSpawn=0;this.maxTerrestres=24;this.maxPeces=12;}
 mat(c){return new THREE.MeshLambertMaterial({color:c,flatShading:true});}
-tex(n,c){try{const t=new THREE.TextureLoader().load(`textura/${n}.svg`);t.magFilter=THREE.NearestFilter;t.minFilter=THREE.NearestFilter;return new THREE.MeshLambertMaterial({map:t,color:c,flatShading:true});}catch(e){return this.mat(c);}}
 pieza(g,m,x,y,z,p){const q=new THREE.Mesh(g,m);q.position.set(x,y,z);q.castShadow=true;q.receiveShadow=true;p.add(q);return q;}
-modeloAnimal(tipo){const p=new THREE.Group(),negro=this.mat(0x151515),blanco=this.mat(0xf2eee3),gris=this.mat(0x777777),amarillo=this.mat(0xd9a62e),rojo=this.mat(0xb84b42),azul=this.mat(0x3b82c4);
-const pol=(g,m,x,y,z)=>this.pieza(g,m,x,y,z,p);
-if(tipo==='vaca'){const m=this.tex('vaca',0xffffff);pol(new THREE.IcosahedronGeometry(.72,1),m,0,1.05,0);pol(new THREE.IcosahedronGeometry(.38,1),m,1.02,1.3,0);const patas=[[-.62,-.32],[.62,-.32],[-.62,.32],[.62,.32]].map(a=>pol(new THREE.BoxGeometry(.22,.72,.22),gris,a[0],.4,a[1]));pol(new THREE.ConeGeometry(.11,.32,4),gris,.98,1.7,-.2).rotation.z=-.45;pol(new THREE.ConeGeometry(.11,.32,4),gris,.98,1.7,.2).rotation.z=-.45;pol(new THREE.IcosahedronGeometry(.08,0),negro,1.34,1.36,-.2);pol(new THREE.IcosahedronGeometry(.08,0),negro,1.34,1.36,.2);p.userData.animacion={patas,modo:'caminar'};}
-else if(tipo==='oveja'){const lana=this.tex('oveja',0xf5f5f5);const patas=[[-.58,-.3],[.58,-.3],[-.58,.3],[.58,.3]].map(a=>pol(new THREE.BoxGeometry(.2,.68,.2),gris,a[0],.36,a[1]));[[0,1,0],[-.45,1.15,0],[.45,1.15,0],[0,1.45,0],[-.28,1.35,.3],[-.28,1.35,-.3],[.28,1.35,.3],[.28,1.35,-.3]].forEach(a=>pol(new THREE.IcosahedronGeometry(.42,0),lana,a[0],a[1],a[2]));pol(new THREE.IcosahedronGeometry(.36,0),gris,1.0,1.2,0);pol(new THREE.IcosahedronGeometry(.07,0),negro,1.3,1.3,-.17);pol(new THREE.IcosahedronGeometry(.07,0),negro,1.3,1.3,.17);p.userData.animacion={patas,modo:'caminar'};}
-else if(tipo==='pollo'){const cuerpo=this.tex('pollo',0xfff8e8);pol(new THREE.IcosahedronGeometry(.43,1),cuerpo,0,.82,0);pol(new THREE.IcosahedronGeometry(.3,0),blanco,.42,1.1,0);const patas=[pol(new THREE.BoxGeometry(.1,.42,.1),amarillo,-.18,.3,0),pol(new THREE.BoxGeometry(.1,.42,.1),amarillo,.18,.3,0)];pol(new THREE.ConeGeometry(.1,.25,4),amarillo,.72,1.1,0).rotation.z=Math.PI/2;pol(new THREE.ConeGeometry(.12,.22,4),rojo,.43,1.4,0);pol(new THREE.IcosahedronGeometry(.045,0),negro,.62,1.18,-.16);pol(new THREE.IcosahedronGeometry(.045,0),negro,.62,1.18,.16);p.userData.animacion={patas,modo:'caminar'};}
-else if(tipo==='pez'){const m=this.tex('pez',0x3b82f6);pol(new THREE.IcosahedronGeometry(.38,1),m,0,0,0);const cola=pol(new THREE.ConeGeometry(.24,.48,4),m,-.46,0,0);cola.rotation.z=-Math.PI/2;const aleta=pol(new THREE.ConeGeometry(.14,.3,4),m,.05,.28,0);pol(new THREE.IcosahedronGeometry(.045,0),blanco,.22,.12,-.13);pol(new THREE.IcosahedronGeometry(.045,0),blanco,.22,.12,.13);p.userData.animacion={cola,aleta,modo:'nadar'};}
-return p;}
+modeloAnimal(tipo){
+ const p=new THREE.Group();p.name='Animal_'+tipo;p.userData.tipo=tipo;p.userData.criatura=true;
+ const negro=this.mat(0x151515),blanco=this.mat(0xf2eee3),gris=this.mat(0x777777),amarillo=this.mat(0xd9a62e),rojo=this.mat(0xb84b42),azul=this.mat(0x3b82c4);
+ const pol=(g,m,x,y,z)=>this.pieza(g,m,x,y,z,p);
+ if(tipo==='vaca'){
+  const m=this.mat(0xf0ece0),marron=this.mat(0x76503a);
+  pol(new THREE.IcosahedronGeometry(.72,1),m,0,1.05,0);
+  pol(new THREE.IcosahedronGeometry(.38,1),m,1.02,1.3,0);
+  [[-.62,-.32],[.62,-.32],[-.62,.32],[.62,.32]].forEach(a=>pol(new THREE.BoxGeometry(.22,.72,.22),gris,a[0],.4,a[1]));
+  [[-.32,1.15,-.3],[.28,.95,.32]].forEach(a=>pol(new THREE.IcosahedronGeometry(.22,0),marron,a[0],a[1],a[2]));
+  pol(new THREE.ConeGeometry(.11,.32,4),gris,.98,1.7,-.2).rotation.z=-.45;
+  pol(new THREE.ConeGeometry(.11,.32,4),gris,.98,1.7,.2).rotation.z=-.45;
+  pol(new THREE.IcosahedronGeometry(.08,0),negro,1.34,1.36,-.2);pol(new THREE.IcosahedronGeometry(.08,0),negro,1.34,1.36,.2);
+  p.userData.animacion={patas:p.children.filter(n=>n.geometry&&n.geometry.type==='BoxGeometry'),modo:'caminar'};
+ }
+ else if(tipo==='oveja'){
+  const lana=this.mat(0xf0eee6),patas=[[-.58,-.3],[.58,-.3],[-.58,.3],[.58,.3]].map(a=>pol(new THREE.BoxGeometry(.2,.68,.2),gris,a[0],.36,a[1]));
+  [[0,1,0],[-.45,1.15,0],[.45,1.15,0],[0,1.45,0],[-.28,1.35,.3],[-.28,1.35,-.3],[.28,1.35,.3],[.28,1.35,-.3]].forEach(a=>pol(new THREE.IcosahedronGeometry(.42,0),lana,a[0],a[1],a[2]));
+  pol(new THREE.IcosahedronGeometry(.36,0),gris,1.0,1.2,0);pol(new THREE.IcosahedronGeometry(.07,0),negro,1.3,1.3,-.17);pol(new THREE.IcosahedronGeometry(.07,0),negro,1.3,1.3,.17);p.userData.animacion={patas,modo:'caminar'};
+ }
+ else if(tipo==='pollo'){
+  const cuerpo=this.mat(0xf3e7c4);pol(new THREE.IcosahedronGeometry(.43,1),cuerpo,0,.82,0);pol(new THREE.IcosahedronGeometry(.3,0),blanco,.42,1.1,0);
+  const patas=[pol(new THREE.BoxGeometry(.1,.42,.1),amarillo,-.18,.3,0),pol(new THREE.BoxGeometry(.1,.42,.1),amarillo,.18,.3,0)];
+  pol(new THREE.ConeGeometry(.1,.25,4),amarillo,.72,1.1,0).rotation.z=Math.PI/2;pol(new THREE.ConeGeometry(.12,.22,4),rojo,.43,1.4,0);pol(new THREE.IcosahedronGeometry(.045,0),negro,.62,1.18,-.16);pol(new THREE.IcosahedronGeometry(.045,0),negro,.62,1.18,.16);p.userData.animacion={patas,modo:'caminar'};
+ }
+ else if(tipo==='pez'){
+  const m=this.mat(0x3b82c4);pol(new THREE.IcosahedronGeometry(.38,1),m,0,0,0);const cola=pol(new THREE.ConeGeometry(.24,.48,4),m,-.46,0,0);cola.rotation.z=-Math.PI/2;const aleta=pol(new THREE.ConeGeometry(.14,.3,4),m,.05,.28,0);pol(new THREE.IcosahedronGeometry(.045,0),blanco,.22,.12,-.13);pol(new THREE.IcosahedronGeometry(.045,0),blanco,.22,.12,.13);p.userData.animacion={cola,aleta,modo:'nadar'};
+ }
+ return p;
+}
 crear(tipo,x,z,opciones={}){const d=this.d[tipo];if(!d||!this.m||!this.m.mundo)return null;const pez=tipo==='pez',agua=this.m.mundo.esAgua(x,z);if(pez&&!agua)return null;if(!pez&&agua)return null;const y=pez?this.m.mundo.getWaterHeightAt(x,z)-.45:this.m.getGroundHeightAt(x,z);const modelo=this.modeloAnimal(tipo);modelo.position.set(x,y,z);this.m.escena.add(modelo);const c={tipo,x,y,z,vida:d.vida,vidaMax:d.vida,daño:0,modelo,direccion:Math.random()*Math.PI*2,velocidad:d.velocidad||1,caminando:true,tiempoMovimiento:1+Math.random()*3,acuatico:pez,edad:0,faseAnimacion:Math.random()*Math.PI*2};this.lista.push(c);return c;}
 posicionAleatoria(){if(!this.m||!this.m.j||!this.m.mundo)return null;for(let i=0;i<100;i++){const a=Math.random()*Math.PI*2,d=12+Math.random()*55,x=this.m.j.x+Math.cos(a)*d,z=this.m.j.z+Math.sin(a)*d;if(!this.m.mundo.esAgua(x,z))return[x,z];}return null;}
 buscarAgua(){if(!this.m||!this.m.j||!this.m.mundo)return null;for(let i=0;i<100;i++){const a=Math.random()*Math.PI*2,d=12+Math.random()*55,x=this.m.j.x+Math.cos(a)*d,z=this.m.j.z+Math.sin(a)*d;if(this.m.mundo.esAgua(x,z))return[x,z];}return null;}
