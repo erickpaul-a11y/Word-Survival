@@ -54,11 +54,30 @@
 <script src="js/lenguaje/lenguaje.js?v=20260910"></script>
 <script src="js/interaccion/interaccion2.js?v=20260910"></script>
 <script src="js/main/main.js?v=20260910"></script>
-<script src="js/estilo/poligonal.js?v=20260910-lowpoly2"></script>
+<script src="js/estilo/poligonal.js?v=20260910-lowpoly3"></script>
 <script>
 window.addEventListener('load',()=>{
- const bloquearTercera=()=>{if(window.motor){window.motor.cameraMode='first';window.motor.alturaCamara=.88;if(window.motor.j&&window.motor.j.setFirstPerson)window.motor.j.setFirstPerson(true);}};
- setInterval(bloquearTercera,250);
+ const mejorarRender=()=>{
+   const m=window.motor;
+   if(!m||!m.renderer||!m.luzSol)return;
+   const r=m.renderer,l=m.luzSol;
+   r.shadowMap.enabled=true;
+   r.shadowMap.type=THREE.PCFSoftShadowMap;
+   if(THREE.sRGBEncoding!==undefined)r.outputEncoding=THREE.sRGBEncoding;
+   l.castShadow=true;
+   l.shadow.mapSize.width=2048;
+   l.shadow.mapSize.height=2048;
+   l.shadow.camera.near=.5;
+   l.shadow.camera.far=90;
+   l.shadow.camera.left=-35;
+   l.shadow.camera.right=35;
+   l.shadow.camera.top=35;
+   l.shadow.camera.bottom=-35;
+   l.shadow.bias=-0.00008;
+   l.shadow.normalBias=.018;
+   l.shadow.camera.updateProjectionMatrix();
+ };
+ setInterval(mejorarRender,500);
 });
 </script>
 </body>
