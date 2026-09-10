@@ -1,1 +1,65 @@
-<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>WORD SURVIVAL ∞</title><link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌲</text></svg>"><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script><link rel="stylesheet" href="css/estilos/principal.css"><style>#pantalla-inicio{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at center,#172554,#020617 70%);color:#fff;text-align:center}#menu-principal{width:min(420px,90vw);padding:38px 30px;background:rgba(0,0,0,.62);border:1px solid rgba(255,255,255,.15);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.45);backdrop-filter:blur(8px)}#menu-principal h1{font-size:clamp(2.2rem,8vw,4rem);margin-bottom:28px;letter-spacing:3px;text-shadow:0 0 20px rgba(0,212,255,.6)}.menu-btn{display:block;width:100%;margin:10px 0;padding:14px 18px;border:0;border-radius:9px;background:linear-gradient(135deg,#00d4ff,#2563eb);color:#fff;font-weight:700;font-size:1rem;cursor:pointer}.menu-btn:hover{filter:brightness(1.12);transform:translateY(-1px)}#panel-opciones,#panel-idiomas{display:none;margin-top:15px;padding:15px;background:rgba(255,255,255,.06);border-radius:10px;text-align:left}.menu-label{display:block;margin:8px 0;color:#ccc}#crosshair{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:6px;height:6px;background:#fff;border-radius:50%;pointer-events:none;z-index:9999}</style></head><body><div id="pantalla-inicio"><div id="menu-principal"><h1>WORD SURVIVAL ∞</h1><button id="btn-empezar" class="menu-btn">CREAR NUEVA PARTIDA</button><button id="btn-opciones" class="menu-btn">OPCIONES</button><button id="btn-idiomas" class="menu-btn">IDIOMAS</button><div id="panel-opciones"><label class="menu-label"><input type="checkbox" id="menu-sonido" checked> Sonido</label><label class="menu-label"><input type="checkbox" id="menu-pantalla" checked> Pantalla completa</label></div><div id="panel-idiomas"><label class="menu-label"><input type="radio" name="idioma" value="es" checked> Español</label><label class="menu-label"><input type="radio" name="idioma" value="pt"> Português</label><label class="menu-label"><input type="radio" name="idioma" value="en"> English</label></div></div></div><div id="hud-juego" style="display:none"><div class="hud-caja"><button id="btn-toggle-camera">Cámara: 1ª</button><label><input type="checkbox" id="chk-crosshair" checked> Crosshair</label><label><input type="checkbox" id="chk-fp" checked> First Person</label><button id="btn-open-inv">Inventario (E)</button><span>Nivel: <b id="lvl">1</b></span><br><span>Pos: <b id="pos">X:0 Z:0</b></span><div class="barra"><div id="b-hp" class="hp"></div></div><div class="barra"><div id="b-mana" class="mana"></div></div><div class="barra"><div id="b-exp" class="exp"></div></div><div class="barra"><div id="b-hambre" class="hambre"></div></div></div></div><div id="crosshair"></div><script src="js/utilidades/ruido.js?v=20260910"></script><script src="js/jugador/jugador.js?v=20260910"></script><script src="js/mundo/mundo.js?v=20260910"></script><script src="js/mundo/terreno.js?v=20260910"></script><script src="js/criaturas/criaturas.js?v=20260910"></script><script src="js/motor/motor.js?v=20260910"></script><script src="js/utilidades/compatibilidad.js?v=20260910"></script><script src="js/inventario/inventario.js?v=20260910"></script><script src="js/crafteos/crafteos.js?v=20260910"></script><script src="js/lenguaje/lenguaje.js?v=20260910"></script><script src="js/interaccion/interaccion2.js?v=20260910"></script><script src="js/main/main.js?v=20260910"></script><script src="js/estilo/poligonal.js?v=20260910"></script></body></html>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WORD SURVIVAL ∞</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌲</text></svg>">
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<link rel="stylesheet" href="css/estilos/principal.css?v=20260910">
+<style>
+#pantalla-inicio{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 35%,#263b55 0,#0b1420 48%,#03070b 100%);color:#fff;text-align:center}
+#menu-principal{width:min(430px,90vw);padding:34px 28px;background:rgba(8,15,22,.82);border:1px solid rgba(130,190,220,.22);border-radius:16px;box-shadow:0 24px 80px rgba(0,0,0,.55),inset 0 1px rgba(255,255,255,.08);backdrop-filter:blur(10px)}
+#menu-principal h1{font-size:clamp(2.2rem,8vw,4rem);margin-bottom:28px;letter-spacing:3px;text-shadow:0 0 24px rgba(60,190,255,.45)}
+.menu-btn{display:block;width:100%;margin:10px 0;padding:14px 18px;border:1px solid rgba(130,210,240,.2);border-radius:9px;background:linear-gradient(135deg,#236b8e,#214b79);color:#fff;font-weight:700;font-size:1rem;cursor:pointer;transition:.18s}
+.menu-btn:hover{filter:brightness(1.15);transform:translateY(-1px);box-shadow:0 8px 22px rgba(20,120,180,.25)}
+#panel-opciones,#panel-idiomas{display:none;margin-top:15px;padding:15px;background:rgba(255,255,255,.05);border-radius:10px;text-align:left}
+.menu-label{display:block;margin:8px 0;color:#ccd7df}
+#hud-juego{display:none}
+#crosshair{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:5px;height:5px;border:1px solid rgba(255,255,255,.9);box-shadow:0 0 5px rgba(0,0,0,.8);border-radius:50%;pointer-events:none;z-index:9999}
+</style>
+</head>
+<body>
+<div id="pantalla-inicio">
+ <div id="menu-principal">
+  <h1>WORD SURVIVAL ∞</h1>
+  <button id="btn-empezar" class="menu-btn">CREAR NUEVA PARTIDA</button>
+  <button id="btn-opciones" class="menu-btn">OPCIONES</button>
+  <button id="btn-idiomas" class="menu-btn">IDIOMAS</button>
+  <div id="panel-opciones"><label class="menu-label"><input type="checkbox" id="menu-sonido" checked> Sonido</label><label class="menu-label"><input type="checkbox" id="menu-pantalla" checked> Pantalla completa</label></div>
+  <div id="panel-idiomas"><label class="menu-label"><input type="radio" name="idioma" value="es" checked> Español</label><label class="menu-label"><input type="radio" name="idioma" value="pt"> Português</label><label class="menu-label"><input type="radio" name="idioma" value="en"> English</label></div>
+ </div>
+</div>
+<div id="hud-juego">
+ <div class="hud-caja">
+  <div class="hud-titulo">WORD SURVIVAL <span>∞</span></div>
+  <div class="hud-datos"><span>NIV <b id="lvl">1</b></span><span><b id="pos">X:0 Z:0</b></span></div>
+  <div class="hud-barra hp"><i id="b-hp"></i></div>
+  <div class="hud-barra mana"><i id="b-mana"></i></div>
+  <div class="hud-barra exp"><i id="b-exp"></i></div>
+  <div class="hud-barra hambre"><i id="b-hambre"></i></div>
+  <div class="hud-controles">WASD mover · SHIFT correr · ESPACIO saltar · E recoger · C craftear</div>
+ </div>
+</div>
+<div id="crosshair"></div>
+<script src="js/utilidades/ruido.js?v=20260910"></script>
+<script src="js/jugador/jugador.js?v=20260910"></script>
+<script src="js/mundo/mundo.js?v=20260910"></script>
+<script src="js/mundo/terreno.js?v=20260910"></script>
+<script src="js/criaturas/criaturas.js?v=20260910"></script>
+<script src="js/motor/motor.js?v=20260910"></script>
+<script src="js/utilidades/compatibilidad.js?v=20260910"></script>
+<script src="js/inventario/inventario.js?v=20260910"></script>
+<script src="js/crafteos/crafteos.js?v=20260910"></script>
+<script src="js/lenguaje/lenguaje.js?v=20260910"></script>
+<script src="js/interaccion/interaccion2.js?v=20260910"></script>
+<script src="js/main/main.js?v=20260910"></script>
+<script src="js/estilo/poligonal.js?v=20260910"></script>
+<script>
+window.addEventListener('load',()=>{
+ const bloquearTercera=()=>{if(window.motor){window.motor.cameraMode='first';window.motor.alturaCamara=.88;if(window.motor.j&&window.motor.j.setFirstPerson)window.motor.j.setFirstPerson(true);}};
+ setInterval(bloquearTercera,250);
+});
+</script>
+</body>
+</html>
