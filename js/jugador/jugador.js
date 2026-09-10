@@ -14,34 +14,36 @@ class Jugador {
         const mat=(color)=>new THREE.MeshLambertMaterial({color,flatShading:true});
         const piel=mat(0xc98662), pelo=mat(0x171717), ropa=mat(0x315f8f), pantalon=mat(0x273447), zapato=mat(0x17191c), negro=mat(0x090909);
 
-        this.cuerpo=new THREE.Mesh(new THREE.BoxGeometry(.58,.82,.34),ropa);
+        // Más segmentos = suficientes caras reales para que la pintura siga
+        // las formas, sin convertir el personaje en una malla pesada.
+        this.cuerpo=new THREE.Mesh(new THREE.BoxGeometry(.58,.82,.34,2,3,2),ropa);
         this.cuerpo.userData.tipo='ropa';
         this.cuerpo.position.y=1.05; this.cuerpo.castShadow=true; this.modelo.add(this.cuerpo);
 
-        // Cabeza de baja densidad: las caras reales producen la silueta low-poly.
-        this.cabeza=new THREE.Mesh(new THREE.IcosahedronGeometry(.34,1),piel);
+        // Cabeza low-poly con más caras, manteniendo la silueta angular.
+        this.cabeza=new THREE.Mesh(new THREE.IcosahedronGeometry(.34,2),piel);
         this.cabeza.userData.tipo='piel';
         this.cabeza.position.y=1.72; this.cabeza.castShadow=true; this.modelo.add(this.cabeza);
 
-        this.cabello=new THREE.Mesh(new THREE.BoxGeometry(.60,.16,.42),pelo);
+        this.cabello=new THREE.Mesh(new THREE.BoxGeometry(.60,.16,.42,2,1,2),pelo);
         this.cabello.userData.tipo='pelo';
         this.cabello.position.set(0,2.00,-.01); this.cabello.castShadow=true; this.modelo.add(this.cabello);
 
         this.piernas=[];
-        [-.17,.17].forEach(x=>{const p=new THREE.Mesh(new THREE.BoxGeometry(.22,.72,.25),pantalon);p.userData.tipo='pantalon';p.position.set(x,.28,0);p.castShadow=true;this.modelo.add(p);this.piernas.push(p);});
-        this.piernas.forEach((p,i)=>{const s=new THREE.Mesh(new THREE.BoxGeometry(.24,.13,.31),zapato);s.userData.tipo='zapato';s.position.set(p.position.x,-.08,.025);s.castShadow=true;this.modelo.add(s);});
+        [-.17,.17].forEach(x=>{const p=new THREE.Mesh(new THREE.BoxGeometry(.22,.72,.25,2,2,2),pantalon);p.userData.tipo='pantalon';p.position.set(x,.28,0);p.castShadow=true;this.modelo.add(p);this.piernas.push(p);});
+        this.piernas.forEach((p,i)=>{const s=new THREE.Mesh(new THREE.BoxGeometry(.24,.13,.31,2,1,2),zapato);s.userData.tipo='zapato';s.position.set(p.position.x,-.08,.025);s.castShadow=true;this.modelo.add(s);});
 
         this.brazos=[];
-        [-.40,.40].forEach(x=>{const b=new THREE.Mesh(new THREE.BoxGeometry(.18,.68,.20),ropa);b.userData.tipo='ropa';b.position.set(x,1.08,0);b.castShadow=true;this.modelo.add(b);this.brazos.push(b);});
+        [-.40,.40].forEach(x=>{const b=new THREE.Mesh(new THREE.BoxGeometry(.18,.68,.20,2,2,2),ropa);b.userData.tipo='ropa';b.position.set(x,1.08,0);b.castShadow=true;this.modelo.add(b);this.brazos.push(b);});
 
-        [-.13,.13].forEach(x=>{const ojo=new THREE.Mesh(new THREE.BoxGeometry(.055,.07,.035),negro);ojo.userData.tipo='ojo';ojo.position.set(x,1.76,.315);this.modelo.add(ojo);});
-        const boca=new THREE.Mesh(new THREE.BoxGeometry(.13,.035,.025),negro); boca.userData.tipo='boca'; boca.position.set(0,1.62,.326); this.modelo.add(boca);
+        [-.13,.13].forEach(x=>{const ojo=new THREE.Mesh(new THREE.BoxGeometry(.055,.07,.035,1,1,1),negro);ojo.userData.tipo='ojo';ojo.position.set(x,1.76,.315);this.modelo.add(ojo);});
+        const boca=new THREE.Mesh(new THREE.BoxGeometry(.13,.035,.025,1,1,1),negro); boca.userData.tipo='boca'; boca.position.set(0,1.62,.326); this.modelo.add(boca);
 
         this.modelo.userData.animacion={piernas:this.piernas,brazos:this.brazos};
         this.modelo.visible=true;
 
-        this.leftHand=new THREE.Mesh(new THREE.BoxGeometry(.13,.22,.13),piel.clone());
-        this.rightHand=new THREE.Mesh(new THREE.BoxGeometry(.13,.22,.13),piel.clone());
+        this.leftHand=new THREE.Mesh(new THREE.BoxGeometry(.13,.22,.13,1,2,1),piel.clone());
+        this.rightHand=new THREE.Mesh(new THREE.BoxGeometry(.13,.22,.13,1,2,1),piel.clone());
         this.leftHand.name='ManoIzquierda'; this.rightHand.name='ManoDerecha';
         this.leftHand.userData.tipo='piel'; this.rightHand.userData.tipo='piel';
         this.leftHand.position.set(-.28,-.20,-.62); this.rightHand.position.set(.28,-.20,-.62);
